@@ -97,6 +97,19 @@ local rarePill = new("TextLabel", {
 	Parent = top,
 }, { corner(19), stroke(3), textStroke(), new("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 5), PaddingBottom = UDim.new(0, 5) }) })
 
+local saveLabel = new("TextLabel", {
+	Name = "SaveStatus",
+	AnchorPoint = Vector2.new(0.5, 0),
+	Position = UDim2.new(0.5, 0, 0, 48),
+	Size = UDim2.fromOffset(small and 200 or 240, small and 18 or 20),
+	BackgroundTransparency = 1,
+	Font = FONT,
+	TextScaled = true,
+	Text = "",
+	TextColor3 = Color3.fromRGB(150, 255, 170),
+	Parent = gui,
+}, { textStroke() })
+
 ----------------------------------------------------------------------------------------------
 -- Wake meter (only while carrying)
 
@@ -819,8 +832,39 @@ end
 
 local stationPos = Vector3.new(0, 0.5, -4)
 
+local function updateSaveStatus(now: number)
+	local mode = player:GetAttribute("SaveMode")
+	if mode == "Loading" then
+		saveLabel.Text = "☁️ loading your save…"
+		saveLabel.TextColor3 = Color3.fromRGB(200, 210, 255)
+		saveLabel.TextTransparency = 0
+	elseif mode == "Session" or mode == "Failed" then
+		saveLabel.Text = "⚠️ progress is not saving"
+		saveLabel.TextColor3 = Color3.fromRGB(255, 190, 90)
+		saveLabel.TextTransparency = 0
+	elseif mode == "Retrying" then
+		saveLabel.Text = "☁️ save failed, retrying…"
+		saveLabel.TextColor3 = Color3.fromRGB(255, 190, 90)
+		saveLabel.TextTransparency = 0
+	elseif mode == "Cloud" then
+		-- brief "saved" flash after each write, then fade out
+		local age = now - (player:GetAttribute("LastSave") or 0)
+		saveLabel.Text = "☁️ progress saved"
+		saveLabel.TextColor3 = Color3.fromRGB(150, 255, 170)
+		saveLabel.TextTransparency = math.clamp((age - 2) / 1, 0, 1)
+	else
+		saveLabel.Text = ""
+	end
+	saveLabel.TextStrokeTransparency = 1
+	local st = saveLabel:FindFirstChildOfClass("UIStroke")
+	if st then
+		st.Transparency = saveLabel.TextTransparency
+	end
+end
+
 local function frame()
 	local now = workspace:GetServerTimeNow()
+	updateSaveStatus(now)
 	-- rare pill
 	if workspace:GetAttribute("RareActive") then
 		rarePill.Text = "⭐ RARE snoring — north stage!"

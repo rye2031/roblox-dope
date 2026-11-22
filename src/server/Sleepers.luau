@@ -294,6 +294,10 @@ function Sleepers.tryGrab(player: Player, id: number): (boolean, string?)
 	if not s or s.state == "Carried" or s.state == "Gone" then
 		return false, "gone"
 	end
+	if not PlayerData.get(player) then
+		toast(player, "Loading your save… one sec", "info")
+		return false, "loading"
+	end
 	if carrying[player] then
 		toast(player, "Hands full! Bank it at the hideout first.", "warn")
 		return false, "hands full"
@@ -472,6 +476,9 @@ local function bank(s: Sleeper, player: Player)
 		end
 	end
 	PlayerData.push(player)
+	if isNew or evolved or rarity == "Rare" then
+		PlayerData.saveSoon(player)
+	end
 	remotes.Reveal:FireClient(player, {
 		species = species,
 		form = form.Id,

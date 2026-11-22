@@ -129,14 +129,24 @@ end
 setVent(false)
 
 local function onPlayer(player: Player)
-	PlayerData.create(player)
 	player.CharacterAdded:Connect(function(char)
 		Sleepers.onCharacter(player, char)
 	end)
 	if player.Character then
 		Sleepers.onCharacter(player, player.Character)
 	end
-	task.defer(PlayerData.push, player)
+	-- loads the saved profile (yields on the DataStore), then sends it to the client
+	task.spawn(function()
+		if PlayerData.join(player) then
+			PlayerData.push(player)
+			local mode = player:GetAttribute("SaveMode")
+			if mode == "Session" then
+				remotes.Toast:FireClient(player, "⚠️ Saving is off here: progress resets when you leave", "warn")
+			elseif mode == "Failed" then
+				remotes.Toast:FireClient(player, "⚠️ Couldn't load your save. This session won't be saved, so rejoin later", "alert")
+			end
+		end
+	end)
 end
 
 Players.PlayerAdded:Connect(onPlayer)
@@ -144,7 +154,7 @@ for _, p in Players:GetPlayers() do
 	onPlayer(p)
 end
 Players.PlayerRemoving:Connect(function(player)
-	PlayerData.remove(player)
+	PlayerData.leave(player)
 end)
 
 -- Debug bridge for Studio MCP playtests (execute_luau runs in a separate Lua state, so it
@@ -210,6 +220,43 @@ if game:GetService("RunService"):IsStudio() then
 			s.part:SetAttribute("ExclusiveId", b)
 			s.part:SetAttribute("ExclusiveUntil", s.exclusiveUntil)
 			return "ok"
+		elseif cmd == "save" then
+			local Persistence = require(script.Parent.Persistence)
+			local p = plr(a)
+			local ok = Persistence.save(p.UserId, PlayerData.serialize(PlayerData.get(p)), false)
+			return tostring(ok)
+		elseif cmd == "peek" then
+			local Persistence = require(script.Parent.Persistence)
+			return HttpService:JSONEncode(Persistence.peek(plr(a).UserId) or {})
+		elseif cmd == "persist" then
+			local Persistence = require(script.Parent.Persistence)
+			return HttpService:JSONEncode({ available = Persistence.available, reason = Persistence.reason, job = Persistence.jobId(), mode = plr(a):GetAttribute("SaveMode") })
+		elseif cmd == "plant" then
+			-- write a raw record (JSON) for player a, e.g. a foreign lock or a corrupt profile
+			local Persistence = require(script.Parent.Persistence)
+			local rec = HttpService:JSONDecode(b)
+			if rec.lock and rec.lock.t == "now" then
+				rec.lock.t = os.time()
+			end
+			Persistence.poke(plr(a).UserId, rec)
+			return "ok"
+		elseif cmd == "rejoin" then
+			-- simulate leaving and joining another server: final save + release, then load again
+			local p = plr(a)
+			PlayerData.leave(p)
+			if b then
+				-- plant a record while "between servers" (after our final save, before the next load)
+				local Persistence = require(script.Parent.Persistence)
+				local rec = HttpService:JSONDecode(b)
+				if rec.lock and rec.lock.t == "now" then
+					rec.lock.t = os.time()
+				end
+				Persistence.poke(p.UserId, rec)
+			end
+			local t0 = os.clock()
+			local ok = PlayerData.join(p) ~= nil
+			PlayerData.push(p)
+			return HttpService:JSONEncode({ ok = ok, seconds = math.floor((os.clock() - t0) * 10) / 10, mode = p:GetAttribute("SaveMode") })
 		elseif cmd == "home" then
 			Sleepers.debug.home(a)
 			return "ok"
