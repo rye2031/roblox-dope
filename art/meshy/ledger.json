@@ -1,0 +1,108 @@
+[
+  {
+    "name": "crab_rangoon",
+    "kind": "image-to-3d",
+    "task_id": "01a20135-287e-7326-8e16-b654bef37dfb",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/crab_rangoon/model.glb",
+      "art/meshy/models/crab_rangoon/thumb.png"
+    ]
+  },
+  {
+    "name": "crocsquatch",
+    "kind": "image-to-3d",
+    "task_id": "01a20135-2d0f-749b-af3c-1485bb6a443e",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/crocsquatch/model.glb",
+      "art/meshy/models/crocsquatch/thumb.png"
+    ]
+  },
+  {
+    "name": "mall_gobstopper",
+    "kind": "image-to-3d",
+    "task_id": "01a20135-31e4-754a-8c84-6b563766c36b",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/mall_gobstopper/model.glb",
+      "art/meshy/models/mall_gobstopper/thumb.png"
+    ]
+  },
+  {
+    "name": "king_rangoon_v2",
+    "kind": "image-to-image",
+    "task_id": "01a20135-403b-7441-84f7-4f322947a169",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/king_rangoon_v2.png"
+    ]
+  },
+  {
+    "name": "prop_rescue_station",
+    "kind": "text-to-image",
+    "task_id": "01a20135-43b2-72d6-a2b5-4df9aa759fec",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/prop_rescue_station.png"
+    ]
+  },
+  {
+    "name": "prop_fountain",
+    "kind": "text-to-image",
+    "task_id": "01a20135-470a-733e-818c-b5accf954b0a",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/prop_fountain.png"
+    ]
+  },
+  {
+    "name": "prop_takeout_bag",
+    "kind": "text-to-image",
+    "task_id": "01a20135-4a77-755f-a61a-32475207a427",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/prop_takeout_bag.png"
+    ]
+  },
+  {
+    "name": "king_rangoon",
+    "kind": "image-to-3d",
+    "task_id": "01a2013a-4d34-7145-b040-23d59421da6b",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/king_rangoon/model.glb",
+      "art/meshy/models/king_rangoon/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_rescue_station",
+    "kind": "image-to-3d",
+    "task_id": "01a2013a-530f-75f5-9d0f-17cfc9d94caa",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/prop_rescue_station/model.glb",
+      "art/meshy/models/prop_rescue_station/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_fountain",
+    "kind": "image-to-3d",
+    "task_id": "01a2013a-57d2-7313-af20-7deffb2ef458",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/prop_fountain/model.glb",
+      "art/meshy/models/prop_fountain/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_takeout_bag",
+    "kind": "image-to-3d",
+    "task_id": "01a2013a-5cfa-7531-875f-a39c51f7b73c",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/prop_takeout_bag/model.glb",
+      "art/meshy/models/prop_takeout_bag/thumb.png"
+    ]
+  }
+]

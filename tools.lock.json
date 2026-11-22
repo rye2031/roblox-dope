@@ -1,0 +1,31 @@
+{
+  "policy": {
+    "minAgeDays": 7,
+    "note": "Every external download this project uses is listed here with an exact version and SHA-256. Nothing is fetched that is not in this file."
+  },
+  "tools": [
+    {
+      "name": "rojo",
+      "version": "7.7.1",
+      "published": "2026-10-02",
+      "source": "https://github.com/rojo-rbx/rojo/releases/tag/v7.7.1",
+      "url": "https://github.com/rojo-rbx/rojo/releases/download/v7.7.1/rojo-7.7.1-macos-aarch64.zip",
+      "sha256": "a702659940f6ca061a62df34aa0002ff024aa264efb859007ba890e9524753a4",
+      "size": 5106943,
+      "platform": "macos-aarch64",
+      "extractTo": "tools/rojo",
+      "executable": "rojo"
+    },
+    {
+      "name": "rojo-studio-plugin",
+      "version": "7.7.1",
+      "published": "2026-10-02",
+      "source": "https://github.com/rojo-rbx/rojo/releases/tag/v7.7.1",
+      "url": "https://github.com/rojo-rbx/rojo/releases/download/v7.7.1/Rojo.rbxm",
+      "sha256": "50a8d83db87deab4d65fd6100eb74396de232355b1ae89c641035d02c49db6f4",
+      "size": 577591,
+      "platform": "any",
+      "saveTo": "tools/plugin/Rojo.rbxm"
+    }
+  ]
+}

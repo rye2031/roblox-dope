@@ -1,0 +1,10 @@
+/tools/
+/build/
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+.DS_Store
+
+# local agent/bridge logs
+*.log
