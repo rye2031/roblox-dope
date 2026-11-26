@@ -48,6 +48,7 @@ Roblox game written as Luau files and synced into Roblox Studio with Rojo.
 - Look: `src/shared/Theme.luau` (Builder Sans, light palette, cards, floating place labels). Use it for every new UI and world label.
 - Wings: the Arcade is behind a paid glass gate; unlocked characters are put in collision group `Pass_<wing>` (wings unlock in order). Each wing has its own rare stage/timer (`RareAt_<wing>` / `RareActive_<wing>` workspace attributes). Route zones carry a `Route` attribute (Vent, BallPit) that evolutions check.
 - Plan and milestones: `docs/roadmap.md`
+- Shelves (B2): `PlayerData` keeps `slots`, `display` (one `{s, f}` per slot, `{}` = empty), `jar` and `lastSeen`. The server ticks income into the jar every 2 s (`Config.displayRate`, `Tuning.Display`); offline time (capped) is added on join for real saves only. Clients draw their own shelves (`src/client/Shelves.luau`, portraits on SurfaceGuis), so every player sees their own displays in the shared hideout. Debug: `jar <name> <amount> <minutesAgo>`, `autofill`, `display`, `collect`.
 
 ## Saving
 

@@ -100,6 +100,17 @@ Config.Tuning = {
 		{ From = "Ticketoad", To = "JackpotTicketoad", Route = "BallPit", RouteName = "the ball pit", Needed = 3 },
 	},
 
+	-- Hideout shelves: displayed creatures earn coins into the tip jar, also while offline.
+	Display = {
+		BaseRatePerMin = 1.5, -- a Normal Food Court creature
+		EvolvedMult = 2.5, -- evolved species (King Rangoon, Jackpot Ticketoad)
+		StartSlots = 3,
+		SlotCosts = { 100, 250, 500, 1000, 2000, 4000, 8000 }, -- slots 4..10
+		JarCapMinutes = 120, -- the jar stops filling at this many minutes of income
+		OfflineCapMinutes = 120, -- most offline time that counts
+		MinJarCap = 60,
+	},
+
 	VentOpenTime = 8, -- seconds the vent door stays open
 	-- Evolved buddies add a coin bonus to every rescue.
 	BuddyCoinBonus = { KingRangoon = 0.1, JackpotTicketoad = 0.15 },
@@ -150,6 +161,23 @@ function Config.speeds(sneakers: number, hands: number)
 		carryWalk = T.CarryWalkSpeed + hands * h.CarryWalkPerLevel,
 		carrySprint = T.CarrySprintSpeed + hands * h.CarrySprintPerLevel,
 	}
+end
+
+-- Coins per minute for one displayed creature. sp is a Creatures.Species entry.
+function Config.displayRate(sp: any, formId: string): number
+	local D = Config.Tuning.Display
+	local formMult = 1
+	for _, f in Config.Tuning.Forms do
+		if f.Id == formId then
+			formMult = f.CoinMult
+		end
+	end
+	local wing = Config.Wings[sp.Wing or "FoodCourt"]
+	return D.BaseRatePerMin * wing.CoinMult * formMult * (sp.EvolvesFrom and D.EvolvedMult or 1)
+end
+
+function Config.maxSlots(): number
+	return Config.Tuning.Display.StartSlots + #Config.Tuning.Display.SlotCosts
 end
 
 function Config.evolutionTo(to: string)

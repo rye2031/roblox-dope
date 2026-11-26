@@ -19,6 +19,10 @@ export type Profile = {
 	evo: { [string]: number }, -- evolution progress by target species
 	buddy: string?,
 	rescues: number,
+	slots: number, -- unlocked shelf slots
+	display: { { s: string?, f: string? } }, -- one entry per slot; {} = empty
+	jar: number, -- uncollected shelf income (fractional)
+	lastSeen: number, -- os.time() of the last save, for offline earnings
 }
 
 type Meta = {
@@ -43,6 +47,10 @@ local function defaults(): Profile
 		evo = {},
 		buddy = nil,
 		rescues = 0,
+		slots = Config.Tuning.Display.StartSlots,
+		display = {},
+		jar = 0,
+		lastSeen = 0,
 	}
 end
 
@@ -118,7 +126,40 @@ function PlayerData.sanitize(raw: any): Profile
 	if typeof(raw.buddy) == "string" and p.collection[raw.buddy] then
 		p.buddy = raw.buddy
 	end
+	p.slots = math.clamp(int(raw.slots, Config.Tuning.Display.StartSlots), Config.Tuning.Display.StartSlots, Config.maxSlots())
+	p.jar = math.max(0, if typeof(raw.jar) == "number" and raw.jar == raw.jar then raw.jar else 0)
+	p.lastSeen = int(raw.lastSeen, 0)
+	-- shelves: keep only creatures the player owns in that form, never more than they own
+	local used = {}
+	for i = 1, p.slots do
+		local e = typeof(raw.display) == "table" and raw.display[i]
+		local sp, form = typeof(e) == "table" and e.s, typeof(e) == "table" and e.f
+		local entry = typeof(sp) == "string" and p.collection[sp]
+		if entry and typeof(form) == "string" and entry.forms[form] and (used[sp] or 0) < entry.count then
+			used[sp] = (used[sp] or 0) + 1
+			p.display[i] = { s = sp, f = form }
+		else
+			p.display[i] = {}
+		end
+	end
 	return p
+end
+
+-- Coins per minute from everything on the shelves.
+function PlayerData.incomeRate(p: Profile): number
+	local rate = 0
+	for i = 1, p.slots do
+		local e = p.display[i]
+		if e and e.s then
+			rate += Config.displayRate(Creatures.Species[e.s], e.f)
+		end
+	end
+	return rate
+end
+
+function PlayerData.jarCap(p: Profile): number
+	local D = Config.Tuning.Display
+	return math.max(D.MinJarCap, PlayerData.incomeRate(p) * D.JarCapMinutes)
 end
 
 -- Plain copy for the DataStore (only the fields we own).
@@ -145,6 +186,11 @@ function PlayerData.serialize(p: Profile)
 	for k, v in p.evo do
 		evo[k] = v
 	end
+	local display = {}
+	for i = 1, p.slots do
+		local e = p.display[i]
+		display[i] = (e and e.s) and { s = e.s, f = e.f } or {}
+	end
 	return {
 		coins = p.coins,
 		collection = collection,
@@ -154,6 +200,10 @@ function PlayerData.serialize(p: Profile)
 		evo = evo,
 		buddy = p.buddy,
 		rescues = p.rescues,
+		slots = p.slots,
+		display = display,
+		jar = math.floor(p.jar * 100) / 100,
+		lastSeen = os.time(),
 	}
 end
 
@@ -265,6 +315,18 @@ function PlayerData.join(player: Player): Profile?
 		return nil
 	end
 	local p = PlayerData.sanitize(data)
+	-- offline shelf income (only for real saves: a fresh or failed load has no lastSeen)
+	if cloud and p.lastSeen > 0 then
+		local D = Config.Tuning.Display
+		local minutes = math.clamp((os.time() - p.lastSeen) / 60, 0, D.OfflineCapMinutes)
+		local before = p.jar
+		p.jar = math.min(PlayerData.jarCap(p), p.jar + PlayerData.incomeRate(p) * minutes)
+		local earned = math.floor(p.jar - before)
+		if earned >= 1 then
+			player:SetAttribute("OfflineEarned", earned)
+			player:SetAttribute("OfflineMinutes", math.floor(minutes))
+		end
+	end
 	profiles[player] = p
 	meta[player] = { cloud = cloud, dirty = false, saveQueued = false, leaving = false }
 	makeLeaderstats(player)
@@ -329,6 +391,8 @@ function PlayerData.push(player: Player)
 		end
 	end
 	player:SetAttribute("PassWing", top)
+	player:SetAttribute("IncomeRate", PlayerData.incomeRate(p))
+	player:SetAttribute("Jar", math.floor(p.jar))
 	if PlayerData.onPush then
 		PlayerData.onPush(player)
 	end
@@ -370,6 +434,22 @@ function PlayerData.buy(player: Player, item: string): (boolean, string)
 		PlayerData.saveSoon(player)
 		return true, `{track.Name} level {lvl + 1}!`
 	end
+	if item == "ShelfSlot" then
+		local idx = p.slots - Config.Tuning.Display.StartSlots + 1
+		local price = Config.Tuning.Display.SlotCosts[idx]
+		if not price then
+			return false, "All shelves are unlocked"
+		end
+		if p.coins < price then
+			return false, `Need {price - p.coins} more coins`
+		end
+		p.coins -= price
+		p.slots += 1
+		p.display[p.slots] = {}
+		PlayerData.push(player)
+		PlayerData.saveSoon(player)
+		return true, `Shelf {p.slots} unlocked!`
+	end
 	local wing = Config.Wings[item]
 	if wing then
 		if p.wings[item] then
@@ -404,6 +484,116 @@ function PlayerData.buy(player: Player, item: string): (boolean, string)
 	PlayerData.push(player)
 	PlayerData.saveSoon(player)
 	return true, `{def.Name} equipped!`
+end
+
+-- Shelves ---------------------------------------------------------------------------------
+
+local function displayedCount(p: Profile, species: string, except: number?): number
+	local n = 0
+	for i = 1, p.slots do
+		local e = p.display[i]
+		if i ~= except and e and e.s == species then
+			n += 1
+		end
+	end
+	return n
+end
+
+-- Put a creature (species + form) on a shelf slot, or clear it (species nil).
+function PlayerData.setDisplay(player: Player, slot: number, species: string?, form: string?): (boolean, string)
+	local p = profiles[player]
+	if not p or typeof(slot) ~= "number" or slot ~= slot or slot < 1 or slot > p.slots or slot % 1 ~= 0 then
+		return false, "That shelf isn't yours yet"
+	end
+	if species == nil then
+		p.display[slot] = {}
+		PlayerData.push(player)
+		return true, "Shelf cleared"
+	end
+	local entry = typeof(species) == "string" and p.collection[species]
+	if not entry or typeof(form) ~= "string" or not entry.forms[form] then
+		return false, "You haven't rescued that one yet"
+	end
+	if displayedCount(p, species, slot) >= entry.count then
+		return false, `All your {Creatures.Species[species].Name}s are already on shelves`
+	end
+	p.display[slot] = { s = species, f = form }
+	PlayerData.push(player)
+	PlayerData.saveSoon(player)
+	return true, `{Creatures.Species[species].Name} is on display`
+end
+
+-- Fill every slot with the best-earning creatures the player owns.
+function PlayerData.autoFill(player: Player): (boolean, string)
+	local p = profiles[player]
+	if not p then
+		return false, "No profile"
+	end
+	-- each copy of a species can show its best owned form (forms are per species, not per copy)
+	local options = {}
+	for id, entry in p.collection do
+		local sp = Creatures.Species[id]
+		local best, bestRate = nil, -1
+		for form in entry.forms do
+			local r = Config.displayRate(sp, form)
+			if r > bestRate then
+				best, bestRate = form, r
+			end
+		end
+		if best then
+			for _ = 1, entry.count do
+				table.insert(options, { s = id, f = best, r = bestRate })
+			end
+		end
+	end
+	table.sort(options, function(a, b)
+		return a.r > b.r
+	end)
+	for i = 1, p.slots do
+		local o = options[i]
+		p.display[i] = o and { s = o.s, f = o.f } or {}
+	end
+	PlayerData.push(player)
+	PlayerData.saveSoon(player)
+	return true, string.format("Shelves filled: %s coins a minute", PlayerData.fmtRate(PlayerData.incomeRate(p)))
+end
+
+function PlayerData.fmtRate(r: number): string
+	return r >= 10 and tostring(math.floor(r + 0.5)) or string.format("%.1f", r)
+end
+
+-- Move the tip jar into coins.
+function PlayerData.collect(player: Player): (boolean, string, number)
+	local p = profiles[player]
+	if not p then
+		return false, "No profile", 0
+	end
+	local n = math.floor(p.jar)
+	if n < 1 then
+		return false, "The tip jar is empty", 0
+	end
+	p.jar -= n
+	p.coins += n
+	PlayerData.push(player)
+	PlayerData.saveSoon(player)
+	return true, `+{n} coins from your shelves`, n
+end
+
+-- Called every few seconds by the server: shelves earn into the jar.
+function PlayerData.tick(dt: number)
+	for player, p in profiles do
+		local rate = PlayerData.incomeRate(p)
+		if rate > 0 then
+			p.jar = math.min(PlayerData.jarCap(p), p.jar + rate * dt / 60)
+			local m = meta[player]
+			if m then
+				m.dirty = true
+			end
+		end
+		player:SetAttribute("Jar", math.floor(p.jar))
+		player:SetAttribute("JarFull", p.jar >= PlayerData.jarCap(p) - 0.5)
+		player:SetAttribute("IncomeRate", rate)
+	end
 end
 
 function PlayerData.equip(player: Player, species: string?): (boolean, string)

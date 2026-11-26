@@ -7,10 +7,12 @@ local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 local CreatureView = require(script.Parent.CreatureView)
 local WorldFx = require(script.Parent.WorldFx)
 local Hud = require(script.Parent.Hud)
+local Shelves = require(script.Parent.Shelves)
 
 WorldFx.start()
 CreatureView.start()
 Hud.start()
+task.spawn(Shelves.start)
 
 Remotes.Fx.OnClientEvent:Connect(function(kind, pos, a, b, c)
 	WorldFx.onFx(kind, pos, a, b, c)

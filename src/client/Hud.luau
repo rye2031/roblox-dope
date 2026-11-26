@@ -308,6 +308,9 @@ local function openPanel(name: string?)
 	for n, p in panels do
 		p.Visible = n == name
 	end
+	if Hud.onOpen then
+		Hud.onOpen(name)
+	end
 	if name then
 		Hud.refresh()
 		CreatureView.playUi("rbxasset://sounds/electronicpingshort.wav", 0.3, 1.3)
@@ -358,6 +361,9 @@ local function railButton(name: string, label: string, glyph: string, order: num
 end
 local shopBtn, shopBadge = railButton("ShopButton", "Shop", "$", 1, C.Peach, "Shop")
 local collectionBtn, newBadge = railButton("CollectionButton", "Index", "★", 2, C.Lilac, "Collection")
+local shelves, shelvesBody, shelvesSub = panel("Shelves", "Shelves", "Creatures on display earn coins", C.Mint, "🏆")
+local shelvesBtn, shelvesBadge = railButton("ShelvesButton", "Shelves", "🏆", 3, C.Mint, "Shelves")
+rail.Size = UDim2.fromOffset(px(66), px(260))
 
 ----------------------------------------------------------------------------------------------
 -- Shop rows
@@ -513,6 +519,213 @@ do
 			end
 		end
 	end
+end
+
+----------------------------------------------------------------------------------------------
+-- Shelves panel: tip jar, fill-best, slot cards, picker
+
+local D = T.Display
+local function fmtRate(r: number): string
+	return r >= 10 and tostring(math.floor(r + 0.5)) or string.format("%.1f", r)
+end
+
+local shelfSlots = {}
+local pickerSlot: number? = nil
+local jarText, collectBtn, fillBtn
+local picker, pickerList, pickerTitle
+do
+	-- summary row
+	local top = new("Frame", { Name = "JarRow", LayoutOrder = 1, Size = UDim2.new(1, 0, 0, px(78)), BackgroundColor3 = Theme.tint(C.Sun, 0.8), ZIndex = 12, Parent = shelvesBody }, { corner(16) })
+	dot(top, C.Sun, "$", px(48), UDim2.new(0, 14, 0.5, 0)).ZIndex = 13
+	text({ Position = UDim2.fromOffset(px(74), px(12)), Size = UDim2.new(1, -px(330), 0, px(22)), TextScaled = false, TextSize = px(19), TextXAlignment = Enum.TextXAlignment.Left, Text = "Tip jar", ZIndex = 13, Parent = top }, "Title")
+	jarText = text({ Position = UDim2.fromOffset(px(74), px(38)), Size = UDim2.new(1, -px(330), 0, px(30)), TextScaled = false, TextSize = px(14), TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, TextColor3 = C.Sub, Text = "", ZIndex = 13, Parent = top }, "Bold")
+	collectBtn = button({ Name = "Collect", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -14, 0.5, 0), Size = UDim2.fromOffset(px(128), px(44)), BackgroundColor3 = C.Sun, TextScaled = false, TextSize = px(17), Text = "Collect", ZIndex = 13, Parent = top, Radius = 22 })
+	fillBtn = button({ Name = "FillBest", AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -px(150), 0.5, 0), Size = UDim2.fromOffset(px(128), px(44)), BackgroundColor3 = C.Mint, TextScaled = false, TextSize = px(17), Text = "Fill best", ZIndex = 13, Parent = top, Radius = 22 })
+	collectBtn.Activated:Connect(function()
+		local ok, msg = Remotes.Collect:InvokeServer()
+		Hud.toast(msg, ok and "good" or "info")
+		if ok then
+			CreatureView.playUi(CreatureView.SOUNDS.Pop, 0.6, 1.6)
+		end
+	end)
+	fillBtn.Activated:Connect(function()
+		local ok, msg = Remotes.AutoFill:InvokeServer()
+		Hud.toast(msg, ok and "good" or "warn")
+	end)
+
+	local grid = new("Frame", { Name = "Slots", LayoutOrder = 2, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, ZIndex = 12, Parent = shelvesBody }, {
+		new("UIGridLayout", { CellSize = UDim2.new(0.2, -8, 0, px(150)), CellPadding = UDim2.fromOffset(10, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	for i = 1, Config.maxSlots() do
+		local c = button({ Name = "Slot_" .. i, LayoutOrder = i, BackgroundColor3 = C.Soft, Text = "", ZIndex = 12, Parent = grid, Radius = 16 })
+		local img = new("ImageLabel", { Name = "Portrait", Position = UDim2.fromOffset(8, px(6)), Size = UDim2.new(1, -16, 0, px(84)), BackgroundTransparency = 1, ScaleType = Enum.ScaleType.Fit, ZIndex = 13, Parent = c })
+		local big = text({ Name = "Big", Position = UDim2.fromOffset(0, px(20)), Size = UDim2.new(1, 0, 0, px(44)), TextScaled = false, TextSize = px(34), TextColor3 = C.Mute, Text = "+", ZIndex = 13, Parent = c }, "Title")
+		local name = text({ Name = "Name", Position = UDim2.new(0, 6, 0, px(94)), Size = UDim2.new(1, -12, 0, px(18)), TextScaled = false, TextSize = px(14), TextTruncate = Enum.TextTruncate.AtEnd, Text = "", ZIndex = 13, Parent = c }, "Title")
+		local info = text({ Name = "Info", Position = UDim2.new(0, 6, 0, px(114)), Size = UDim2.new(1, -12, 0, px(28)), TextScaled = false, TextSize = px(13), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, TextColor3 = C.Sub, Text = "", ZIndex = 13, Parent = c }, "Bold")
+		c.Activated:Connect(function()
+			if not profile then
+				return
+			end
+			if i <= profile.slots then
+				Hud.openPicker(i)
+			elseif i == profile.slots + 1 then
+				local ok, msg = Remotes.Buy:InvokeServer("ShelfSlot")
+				Hud.toast(msg, ok and "good" or "warn")
+			end
+		end)
+		shelfSlots[i] = { btn = c, img = img, big = big, name = name, info = info }
+	end
+
+	-- picker overlay (inside the panel)
+	picker = new("Frame", { Name = "Picker", Position = UDim2.fromOffset(0, 0), Size = UDim2.fromScale(1, 1), BackgroundColor3 = C.Card, Visible = false, ZIndex = 30, Parent = shelves }, { corner(24) })
+	pickerTitle = text({ Position = UDim2.fromOffset(px(22), 18), Size = UDim2.new(1, -150, 0, px(26)), TextScaled = false, TextSize = px(22), TextXAlignment = Enum.TextXAlignment.Left, Text = "Choose a creature", ZIndex = 31, Parent = picker }, "Title")
+	local back = button({ Name = "Back", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -16, 0, 16), Size = UDim2.fromOffset(px(90), px(38)), BackgroundColor3 = C.Soft, TextColor3 = C.Sub, TextScaled = false, TextSize = px(16), Text = "Back", ZIndex = 31, Parent = picker, Radius = 19 })
+	back.Activated:Connect(function()
+		picker.Visible = false
+	end)
+	pickerList = new("ScrollingFrame", { Name = "List", BackgroundTransparency = 1, Position = UDim2.fromOffset(16, px(64)), Size = UDim2.new(1, -32, 1, -px(64) - 16), CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.Y, ScrollBarThickness = 4, ScrollBarImageColor3 = C.Mute, BorderSizePixel = 0, ZIndex = 31, Parent = picker }, {
+		new("UIGridLayout", { CellSize = UDim2.new(0.25, -8, 0, px(150)), CellPadding = UDim2.fromOffset(10, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
+		pad(2, 2, 8, 6),
+	})
+end
+
+Hud.onOpen = function()
+	picker.Visible = false
+end
+
+local function displayedCount(species: string, except: number?): number
+	local n = 0
+	for i = 1, profile.slots do
+		local e = profile.display[i]
+		if i ~= except and e and e.s == species then
+			n += 1
+		end
+	end
+	return n
+end
+
+function Hud.openPicker(slot: number)
+	pickerSlot = slot
+	for _, c in pickerList:GetChildren() do
+		if c:IsA("GuiObject") then
+			c:Destroy()
+		end
+	end
+	pickerTitle.Text = "Shelf " .. slot .. ": choose a creature"
+	local options = {}
+	for id, entry in profile.collection do
+		local sp = Creatures.Species[id]
+		local free = entry.count - displayedCount(id, slot)
+		for _, f in T.Forms do
+			if entry.forms[f.Id] then
+				table.insert(options, { s = id, f = f.Id, r = Config.displayRate(sp, f.Id), free = free })
+			end
+		end
+	end
+	table.sort(options, function(a, b)
+		return a.r > b.r
+	end)
+	local cur = profile.display[slot]
+	local order = 0
+	local function option(label: string, sub: string, species: string?, form: string?, enabled: boolean)
+		order += 1
+		local c = button({ LayoutOrder = order, BackgroundColor3 = enabled and C.Soft or Theme.tint(C.Line, 0.4), Text = "", ZIndex = 32, Parent = pickerList, Radius = 16 })
+		if species then
+			local img = new("ImageLabel", { Position = UDim2.fromOffset(8, px(6)), Size = UDim2.new(1, -16, 0, px(84)), BackgroundTransparency = 1, ScaleType = Enum.ScaleType.Fit, ZIndex = 33, Parent = c })
+			Portraits.apply(img, species)
+			if form == "Glazed" then
+				img.ImageColor3 = Color3.fromRGB(255, 245, 200)
+			end
+			img.ImageTransparency = enabled and 0 or 0.6
+		else
+			text({ Position = UDim2.fromOffset(0, px(24)), Size = UDim2.new(1, 0, 0, px(40)), TextScaled = false, TextSize = px(30), TextColor3 = C.Mute, Text = "–", ZIndex = 33, Parent = c }, "Title")
+		end
+		text({ Position = UDim2.new(0, 6, 0, px(94)), Size = UDim2.new(1, -12, 0, px(18)), TextScaled = false, TextSize = px(14), TextTruncate = Enum.TextTruncate.AtEnd, Text = label, ZIndex = 33, Parent = c }, "Title")
+		text({ Position = UDim2.new(0, 6, 0, px(114)), Size = UDim2.new(1, -12, 0, px(28)), TextScaled = false, TextSize = px(13), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, TextColor3 = C.Sub, Text = sub, ZIndex = 33, Parent = c }, "Bold")
+		c.Activated:Connect(function()
+			if not enabled then
+				return
+			end
+			local ok, msg = Remotes.Display:InvokeServer(slot, species, form)
+			Hud.toast(msg, ok and "good" or "warn")
+			if ok then
+				picker.Visible = false
+			end
+		end)
+	end
+	if cur and cur.s then
+		option("Empty shelf", "take it down", nil, nil, true)
+	end
+	for _, o in options do
+		local sp = Creatures.Species[o.s]
+		local isCur = cur and cur.s == o.s and cur.f == o.f
+		local enabled = not isCur and o.free > 0
+		local sub = string.format("%s / min", fmtRate(o.r))
+		if isCur then
+			sub = "on this shelf"
+		elseif o.free <= 0 then
+			sub = "all on shelves"
+		end
+		option((o.f ~= "Normal" and (o.f .. " ") or "") .. sp.Name, sub, o.s, o.f, enabled)
+	end
+	if #options == 0 then
+		option("Nothing yet", "rescue a creature first", nil, nil, false)
+	end
+	picker.Visible = true
+end
+
+local function refreshShelves()
+	if not profile then
+		return
+	end
+	local rate = 0
+	for i, sl in shelfSlots do
+		local e = profile.display[i]
+		sl.btn.Visible = i <= profile.slots + 1
+		sl.img.Visible = false
+		sl.big.Visible = false
+		sl.btn.BackgroundColor3 = C.Soft
+		if i <= profile.slots and e and e.s then
+			local sp = Creatures.Species[e.s]
+			local r = Config.displayRate(sp, e.f)
+			rate += r
+			Portraits.apply(sl.img, e.s)
+			sl.img.ImageColor3 = e.f == "Glazed" and Color3.fromRGB(255, 245, 200) or Color3.new(1, 1, 1)
+			sl.img.Visible = true
+			sl.name.Text = (e.f ~= "Normal" and (e.f .. " ") or "") .. sp.Name
+			sl.info.Text = fmtRate(r) .. " / min"
+		elseif i <= profile.slots then
+			sl.big.Visible = true
+			sl.big.Text = "+"
+			sl.name.Text = "Empty"
+			sl.info.Text = "tap to fill"
+		else
+			local price = D.SlotCosts[i - D.StartSlots]
+			sl.big.Visible = true
+			sl.big.Text = "🔒"
+			sl.name.Text = "Shelf " .. i
+			sl.info.Text = price and ("unlock $ " .. fmt(price)) or ""
+			sl.btn.BackgroundColor3 = (price and profile.coins >= price) and Theme.tint(C.Mint, 0.75) or Theme.tint(C.Line, 0.5)
+		end
+	end
+	shelvesSub.Text = string.format("%s coins a minute · %d/%d shelves", fmtRate(rate), profile.slots, Config.maxSlots())
+	if picker.Visible and pickerSlot then
+		Hud.openPicker(pickerSlot)
+	end
+end
+
+local function updateJarText()
+	local jar = player:GetAttribute("Jar") or 0
+	local rate = player:GetAttribute("IncomeRate") or 0
+	if rate <= 0 then
+		jarText.Text = "Put creatures on your shelves and they earn coins here, even while you're away"
+	elseif player:GetAttribute("JarFull") then
+		jarText.Text = string.format("%s coins · full! Collect to keep earning", fmt(jar))
+	else
+		jarText.Text = string.format("%s coins · filling at %s a minute", fmt(jar), fmtRate(rate))
+	end
+	collectBtn.BackgroundColor3 = jar >= 1 and C.Sun or C.Line
+	collectBtn.TextColor3 = jar >= 1 and Color3.new(1, 1, 1) or C.Sub
 end
 
 ----------------------------------------------------------------------------------------------
@@ -870,6 +1083,7 @@ function Hud.refresh()
 		end
 	end
 	shopBadge.Visible = anyAfford
+	refreshShelves()
 	if collection.Visible then
 		newBadge.Visible = false
 	end
@@ -986,6 +1200,8 @@ end
 
 local function frame()
 	local now = workspace:GetServerTimeNow()
+	updateJarText()
+	shelvesBadge.Visible = (player:GetAttribute("Jar") or 0) >= 10 or ((player:GetAttribute("IncomeRate") or 0) <= 0 and profile ~= nil and next(profile.collection) ~= nil)
 	updateSaveStatus(now)
 	updateRare(now)
 	local part = carriedPart()
@@ -1023,7 +1239,17 @@ local function frame()
 		end
 		if here ~= onPad then
 			onPad = here
-			if here then
+			if here == "Jar" then
+				task.spawn(function()
+					local ok, msg = Remotes.Collect:InvokeServer()
+					if ok then
+						Hud.toast(msg, "good")
+						CreatureView.playUi(CreatureView.SOUNDS.Pop, 0.6, 1.6)
+					elseif (player:GetAttribute("IncomeRate") or 0) <= 0 then
+						Hud.toast("Put creatures on your shelves to fill the tip jar", "info")
+					end
+				end)
+			elseif here then
 				openPanel(here == "Shop" and "Shop" or "Collection")
 			end
 		end
@@ -1047,7 +1273,11 @@ local function frame()
 		end
 	elseif profile then
 		local tracks = profile.tracks
-		if (tracks.Sneakers or 0) == 0 and profile.coins >= T.Tracks.Sneakers.Costs[1] then
+		if (player:GetAttribute("Jar") or 0) >= 25 and rescues >= 1 then
+			msg, color = string.format("Your tip jar has %s coins! Step on it in the hideout", fmt(player:GetAttribute("Jar"))), C.Sun
+		elseif (player:GetAttribute("IncomeRate") or 0) <= 0 and next(profile.collection) ~= nil then
+			msg, color = "Put creatures on your Shelves: they earn coins, even while you're away", C.Mint
+		elseif (tracks.Sneakers or 0) == 0 and profile.coins >= T.Tracks.Sneakers.Costs[1] then
 			msg, color = "You can afford Sneakers! Open the Shop to run faster", C.Peach
 		elseif not profile.upgrades.PaddedShoes and profile.coins >= T.Shop.PaddedShoes.Price then
 			msg, color = "Padded Shoes are in the Shop: quieter running while carrying", C.Peach
@@ -1096,6 +1326,15 @@ function Hud.start()
 	for _, k in { "Shop", "Index" } do
 		local kiosk = hideout:WaitForChild(k .. "Kiosk")
 		padParts[k] = kiosk:WaitForChild(k .. "Pad")
+	end
+	local shelfFolder = hideout:WaitForChild("Shelves")
+	padParts.Jar = shelfFolder:WaitForChild("JarPad")
+	for _, d in shelfFolder:GetDescendants() do
+		if d:IsA("ProximityPrompt") and d.Name == "ShelfPrompt" then
+			d.Triggered:Connect(function()
+				openPanel("Shelves")
+			end)
+		end
 	end
 	RunService.RenderStepped:Connect(frame)
 	player.CharacterAdded:Connect(function()

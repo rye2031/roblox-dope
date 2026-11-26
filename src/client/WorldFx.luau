@@ -312,6 +312,9 @@ function WorldFx.onFx(kind: string, pos: Vector3, a, b, c)
 		bankPop(pos, a)
 	elseif kind == "Poof" or kind == "Drop" then
 		burst(pos, Color3.fromRGB(230, 230, 230), 16, 6)
+	elseif kind == "Collect" then
+		local p = burst(pos + Vector3.new(0, 4, 0), Theme.C.Sun, math.clamp(math.floor((a or 10) / 4), 10, 60), 14)
+		CreatureView.playAt(p, "rbxasset://sounds/electronicpingshort.wav", 0.5, 1.4)
 	elseif kind == "Unlock" then
 		local p = burst(pos + Vector3.new(0, 4, 0), Theme.C.Lilac, 60, 22)
 		burst(pos + Vector3.new(0, 4, 0), Theme.C.Sun, 30, 16)

@@ -51,6 +51,7 @@ Map.Points = {
 	VentSouth = Vector3.new((VENT_X0 + VENT_X1) / 2, 0, BLOCK_Z0),
 	VentNorth = Vector3.new((VENT_X0 + VENT_X1) / 2, 0, BLOCK_Z1),
 	ShopPad = Vector3.new(16, 0, -5),
+	Jar = Vector3.new(9, 0, 2),
 	IndexPad = Vector3.new(-16, 0, -5),
 	ArcadeGate = Vector3.new(HALL_X + 1, 0, (GATE_Z0 + GATE_Z1) / 2),
 	RareStages = {
@@ -150,6 +151,7 @@ local TC = Theme.C
 local root: Folder
 local zones: Folder
 local labels: Folder
+local buildShelves
 
 local function part(props: { [string]: any }, parent: Instance?): BasePart
 	local className = props.ClassName or "Part"
@@ -416,6 +418,73 @@ local function kiosk(name: string, x: number, z: number, accent: Color3, text: s
 	float(name, Vector3.new(x, 15, z), text, accent, 9, { Icon = icon, Sub = "step on the pad", Height = 2.6 })
 end
 
+-- Display shelves along the hideout's side walls + the tip jar. The stands are shared
+-- geometry; each client draws its own creatures on them (portraits, so no mesh slots).
+buildShelves = function(parent: Instance)
+	local f = Instance.new("Folder")
+	f.Name = "Shelves"
+	f.Parent = parent
+	local n = Config.maxSlots()
+	local perSide = math.ceil(n / 2)
+	for i = 1, n do
+		local west = i <= perSide
+		local k = (i - 1) % perSide
+		local x = west and -20.2 or 20.2
+		local z = -8.3 + k * 3.1
+		local stand = box("ShelfStand" .. i, x - 1.1, 0, z - 1.2, x + 1.1, 1.5, z + 1.2, Color3.new(1, 1, 1), nil, f)
+		decor(box("ShelfTrim" .. i, x - 1.15, 1.2, z - 1.25, x + 1.15, 1.5, z + 1.25, TC.Mint, nil, f))
+		local pos = Vector3.new(x, 3.2, z)
+		local frame = part({
+			Name = "ShelfFrame",
+			Size = Vector3.new(2.3, 3.2, 0.25),
+			CFrame = CFrame.lookAt(pos, pos + Vector3.new(west and 1 or -1, 0, 0)),
+			Color = Color3.new(1, 1, 1),
+			Material = Enum.Material.SmoothPlastic,
+			CanCollide = false,
+		}, f)
+		frame:SetAttribute("Shelf", i)
+		stand:SetAttribute("ShelfStand", i)
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "ShelfPrompt"
+		prompt.ActionText = "Shelves"
+		prompt.ObjectText = "Display"
+		prompt.HoldDuration = 0
+		prompt.MaxActivationDistance = 7
+		prompt.RequiresLineOfSight = false
+		prompt.Parent = stand
+	end
+	float("ShelvesW", Vector3.new(-19, 11, -1.3), "SHELVES", TC.Mint, 8, { Icon = "🏆", Sub = "creatures here earn coins", Height = 2.4 })
+	float("ShelvesE", Vector3.new(19, 11, -1.3), "SHELVES", TC.Mint, 8, { Icon = "🏆", Sub = "creatures here earn coins", Height = 2.4 })
+
+	-- tip jar
+	local jp = Map.Points.Jar
+	local jar = part({
+		Name = "TipJar",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(4, 3.2, 3.2),
+		CFrame = CFrame.new(jp + Vector3.new(0, 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = Color3.fromRGB(220, 240, 255),
+		Material = Enum.Material.Glass,
+		Transparency = 0.45,
+	}, f)
+	jar:SetAttribute("TipJar", true)
+	decor(part({ Name = "JarLid", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.5, 3.4, 3.4), CFrame = CFrame.new(jp + Vector3.new(0, 4.2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = TC.Sun }, f))
+	local fill = decor(part({ Name = "JarFill", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.2, 2.8, 2.8), CFrame = CFrame.new(jp + Vector3.new(0, 0.2, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = TC.Sun, Material = Enum.Material.SmoothPlastic }, f))
+	fill:SetAttribute("JarFill", true)
+	local pad = part({
+		Name = "JarPad",
+		Shape = Enum.PartType.Cylinder,
+		Size = Vector3.new(0.3, 7, 7),
+		CFrame = CFrame.new(jp + Vector3.new(0, 0.15, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color = TC.Sun,
+		Material = Enum.Material.Neon,
+		CanCollide = false,
+		CanQuery = false,
+	}, f)
+	pad:SetAttribute("Pad", "Jar")
+	float("Jar", jp + Vector3.new(0, 8.5, 0), "TIP JAR", TC.Sun, 8, { Icon = "$", Sub = "step here to collect", Height = 2.4 })
+end
+
 local function buildHideout()
 	local f = Instance.new("Folder")
 	f.Name = "Hideout"
@@ -469,6 +538,7 @@ local function buildHideout()
 		local s = 3.5 + (i % 2)
 		box("Box", p.X - s / 2, p.Y, p.Z - s / 2, p.X + s / 2, p.Y + s, p.Z + s / 2, C.Cardboard, Enum.Material.Cardboard, f)
 	end
+	buildShelves(f)
 	zone("Hideout", -22, HALL_Z0, 22, 6)
 end
 

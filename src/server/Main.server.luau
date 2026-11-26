@@ -28,7 +28,7 @@ for _, n in { "Sprint", "Profile", "Reveal", "Toast", "Fx" } do
 	r.Parent = remoteFolder
 	remotes[n] = r
 end
-for _, n in { "Buy", "Equip", "GetProfile" } do
+for _, n in { "Buy", "Equip", "GetProfile", "Display", "AutoFill", "Collect" } do
 	local r = Instance.new("RemoteFunction")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -57,6 +57,30 @@ end
 remotes.GetProfile.OnServerInvoke = function(player)
 	return PlayerData.get(player)
 end
+
+-- Hideout shelves + tip jar
+remotes.Display.OnServerInvoke = function(player, slot, species, form)
+	return PlayerData.setDisplay(player, slot, species, form)
+end
+remotes.AutoFill.OnServerInvoke = function(player)
+	return PlayerData.autoFill(player)
+end
+remotes.Collect.OnServerInvoke = function(player)
+	local ok, msg, n = PlayerData.collect(player)
+	if ok then
+		remotes.Fx:FireAllClients("Collect", Map.Points.Jar, n, player.UserId)
+	end
+	return ok, msg
+end
+task.spawn(function()
+	local last = os.clock()
+	while true do
+		task.wait(2)
+		local now = os.clock()
+		PlayerData.tick(now - last)
+		last = now
+	end
+end)
 
 -- Vent doors: a Crab Rangoon (or King Rangoon) buddy pries both open for a few seconds.
 local ventDoors = {}
@@ -183,6 +207,13 @@ local function onPlayer(player: Player)
 		if PlayerData.join(player) then
 			PlayerData.push(player)
 			local mode = player:GetAttribute("SaveMode")
+			local earned = player:GetAttribute("OfflineEarned")
+			if earned then
+				local mins = player:GetAttribute("OfflineMinutes") or 0
+				local away = mins >= 60 and string.format("%dh %02dm", mins // 60, mins % 60) or (mins .. " min")
+				remotes.Toast:FireClient(player, `While you were away ({away}) your shelves earned {earned} coins. Grab them from the tip jar!`, "good")
+				player:SetAttribute("OfflineEarned", nil)
+			end
 			if mode == "Session" then
 				remotes.Toast:FireClient(player, "⚠️ Saving is off here: progress resets when you leave", "warn")
 			elseif mode == "Failed" then
@@ -212,7 +243,7 @@ if game:GetService("RunService"):IsStudio() then
 	local function vec(v)
 		return { math.floor(v.X * 10) / 10, math.floor(v.Y * 10) / 10, math.floor(v.Z * 10) / 10 }
 	end
-	bf.OnInvoke = function(cmd, a, b, c)
+	bf.OnInvoke = function(cmd, a, b, c, ...)
 		if cmd == "state" then
 			local out = { sleepers = {}, players = {}, rareAt = workspace:GetAttribute("RareAt_FoodCourt") - workspace:GetServerTimeNow(), rareActive = workspace:GetAttribute("RareActive_FoodCourt"), arcadeRareAt = workspace:GetAttribute("RareAt_Arcade") - workspace:GetServerTimeNow(), arcadeRareActive = workspace:GetAttribute("RareActive_Arcade"), ventOpen = workspace:GetAttribute("VentOpen") }
 			for id, s in Sleepers.debug.list() do
@@ -222,7 +253,7 @@ if game:GetService("RunService"):IsStudio() then
 				local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
 				local hum = p.Character and p.Character:FindFirstChildOfClass("Humanoid")
 				local pd = PlayerData.get(p)
-				out.players[p.Name] = { pos = hrp and vec(hrp.Position), speed = hum and hum.WalkSpeed, carrying = p:GetAttribute("Carrying"), sprint = p:GetAttribute("Sprinting"), coins = pd and pd.coins, rescues = pd and pd.rescues, evo = pd and pd.evo, vent = pd and (pd.evo.KingRangoon or 0), buddy = pd and pd.buddy, shoes = pd and pd.upgrades.PaddedShoes, tracks = pd and pd.tracks, wings = pd and pd.wings, group = hrp and hrp.CollisionGroup, collection = pd and pd.collection }
+				out.players[p.Name] = { pos = hrp and vec(hrp.Position), speed = hum and hum.WalkSpeed, carrying = p:GetAttribute("Carrying"), sprint = p:GetAttribute("Sprinting"), coins = pd and pd.coins, rescues = pd and pd.rescues, slots = pd and pd.slots, display = pd and pd.display, jar = pd and math.floor(pd.jar * 10) / 10, rate = pd and PlayerData.incomeRate(pd), evo = pd and pd.evo, vent = pd and (pd.evo.KingRangoon or 0), buddy = pd and pd.buddy, shoes = pd and pd.upgrades.PaddedShoes, tracks = pd and pd.tracks, wings = pd and pd.wings, group = hrp and hrp.CollisionGroup, collection = pd and pd.collection }
 			end
 			return HttpService:JSONEncode(out)
 		elseif cmd == "grab" then
@@ -313,6 +344,24 @@ if game:GetService("RunService"):IsStudio() then
 			end
 			PlayerData.push(p)
 			return "ok"
+		elseif cmd == "display" then
+			return tostring(PlayerData.setDisplay(plr(a), b, c, (...)))
+		elseif cmd == "autofill" then
+			return tostring(PlayerData.autoFill(plr(a)))
+		elseif cmd == "collect" then
+			local ok, msg = PlayerData.collect(plr(a))
+			return tostring(ok) .. " " .. msg
+		elseif cmd == "jar" then
+			-- set the jar (b) and/or pretend the last save was c minutes ago
+			local pd = PlayerData.get(plr(a))
+			if b then
+				pd.jar = b
+			end
+			if c then
+				pd.lastSeen = os.time() - c * 60
+			end
+			PlayerData.tick(0)
+			return string.format("jar=%.1f rate=%.2f cap=%.0f slots=%d", pd.jar, PlayerData.incomeRate(pd), PlayerData.jarCap(pd), pd.slots)
 		elseif cmd == "home" then
 			Sleepers.debug.home(a)
 			return "ok"
