@@ -366,7 +366,28 @@ local shelves, shelvesBody, shelvesSub = panel("Shelves", "Shelves", "Creatures 
 local shelvesBtn, shelvesBadge = railButton("ShelvesButton", "Shelves", "🏆", 3, C.Mint, "Shelves")
 local quests, questsBody, questsSub = panel("Quests", "Quests", "New quests every day", C.Sky, "📋")
 local questsBtn, questsBadge = railButton("QuestsButton", "Quests", "📋", 4, C.Sky, "Quests")
-rail.Size = UDim2.fromOffset(px(66), px(350))
+local overtime, overtimeBody, overtimeSub = panel("Overtime", "Overtime", "Start over stronger", C.Rose, "⏰")
+local overtimeBtn, overtimeBadge = railButton("OvertimeButton", "Overtime", "⏰", 5, C.Rose, "Overtime")
+overtimeBtn.Parent.Visible = false -- shown once the Toy Barn is open
+rail.Size = UDim2.fromOffset(px(66), px(440))
+do
+	-- shrink the rail on short screens (phones in landscape) so all buttons stay visible
+	local railScale = new("UIScale", { Parent = rail })
+	local function fit()
+		local h = workspace.CurrentCamera.ViewportSize.Y
+		local count = 0
+		for _, c in rail:GetChildren() do
+			if c:IsA("Frame") and c.Visible then
+				count += 1
+			end
+		end
+		local need = count * px(86)
+		railScale.Scale = math.clamp((h - 150) / math.max(1, need), 0.55, 1)
+	end
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(fit)
+	overtimeBtn.Parent:GetPropertyChangedSignal("Visible"):Connect(fit)
+	task.defer(fit)
+end
 
 ----------------------------------------------------------------------------------------------
 -- Shop rows
@@ -785,7 +806,7 @@ local function refreshShelves()
 			sl.img.ImageColor3 = e.f == "Glazed" and Color3.fromRGB(255, 245, 200) or Color3.new(1, 1, 1)
 			sl.img.Visible = true
 			sl.name.Text = (e.f ~= "Normal" and (e.f .. " ") or "") .. sp.Name
-			sl.info.Text = fmtRate(r) .. " / min"
+			sl.info.Text = fmtRate(r * Config.coinMult(profile)) .. " / min"
 		elseif i <= profile.slots then
 			sl.big.Visible = true
 			sl.big.Text = "+"
@@ -800,6 +821,7 @@ local function refreshShelves()
 			sl.btn.BackgroundColor3 = (price and profile.coins >= price) and Theme.tint(C.Mint, 0.75) or Theme.tint(C.Line, 0.5)
 		end
 	end
+	rate *= Config.coinMult(profile)
 	shelvesSub.Text = string.format("%s coins a minute · %d/%d shelves", fmtRate(rate), profile.slots, Config.maxSlots())
 	if picker.Visible and pickerSlot then
 		Hud.openPicker(pickerSlot)
@@ -963,6 +985,97 @@ local function questsBadgeOn(): boolean
 		all = all and q.c
 	end
 	return all and not profile.daily.bonus
+end
+
+----------------------------------------------------------------------------------------------
+-- Overtime panel: clock in (rebirth) + token perks
+
+local OT = T.Overtime
+local otTitle, otLine1, otLine2, otButton, otTokens
+local perkRows = {}
+local confirmUntil = 0
+do
+	local card = new("Frame", { Name = "ClockIn", LayoutOrder = 1, Size = UDim2.new(1, 0, 0, px(132)), BackgroundColor3 = Theme.tint(C.Rose, 0.85), ZIndex = 12, Parent = overtimeBody }, { corner(16) })
+	otTitle = text({ Position = UDim2.fromOffset(16, px(12)), Size = UDim2.new(1, -px(200), 0, px(24)), TextScaled = false, TextSize = px(20), TextXAlignment = Enum.TextXAlignment.Left, Text = "Overtime", ZIndex = 13, Parent = card }, "Title")
+	otLine1 = text({ Position = UDim2.fromOffset(16, px(40)), Size = UDim2.new(1, -px(200), 0, px(18)), TextScaled = false, TextSize = px(15), TextXAlignment = Enum.TextXAlignment.Left, Text = "", TextColor3 = Color3.fromRGB(40, 160, 110), ZIndex = 13, Parent = card }, "Title")
+	otLine2 = text({ Position = UDim2.fromOffset(16, px(64)), Size = UDim2.new(1, -32, 0, px(60)), TextScaled = false, TextSize = px(14), TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, Text = "", TextColor3 = C.Sub, ZIndex = 13, Parent = card }, "Bold")
+	otButton = button({ Name = "ClockInButton", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -14, 0, px(12)), Size = UDim2.fromOffset(px(170), px(44)), BackgroundColor3 = C.Rose, TextScaled = false, TextSize = px(16), Text = "Clock in", ZIndex = 13, Parent = card, Radius = 22 })
+	otButton.Activated:Connect(function()
+		if not profile then
+			return
+		end
+		if os.clock() > confirmUntil then
+			-- first tap arms it; resetting coins needs a second tap
+			if profile.coins >= Config.overtimeCost(profile.overtime) and profile.wings[OT.NeedsWing] then
+				confirmUntil = os.clock() + 4
+				otButton.Text = "Tap again to confirm"
+				task.delay(4.1, function()
+					if os.clock() > confirmUntil then
+						Hud.refresh()
+					end
+				end)
+				return
+			end
+		end
+		confirmUntil = 0
+		local ok, msg = Remotes.ClockIn:InvokeServer()
+		Hud.toast(msg, ok and "good" or "warn")
+		if ok then
+			CreatureView.playUi(CreatureView.SOUNDS.Pop, 0.9, 0.9)
+		end
+	end)
+	otTokens = text({ LayoutOrder = 2, Size = UDim2.new(1, 0, 0, px(22)), TextScaled = false, TextSize = px(14), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = C.Sub, Text = "PERKS", ZIndex = 12, Parent = overtimeBody }, "Title")
+	for i, d in OT.Perks do
+		local r = row(overtimeBody, 2 + i, C.Rose, d.Icon, d.Name, d.Blurb)
+		r.row.Name = "Perk_" .. d.Id
+		r.buy.Name = "Buy"
+		r.buy.Activated:Connect(function()
+			local ok, msg = Remotes.BuyPerk:InvokeServer(d.Id)
+			Hud.toast(msg, ok and "good" or "warn")
+			if ok then
+				CreatureView.playUi(CreatureView.SOUNDS.Pop, 0.6, 1.5)
+			end
+		end)
+		perkRows[d.Id] = r
+	end
+end
+
+local function refreshOvertime()
+	if not profile or profile.overtime == nil then
+		return
+	end
+	local n = profile.overtime
+	local cost = Config.overtimeCost(n)
+	local unlocked = profile.wings[OT.NeedsWing] == true
+	overtimeBtn.Parent.Visible = unlocked or n > 0
+	otTitle.Text = n > 0 and string.format("Overtime · Level %d", n) or "Clock in for Overtime"
+	otLine1.Text = string.format("Coins +%d%% forever  →  +%d%% after the next one", math.floor(OT.CoinBonus * n * 100 + 0.5), math.floor(OT.CoinBonus * (n + 1) * 100 + 0.5))
+	otLine2.Text = string.format("Needs $ %s (you have $ %s).\nResets: coins, tip jar, Sneakers and Steady Hands.\nKeeps: Index, shelves, wings, buddies, trails, Padded Shoes. You also get 1 token for perks.", fmt(cost), fmt(profile.coins))
+	local can = unlocked and profile.coins >= cost
+	if os.clock() > confirmUntil then
+		if not unlocked then
+			setBuy(otButton, "Open the Toy Barn", "poor", C.Rose)
+		else
+			setBuy(otButton, can and "Clock in" or ("$ " .. fmt(cost)), can and "afford" or "poor", C.Rose)
+		end
+	end
+	otTokens.Text = string.format("PERKS  ·  %d token%s", profile.tokens, profile.tokens == 1 and "" or "s")
+	local anyPerk = false
+	for _, d in OT.Perks do
+		local r = perkRows[d.Id]
+		local lvl = Config.perk(profile, d.Id)
+		r.title.Text = string.format("%s  ·  %d/%d", d.Name, lvl, d.Max)
+		if lvl >= d.Max then
+			setBuy(r.buy, "MAX", "done", C.Rose)
+		else
+			local c = lvl + 1
+			local ok = profile.tokens >= c
+			anyPerk = anyPerk or ok
+			setBuy(r.buy, string.format("%d token%s", c, c == 1 and "" or "s"), ok and "afford" or "poor", C.Rose)
+		end
+	end
+	overtimeSub.Text = n > 0 and string.format("Level %d · coins +%d%%", n, math.floor(OT.CoinBonus * n * 100 + 0.5)) or "Start over stronger"
+	overtimeBadge.Visible = can or anyPerk
 end
 
 ----------------------------------------------------------------------------------------------
@@ -1328,6 +1441,7 @@ function Hud.refresh()
 	refreshShelves()
 	refreshQuests()
 	refreshPages()
+	refreshOvertime()
 	if collection.Visible then
 		newBadge.Visible = false
 	end
@@ -1551,7 +1665,9 @@ local function frame()
 				break
 			end
 		end
-		if (player:GetAttribute("PagesClaimable") or 0) > 0 then
+		if profile.overtime == 0 and profile.wings[T.Overtime.NeedsWing] and profile.coins >= Config.overtimeCost(0) then
+			msg, color = "You can clock in for Overtime: coins +25% forever. Open Overtime", C.Rose
+		elseif (player:GetAttribute("PagesClaimable") or 0) > 0 then
 			msg, color = "An Index page is complete! Claim your reward in the Index", C.Lilac
 		elseif (player:GetAttribute("QuestsClaimable") or 0) > 0 then
 			msg, color = "A quest is done! Open Quests to claim your coins", C.Sky

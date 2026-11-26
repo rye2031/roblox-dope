@@ -482,7 +482,25 @@ local function bank(s: Sleeper, player: Player)
 	scheduleRespawn(s)
 
 	local formsKey = rarity == "Rare" and "RareWeight" or (s.rush and "RushWeight" or "Weight")
-	local form = weighted(T.Forms, formsKey)
+	local formList = T.Forms
+	local lucky = Config.perk(p, "LuckyPaws")
+	if lucky > 0 and formsKey == "Weight" then
+		-- Lucky Paws perk: move weight from Normal to Glazed/Jumbo
+		local cut = Config.perkDef("LuckyPaws").NormalCut * lucky
+		formList = {}
+		for _, f in T.Forms do
+			local w = f.Weight
+			if f.Id == "Normal" then
+				w -= cut
+			elseif f.Id == "Glazed" then
+				w += cut * 0.75
+			else
+				w += cut * 0.25
+			end
+			table.insert(formList, { Id = f.Id, CoinMult = f.CoinMult, Weight = w })
+		end
+	end
+	local form = weighted(formList, formsKey)
 	local coins = T.Rarity[rarity].BaseCoins * Config.Wings[wing].CoinMult * form.CoinMult
 	local ws, wf = Events.wanted(wing)
 	local wanted = Config.isWanted(ws, wf, species, form.Id)
@@ -493,6 +511,7 @@ local function bank(s: Sleeper, player: Player)
 	if bonus then
 		coins *= 1 + bonus
 	end
+	coins *= Config.coinMult(p) -- Overtime bonus
 	coins = math.floor(coins)
 	p.coins += coins
 	p.rescues += 1

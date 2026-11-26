@@ -28,6 +28,9 @@ export type Profile = {
 	pages: { [string]: boolean }, -- claimed Index page rewards, "<Wing>:<Tier>"
 	trails: { [string]: boolean }, -- owned trails
 	trail: string?, -- equipped trail
+	overtime: number, -- Overtime (rebirth) level
+	tokens: number, -- unspent Overtime tokens
+	perks: { [string]: number }, -- Overtime perk levels
 }
 
 type Meta = {
@@ -35,6 +38,7 @@ type Meta = {
 	dirty: boolean,
 	saveQueued: boolean,
 	leaving: boolean,
+	lastAuto: number?, -- last Auto Collect payout (os.clock)
 }
 
 local profiles: { [Player]: Profile } = {}
@@ -61,6 +65,9 @@ local function defaults(): Profile
 		pages = {},
 		trails = {},
 		trail = nil,
+		overtime = 0,
+		tokens = 0,
+		perks = {},
 	}
 end
 
@@ -152,6 +159,16 @@ function PlayerData.sanitize(raw: any): Profile
 			end
 		end
 	end
+	p.overtime = int(raw.overtime, 0)
+	p.tokens = int(raw.tokens, 0)
+	if typeof(raw.perks) == "table" then
+		for _, d in Config.Tuning.Overtime.Perks do
+			local n = math.min(d.Max, int(raw.perks[d.Id], 0))
+			if n > 0 then
+				p.perks[d.Id] = n
+			end
+		end
+	end
 	if typeof(raw.trail) == "string" and p.trails[raw.trail] then
 		p.trail = raw.trail
 	end
@@ -194,12 +211,12 @@ function PlayerData.incomeRate(p: Profile): number
 			rate += Config.displayRate(Creatures.Species[e.s], e.f)
 		end
 	end
-	return rate
+	return rate * Config.coinMult(p)
 end
 
 function PlayerData.jarCap(p: Profile): number
 	local D = Config.Tuning.Display
-	return math.max(D.MinJarCap, PlayerData.incomeRate(p) * D.JarCapMinutes)
+	return math.max(D.MinJarCap, PlayerData.incomeRate(p) * (D.JarCapMinutes + 60 * Config.perk(p, "BigJar")))
 end
 
 -- Plain copy for the DataStore (only the fields we own).
@@ -225,6 +242,10 @@ function PlayerData.serialize(p: Profile)
 	end
 	for k, v in p.evo do
 		evo[k] = v
+	end
+	local perks = {}
+	for k, v in p.perks do
+		perks[k] = v
 	end
 	local pages = {}
 	for k, v in p.pages do
@@ -256,6 +277,9 @@ function PlayerData.serialize(p: Profile)
 		streak = { last = p.streak.last, count = p.streak.count },
 		pages = pages,
 		trail = p.trail,
+		overtime = p.overtime,
+		tokens = p.tokens,
+		perks = perks,
 	}
 end
 
@@ -343,6 +367,9 @@ local function makeLeaderstats(player: Player)
 	local found = Instance.new("IntValue")
 	found.Name = "Found"
 	found.Parent = ls
+	local ot = Instance.new("IntValue")
+	ot.Name = "Overtime"
+	ot.Parent = ls
 	ls.Parent = player
 end
 
@@ -430,6 +457,7 @@ function PlayerData.push(player: Player)
 	if ls then
 		ls.Coins.Value = p.coins
 		ls.Found.Value = PlayerData.speciesFound(p)
+		ls.Overtime.Value = p.overtime
 	end
 	player:SetAttribute("Buddy", p.buddy)
 	player:SetAttribute("PaddedShoes", p.upgrades.PaddedShoes == true)
@@ -548,6 +576,59 @@ function PlayerData.buy(player: Player, item: string): (boolean, string)
 	PlayerData.push(player)
 	PlayerData.saveSoon(player)
 	return true, `{def.Name} equipped!`
+end
+
+-- Overtime (rebirth) + perks ---------------------------------------------------------------
+
+function PlayerData.clockIn(player: Player): (boolean, string)
+	local p = profiles[player]
+	if not p then
+		return false, "No profile"
+	end
+	local O = Config.Tuning.Overtime
+	if not p.wings[O.NeedsWing] then
+		return false, `Unlock the {Config.Wings[O.NeedsWing].Name} first`
+	end
+	local cost = Config.overtimeCost(p.overtime)
+	if p.coins < cost then
+		return false, `Need {cost - p.coins} more coins`
+	end
+	p.overtime += 1
+	p.tokens += 1
+	p.coins = 0
+	p.jar = 0
+	p.tracks.Sneakers = math.min(#Config.Tuning.Tracks.Sneakers.Costs, Config.perk(p, "HeadStart"))
+	p.tracks.SteadyHands = math.min(#Config.Tuning.Tracks.SteadyHands.Costs, Config.perk(p, "SteadyStart"))
+	PlayerData.push(player)
+	PlayerData.saveSoon(player)
+	return true, string.format("Overtime %d! Coins +%d%% forever, and you got a token", p.overtime, math.floor((Config.coinMult(p) - 1) * 100 + 0.5))
+end
+
+function PlayerData.buyPerk(player: Player, id: any): (boolean, string)
+	local p = profiles[player]
+	local d = p and typeof(id) == "string" and Config.perkDef(id)
+	if not d then
+		return false, "Unknown perk"
+	end
+	local lvl = Config.perk(p, id)
+	if lvl >= d.Max then
+		return false, `{d.Name} is maxed out`
+	end
+	local cost = lvl + 1
+	if p.tokens < cost then
+		return false, `Need {cost - p.tokens} more Overtime token{cost - p.tokens == 1 and "" or "s"}`
+	end
+	p.tokens -= cost
+	p.perks[id] = lvl + 1
+	-- head starts apply right away if they beat the current level
+	if id == "HeadStart" then
+		p.tracks.Sneakers = math.max(p.tracks.Sneakers, p.perks[id])
+	elseif id == "SteadyStart" then
+		p.tracks.SteadyHands = math.max(p.tracks.SteadyHands, p.perks[id])
+	end
+	PlayerData.push(player)
+	PlayerData.saveSoon(player)
+	return true, `{d.Name} level {lvl + 1}!`
 end
 
 -- Index pages + trails ----------------------------------------------------------------------
@@ -702,6 +783,14 @@ function PlayerData.tick(dt: number)
 			local m = meta[player]
 			if m then
 				m.dirty = true
+				-- Auto Collect perk: jar coins go straight to the player (pushed every ~10 s)
+				if Config.perk(p, "AutoCollect") > 0 and p.jar >= 1 and os.clock() - (m.lastAuto or 0) > 10 then
+					m.lastAuto = os.clock()
+					local n = math.floor(p.jar)
+					p.jar -= n
+					p.coins += n
+					PlayerData.push(player)
+				end
 			end
 		end
 		player:SetAttribute("Jar", math.floor(p.jar))

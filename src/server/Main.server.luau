@@ -30,7 +30,7 @@ for _, n in { "Sprint", "Profile", "Reveal", "Toast", "Fx", "Nudge" } do
 	r.Parent = remoteFolder
 	remotes[n] = r
 end
-for _, n in { "Buy", "Equip", "GetProfile", "Display", "AutoFill", "Collect", "ClaimQuest", "ClaimStreak", "ClaimPage", "EquipTrail" } do
+for _, n in { "Buy", "Equip", "GetProfile", "Display", "AutoFill", "Collect", "ClaimQuest", "ClaimStreak", "ClaimPage", "EquipTrail", "ClockIn", "BuyPerk" } do
 	local r = Instance.new("RemoteFunction")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -151,6 +151,28 @@ remotes.ClaimPage.OnServerInvoke = function(player, wing, tier)
 end
 remotes.EquipTrail.OnServerInvoke = function(player, id)
 	return PlayerData.equipTrail(player, id)
+end
+
+-- Overtime (rebirth) + token perks
+remotes.ClockIn.OnServerInvoke = function(player)
+	local ok, msg = PlayerData.clockIn(player)
+	if ok then
+		Sleepers.drop(player) -- whatever they were carrying goes loose
+		local pd = PlayerData.get(player)
+		for _, other in Players:GetPlayers() do
+			if other ~= player then
+				remotes.Toast:FireClient(other, `{player.DisplayName} clocked in for Overtime {pd.overtime}!`, "info")
+			end
+		end
+		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			remotes.Fx:FireAllClients("Unlock", hrp.Position, "Overtime", player.UserId)
+		end
+	end
+	return ok, msg
+end
+remotes.BuyPerk.OnServerInvoke = function(player, id)
+	return PlayerData.buyPerk(player, id)
 end
 
 local function applyTrail(player: Player)
@@ -379,7 +401,7 @@ if game:GetService("RunService"):IsStudio() then
 				local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
 				local hum = p.Character and p.Character:FindFirstChildOfClass("Humanoid")
 				local pd = PlayerData.get(p)
-				out.players[p.Name] = { pos = hrp and vec(hrp.Position), speed = hum and hum.WalkSpeed, carrying = p:GetAttribute("Carrying"), sprint = p:GetAttribute("Sprinting"), coins = pd and pd.coins, rescues = pd and pd.rescues, slots = pd and pd.slots, display = pd and pd.display, jar = pd and math.floor(pd.jar * 10) / 10, rate = pd and PlayerData.incomeRate(pd), evo = pd and pd.evo, vent = pd and (pd.evo.KingRangoon or 0), buddy = pd and pd.buddy, shoes = pd and pd.upgrades.PaddedShoes, pages = pd and pd.pages, trail = pd and pd.trail, tracks = pd and pd.tracks, wings = pd and pd.wings, group = hrp and hrp.CollisionGroup, collection = pd and pd.collection }
+				out.players[p.Name] = { pos = hrp and vec(hrp.Position), speed = hum and hum.WalkSpeed, carrying = p:GetAttribute("Carrying"), sprint = p:GetAttribute("Sprinting"), coins = pd and pd.coins, rescues = pd and pd.rescues, slots = pd and pd.slots, display = pd and pd.display, jar = pd and math.floor(pd.jar * 10) / 10, rate = pd and PlayerData.incomeRate(pd), evo = pd and pd.evo, vent = pd and (pd.evo.KingRangoon or 0), buddy = pd and pd.buddy, shoes = pd and pd.upgrades.PaddedShoes, pages = pd and pd.pages, trail = pd and pd.trail, overtime = pd and pd.overtime, tokens = pd and pd.tokens, perks = pd and pd.perks, tracks = pd and pd.tracks, wings = pd and pd.wings, group = hrp and hrp.CollisionGroup, collection = pd and pd.collection }
 			end
 			return HttpService:JSONEncode(out)
 		elseif cmd == "grab" then
@@ -508,6 +530,12 @@ if game:GetService("RunService"):IsStudio() then
 			return tostring(Quests.claim(plr(a), b))
 		elseif cmd == "claimstreak" then
 			return tostring(Quests.claimStreak(plr(a)))
+		elseif cmd == "clockin" then
+			local ok, msg = PlayerData.clockIn(plr(a))
+			return tostring(ok) .. " " .. msg
+		elseif cmd == "perk" then
+			local ok, msg = PlayerData.buyPerk(plr(a), b)
+			return tostring(ok) .. " " .. msg
 		elseif cmd == "nudge" then
 			-- solo test: the player nudges themself (b = true skips cooldowns)
 			local p = plr(a)

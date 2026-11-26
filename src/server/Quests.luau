@@ -24,7 +24,7 @@ local function valid(def, p, tier: number): boolean
 	if def.MinRescues and p.rescues < def.MinRescues then
 		return false
 	end
-	if def.NeedsShelf and next(p.collection) == nil then
+	if def.NeedsShelf and (next(p.collection) == nil or Config.perk(p, "AutoCollect") > 0) then
 		return false
 	end
 	return true

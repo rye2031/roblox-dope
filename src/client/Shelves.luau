@@ -80,7 +80,7 @@ local function render(profile)
 				sl.img.Visible = true
 				sl.big.Visible = false
 				sl.title.Text = sp.Name
-				sl.rate.Text = "+" .. fmtRate(Config.displayRate(sp, e.f)) .. " / min"
+				sl.rate.Text = "+" .. fmtRate(Config.displayRate(sp, e.f) * Config.coinMult(profile)) .. " / min"
 				sl.rate.TextColor3 = Color3.fromRGB(40, 160, 110)
 			end
 		end

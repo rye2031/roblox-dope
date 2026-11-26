@@ -179,6 +179,22 @@ Config.Tuning = {
 		NewbieRescues = 3, -- players are shielded until they've made this many rescues
 	},
 
+	-- Overtime (rebirth): reset coins + speed upgrades for a permanent coin bonus and a token.
+	Overtime = {
+		NeedsWing = "ToyBarn",
+		BaseCost = 50000, -- coins needed for the first Overtime...
+		CostGrowth = 1.6, -- ...times this for each one after
+		CoinBonus = 0.25, -- +25% coins per Overtime, linear (rescues and shelves)
+		-- Token perks. The next level of a perk costs (its level + 1) tokens.
+		Perks = {
+			{ Id = "HeadStart", Name = "Head Start", Icon = "⚡", Blurb = "Start each Overtime with a Sneakers level", Max = 3 },
+			{ Id = "SteadyStart", Name = "Steady Start", Icon = "🤲", Blurb = "Start each Overtime with a Steady Hands level", Max = 2 },
+			{ Id = "LuckyPaws", Name = "Lucky Paws", Icon = "🍀", Blurb = "More Glazed and Jumbo rescues", Max = 3, NormalCut = 10 },
+			{ Id = "BigJar", Name = "Bigger Tip Jar", Icon = "$", Blurb = "Your tip jar holds 1 more hour", Max = 2 },
+			{ Id = "AutoCollect", Name = "Auto Collect", Icon = "✨", Blurb = "Tip jar coins go straight to you", Max = 1 },
+		},
+	},
+
 	VentOpenTime = 8, -- seconds the vent door stays open
 	-- Evolved buddies add a coin bonus to every rescue.
 	BuddyCoinBonus = { KingRangoon = 0.1, JackpotTicketoad = 0.15, SqueakicornRoyale = 0.2 },
@@ -343,6 +359,29 @@ end
 function Config.streakReward(day: number): number
 	local list = Config.Tuning.Quests.Streak
 	return list[(day - 1) % #list + 1]
+end
+
+-- Overtime helpers
+function Config.overtimeCost(n: number): number
+	local O = Config.Tuning.Overtime
+	return math.floor(O.BaseCost * O.CostGrowth ^ n / 1000 + 0.5) * 1000
+end
+
+function Config.coinMult(p: any): number
+	return 1 + Config.Tuning.Overtime.CoinBonus * ((p and p.overtime) or 0)
+end
+
+function Config.perkDef(id: string)
+	for _, d in Config.Tuning.Overtime.Perks do
+		if d.Id == id then
+			return d
+		end
+	end
+	return nil
+end
+
+function Config.perk(p: any, id: string): number
+	return (p and p.perks and p.perks[id]) or 0
 end
 
 -- Does a banked creature match the Wanted poster? form is a Forms Id.
