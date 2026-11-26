@@ -29,7 +29,7 @@ for _, n in { "Sprint", "Profile", "Reveal", "Toast", "Fx" } do
 	r.Parent = remoteFolder
 	remotes[n] = r
 end
-for _, n in { "Buy", "Equip", "GetProfile", "Display", "AutoFill", "Collect", "ClaimQuest", "ClaimStreak" } do
+for _, n in { "Buy", "Equip", "GetProfile", "Display", "AutoFill", "Collect", "ClaimQuest", "ClaimStreak", "ClaimPage", "EquipTrail" } do
 	local r = Instance.new("RemoteFunction")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -82,6 +82,62 @@ remotes.ClaimQuest.OnServerInvoke = function(player, index)
 end
 remotes.ClaimStreak.OnServerInvoke = function(player)
 	return Quests.claimStreak(player)
+end
+
+-- Index page rewards + cosmetic trails (server-side, so everyone sees them)
+remotes.ClaimPage.OnServerInvoke = function(player, wing, tier)
+	local ok, msg = PlayerData.claimPage(player, wing, tier)
+	if ok then
+		local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+		if hrp then
+			remotes.Fx:FireAllClients("Unlock", hrp.Position, wing, player.UserId)
+		end
+	end
+	return ok, msg
+end
+remotes.EquipTrail.OnServerInvoke = function(player, id)
+	return PlayerData.equipTrail(player, id)
+end
+
+local function applyTrail(player: Player)
+	local char = player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart")
+	if not hrp then
+		return
+	end
+	for _, n in { "IndexTrail", "IndexTrailA0", "IndexTrailA1" } do
+		local old = hrp:FindFirstChild(n)
+		if old then
+			old:Destroy()
+		end
+	end
+	local def = Config.Tuning.Trails[player:GetAttribute("Trail") or ""]
+	if not def then
+		return
+	end
+	local a0 = Instance.new("Attachment")
+	a0.Name = "IndexTrailA0"
+	a0.Position = Vector3.new(0, 0.9, 0.4)
+	a0.Parent = hrp
+	local a1 = Instance.new("Attachment")
+	a1.Name = "IndexTrailA1"
+	a1.Position = Vector3.new(0, -1.6, 0.4)
+	a1.Parent = hrp
+	local keys = {}
+	for i, c in def.Colors do
+		table.insert(keys, ColorSequenceKeypoint.new((i - 1) / math.max(1, #def.Colors - 1), c))
+	end
+	local tr = Instance.new("Trail")
+	tr.Name = "IndexTrail"
+	tr.Attachment0 = a0
+	tr.Attachment1 = a1
+	tr.Color = ColorSequence.new(keys)
+	tr.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.6, 0.35), NumberSequenceKeypoint.new(1, 1) })
+	tr.Lifetime = 0.85
+	tr.MinLength = 0.2
+	tr.LightEmission = 0.7
+	tr.FaceCamera = true
+	tr.Parent = hrp
 end
 task.spawn(function()
 	local last = os.clock()
@@ -200,9 +256,13 @@ end
 setVent(false)
 
 local function onPlayer(player: Player)
+	player:GetAttributeChangedSignal("Trail"):Connect(function()
+		applyTrail(player)
+	end)
 	player.CharacterAdded:Connect(function(char)
 		Sleepers.onCharacter(player, char)
 		setPass(player)
+		task.defer(applyTrail, player)
 		char.DescendantAdded:Connect(function(d)
 			if d:IsA("BasePart") then
 				local wing = player:GetAttribute("PassWing")
@@ -265,7 +325,7 @@ if game:GetService("RunService"):IsStudio() then
 				local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
 				local hum = p.Character and p.Character:FindFirstChildOfClass("Humanoid")
 				local pd = PlayerData.get(p)
-				out.players[p.Name] = { pos = hrp and vec(hrp.Position), speed = hum and hum.WalkSpeed, carrying = p:GetAttribute("Carrying"), sprint = p:GetAttribute("Sprinting"), coins = pd and pd.coins, rescues = pd and pd.rescues, slots = pd and pd.slots, display = pd and pd.display, jar = pd and math.floor(pd.jar * 10) / 10, rate = pd and PlayerData.incomeRate(pd), evo = pd and pd.evo, vent = pd and (pd.evo.KingRangoon or 0), buddy = pd and pd.buddy, shoes = pd and pd.upgrades.PaddedShoes, tracks = pd and pd.tracks, wings = pd and pd.wings, group = hrp and hrp.CollisionGroup, collection = pd and pd.collection }
+				out.players[p.Name] = { pos = hrp and vec(hrp.Position), speed = hum and hum.WalkSpeed, carrying = p:GetAttribute("Carrying"), sprint = p:GetAttribute("Sprinting"), coins = pd and pd.coins, rescues = pd and pd.rescues, slots = pd and pd.slots, display = pd and pd.display, jar = pd and math.floor(pd.jar * 10) / 10, rate = pd and PlayerData.incomeRate(pd), evo = pd and pd.evo, vent = pd and (pd.evo.KingRangoon or 0), buddy = pd and pd.buddy, shoes = pd and pd.upgrades.PaddedShoes, pages = pd and pd.pages, trail = pd and pd.trail, tracks = pd and pd.tracks, wings = pd and pd.wings, group = hrp and hrp.CollisionGroup, collection = pd and pd.collection }
 			end
 			return HttpService:JSONEncode(out)
 		elseif cmd == "grab" then
@@ -394,6 +454,18 @@ if game:GetService("RunService"):IsStudio() then
 			return tostring(Quests.claim(plr(a), b))
 		elseif cmd == "claimstreak" then
 			return tostring(Quests.claimStreak(plr(a)))
+		elseif cmd == "giveform" then
+			-- give player a species b in form c (index page tests)
+			local pd = PlayerData.get(plr(a))
+			PlayerData.record(pd, b, c)
+			PlayerData.push(plr(a))
+			return "ok"
+		elseif cmd == "claimpage" then
+			return table.concat({ tostring(PlayerData.claimPage(plr(a), b, c)) }, " ")
+		elseif cmd == "trail" then
+			local ok, msg = PlayerData.equipTrail(plr(a), b)
+			local hrp = plr(a).Character and plr(a).Character:FindFirstChild("HumanoidRootPart")
+			return tostring(ok) .. " " .. msg .. " trailPart=" .. tostring(hrp and hrp:FindFirstChild("IndexTrail") ~= nil)
 		elseif cmd == "home" then
 			Sleepers.debug.home(a)
 			return "ok"

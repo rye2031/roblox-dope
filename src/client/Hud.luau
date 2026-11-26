@@ -470,6 +470,10 @@ end
 local cards = {}
 local wingHeaders = {}
 local evoLines = {}
+local pageChips = {} -- [wing..":"..tier] = chip
+local trailChips = {}
+local TIER_LABEL = { Found = "Complete page", Glazed = "All Glazed", Jumbo = "All Jumbo" }
+local TIER_COLOR = { Found = C.Lilac, Glazed = C.Sun, Jumbo = C.Peach }
 do
 	local order = 0
 	-- evolution goals first: the next thing to work toward
@@ -486,6 +490,26 @@ do
 	for _, w in Config.wingList() do
 		order += 1
 		wingHeaders[w.Id] = text({ LayoutOrder = order, Size = UDim2.new(1, 0, 0, px(22)), TextScaled = false, TextSize = px(14), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = C.Sub, Text = string.upper(w.Name), ZIndex = 12, Parent = indexBody }, "Title")
+		-- page rewards: complete / all Glazed / all Jumbo
+		order += 1
+		local strip = new("Frame", { Name = "Rewards_" .. w.Id, LayoutOrder = order, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, px(92)), ZIndex = 12, Parent = indexBody }, {
+			new("UIGridLayout", { CellSize = UDim2.new(1 / 3, -7, 1, 0), CellPadding = UDim2.fromOffset(10, 0), SortOrder = Enum.SortOrder.LayoutOrder }),
+		})
+		for i, r in T.IndexRewards[w.Id] or {} do
+			local col = TIER_COLOR[r.Tier]
+			local chip = new("Frame", { Name = r.Tier, LayoutOrder = i, BackgroundColor3 = Theme.tint(col, 0.85), ZIndex = 13, Parent = strip }, { corner(14) })
+			local title = text({ Position = UDim2.fromOffset(12, px(8)), Size = UDim2.new(1, -24, 0, px(18)), TextScaled = false, TextSize = px(15), TextXAlignment = Enum.TextXAlignment.Left, Text = TIER_LABEL[r.Tier], ZIndex = 14, Parent = chip }, "Title")
+			local prize = text({ Position = UDim2.fromOffset(12, px(28)), Size = UDim2.new(1, -24, 0, px(16)), TextScaled = false, TextSize = px(13), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd, TextColor3 = C.Sub, Text = "$ " .. fmt(r.Coins) .. (r.Trail and (" + " .. T.Trails[r.Trail].Name .. " trail") or ""), ZIndex = 14, Parent = chip }, "Bold")
+			local claim = button({ Name = "Claim", Position = UDim2.new(0, 10, 1, -px(38)), Size = UDim2.new(1, -20, 0, px(30)), BackgroundColor3 = col, TextScaled = false, TextSize = px(14), Text = "", ZIndex = 14, Parent = chip, Radius = 15 })
+			claim.Activated:Connect(function()
+				local ok, msg = Remotes.ClaimPage:InvokeServer(w.Id, r.Tier)
+				Hud.toast(msg, ok and "good" or "info")
+				if ok then
+					CreatureView.playUi(CreatureView.SOUNDS.Pop, 0.8, 1.2)
+				end
+			end)
+			pageChips[w.Id .. ":" .. r.Tier] = { chip = chip, title = title, prize = prize, claim = claim, color = col, wing = w.Id, tier = r.Tier }
+		end
 		order += 1
 		local grid = new("Frame", { Name = "Grid_" .. w.Id, LayoutOrder = order, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, ZIndex = 12, Parent = indexBody }, {
 			new("UIGridLayout", { CellSize = UDim2.new(0.25, -8, 0, px(170)), CellPadding = UDim2.fromOffset(10, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
@@ -519,6 +543,71 @@ do
 				end)
 				cards[sp.Id] = { vf = vf, name = name, info = info, equip = equip }
 			end
+		end
+	end
+end
+
+-- Trails (unlocked by Index pages), at the bottom of the Index
+do
+	text({ LayoutOrder = 100, Size = UDim2.new(1, 0, 0, px(22)), TextScaled = false, TextSize = px(14), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = C.Sub, Text = "TRAILS", ZIndex = 12, Parent = indexBody }, "Title")
+	local strip = new("Frame", { Name = "Trails", LayoutOrder = 101, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, px(96)), ZIndex = 12, Parent = indexBody }, {
+		new("UIGridLayout", { CellSize = UDim2.new(0.25, -8, 1, 0), CellPadding = UDim2.fromOffset(10, 0), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	local source = {}
+	for wing, list in T.IndexRewards do
+		for _, r in list do
+			if r.Trail then
+				source[r.Trail] = Config.Wings[wing].Name .. " · " .. TIER_LABEL[r.Tier]
+			end
+		end
+	end
+	for id, def in T.Trails do
+		local chip = new("Frame", { Name = id, LayoutOrder = def.Order, BackgroundColor3 = C.Soft, ZIndex = 13, Parent = strip }, { corner(14) })
+		local swatch = new("Frame", { Position = UDim2.fromOffset(10, px(10)), Size = UDim2.new(1, -20, 0, px(12)), BackgroundColor3 = Color3.new(1, 1, 1), ZIndex = 14, Parent = chip }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+		local keys = {}
+		for i, c in def.Colors do
+			table.insert(keys, ColorSequenceKeypoint.new((i - 1) / math.max(1, #def.Colors - 1), c))
+		end
+		new("UIGradient", { Color = ColorSequence.new(keys), Parent = swatch })
+		text({ Position = UDim2.fromOffset(10, px(26)), Size = UDim2.new(1, -20, 0, px(18)), TextScaled = false, TextSize = px(15), TextXAlignment = Enum.TextXAlignment.Left, Text = def.Name, ZIndex = 14, Parent = chip }, "Title")
+		local btn = button({ Name = "Equip", Position = UDim2.new(0, 10, 1, -px(38)), Size = UDim2.new(1, -20, 0, px(30)), BackgroundColor3 = C.Lilac, TextScaled = false, TextSize = px(13), Text = "", ZIndex = 14, Parent = chip, Radius = 15 })
+		btn.Activated:Connect(function()
+			if not profile or not (profile.trails and profile.trails[id]) then
+				return
+			end
+			local ok, msg = Remotes.EquipTrail:InvokeServer(if profile.trail == id then nil else id)
+			Hud.toast(msg, ok and "good" or "warn")
+		end)
+		trailChips[id] = { btn = btn, source = source[id] or "" }
+	end
+end
+
+local function refreshPages()
+	if not profile or not profile.pages then
+		return
+	end
+	for _, pc in pageChips do
+		local have, total = Config.pageProgress(profile, Creatures.Species, pc.wing, pc.tier)
+		local claimed = profile.pages[pc.wing .. ":" .. pc.tier]
+		pc.title.Text = string.format("%s  %d/%d", TIER_LABEL[pc.tier], have, total)
+		if claimed then
+			setBuy(pc.claim, "Claimed ✓", "done", pc.color)
+		elseif have >= total then
+			setBuy(pc.claim, "Claim", "afford", pc.color)
+		else
+			setBuy(pc.claim, string.format("%d to go", total - have), "poor", pc.color)
+		end
+	end
+	for id, tc in trailChips do
+		local owned = profile.trails and profile.trails[id]
+		if not owned then
+			tc.btn.Text = tc.source
+			tc.btn.BackgroundColor3 = C.Line
+			tc.btn.TextColor3 = C.Sub
+		elseif profile.trail == id then
+			setBuy(tc.btn, "On ✓", "done", C.Lilac)
+		else
+			setBuy(tc.btn, "Wear", "afford", C.Lilac)
 		end
 	end
 end
@@ -1232,6 +1321,7 @@ function Hud.refresh()
 	shopBadge.Visible = anyAfford
 	refreshShelves()
 	refreshQuests()
+	refreshPages()
 	if collection.Visible then
 		newBadge.Visible = false
 	end
@@ -1350,6 +1440,9 @@ local function frame()
 	local now = workspace:GetServerTimeNow()
 	updateJarText()
 	questsBadge.Visible = questsBadgeOn()
+	if (player:GetAttribute("PagesClaimable") or 0) > 0 then
+		newBadge.Visible = true
+	end
 	if quests.Visible then
 		local left = 86400 - os.time() % 86400
 		questsFooter.Text = string.format("New quests in %dh %02dm (00:00 UTC)", left // 3600, (left % 3600) // 60)
@@ -1429,7 +1522,9 @@ local function frame()
 		end
 	elseif profile then
 		local tracks = profile.tracks
-		if (player:GetAttribute("QuestsClaimable") or 0) > 0 then
+		if (player:GetAttribute("PagesClaimable") or 0) > 0 then
+			msg, color = "An Index page is complete! Claim your reward in the Index", C.Lilac
+		elseif (player:GetAttribute("QuestsClaimable") or 0) > 0 then
 			msg, color = "A quest is done! Open Quests to claim your coins", C.Sky
 		elseif (player:GetAttribute("Jar") or 0) >= 25 and rescues >= 1 then
 			msg, color = string.format("Your tip jar has %s coins! Step on it in the hideout", fmt(player:GetAttribute("Jar"))), C.Sun

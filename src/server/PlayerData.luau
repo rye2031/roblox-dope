@@ -25,6 +25,9 @@ export type Profile = {
 	lastSeen: number, -- os.time() of the last save, for offline earnings
 	daily: { day: number, quests: { { k: string, n: number, p: number, t: number, c: boolean } }, bonus: boolean },
 	streak: { last: number, count: number }, -- last claimed UTC day + streak length
+	pages: { [string]: boolean }, -- claimed Index page rewards, "<Wing>:<Tier>"
+	trails: { [string]: boolean }, -- owned trails
+	trail: string?, -- equipped trail
 }
 
 type Meta = {
@@ -55,6 +58,9 @@ local function defaults(): Profile
 		lastSeen = 0,
 		daily = { day = 0, quests = {}, bonus = false },
 		streak = { last = 0, count = 0 },
+		pages = {},
+		trails = {},
+		trail = nil,
 	}
 end
 
@@ -133,6 +139,22 @@ function PlayerData.sanitize(raw: any): Profile
 	p.slots = math.clamp(int(raw.slots, Config.Tuning.Display.StartSlots), Config.Tuning.Display.StartSlots, Config.maxSlots())
 	p.jar = math.max(0, if typeof(raw.jar) == "number" and raw.jar == raw.jar then raw.jar else 0)
 	p.lastSeen = int(raw.lastSeen, 0)
+	if typeof(raw.pages) == "table" then
+		for wing, list in Config.Tuning.IndexRewards do
+			for _, r in list do
+				local key = wing .. ":" .. r.Tier
+				if raw.pages[key] == true then
+					p.pages[key] = true
+					if r.Trail then
+						p.trails[r.Trail] = true -- trails come from claimed pages only
+					end
+				end
+			end
+		end
+	end
+	if typeof(raw.trail) == "string" and p.trails[raw.trail] then
+		p.trail = raw.trail
+	end
 	if typeof(raw.streak) == "table" then
 		p.streak = { last = int(raw.streak.last, 0), count = int(raw.streak.count, 0) }
 	end
@@ -204,6 +226,10 @@ function PlayerData.serialize(p: Profile)
 	for k, v in p.evo do
 		evo[k] = v
 	end
+	local pages = {}
+	for k, v in p.pages do
+		pages[k] = v
+	end
 	local dq = {}
 	for i, q in p.daily.quests do
 		dq[i] = { k = q.k, n = q.n, p = q.p, t = q.t, c = q.c }
@@ -228,6 +254,8 @@ function PlayerData.serialize(p: Profile)
 		lastSeen = os.time(),
 		daily = { day = p.daily.day, quests = dq, bonus = p.daily.bonus },
 		streak = { last = p.streak.last, count = p.streak.count },
+		pages = pages,
+		trail = p.trail,
 	}
 end
 
@@ -416,6 +444,17 @@ function PlayerData.push(player: Player)
 	end
 	player:SetAttribute("PassWing", top)
 	player:SetAttribute("IncomeRate", PlayerData.incomeRate(p))
+	player:SetAttribute("Trail", p.trail)
+	local claimable = 0
+	for wing, list in Config.Tuning.IndexRewards do
+		for _, r in list do
+			local have, total = Config.pageProgress(p, Creatures.Species, wing, r.Tier)
+			if have >= total and not p.pages[wing .. ":" .. r.Tier] then
+				claimable += 1
+			end
+		end
+	end
+	player:SetAttribute("PagesClaimable", claimable)
 	player:SetAttribute("Jar", math.floor(p.jar))
 	if PlayerData.onPush then
 		PlayerData.onPush(player)
@@ -508,6 +547,56 @@ function PlayerData.buy(player: Player, item: string): (boolean, string)
 	PlayerData.push(player)
 	PlayerData.saveSoon(player)
 	return true, `{def.Name} equipped!`
+end
+
+-- Index pages + trails ----------------------------------------------------------------------
+
+function PlayerData.claimPage(player: Player, wing: any, tier: any): (boolean, string)
+	local p = profiles[player]
+	local r = p and typeof(wing) == "string" and typeof(tier) == "string" and Config.pageReward(wing, tier)
+	if not r then
+		return false, "Unknown page"
+	end
+	local key = wing .. ":" .. tier
+	if p.pages[key] then
+		return false, "Already claimed"
+	end
+	local have, total = Config.pageProgress(p, Creatures.Species, wing, tier)
+	if have < total then
+		return false, `{have}/{total} so far`
+	end
+	p.pages[key] = true
+	p.coins += r.Coins
+	local msg = `{Config.Wings[wing].Name} page complete! +{r.Coins} coins`
+	if r.Trail then
+		p.trails[r.Trail] = true
+		if not p.trail then
+			p.trail = r.Trail
+		end
+		msg ..= ` and the {Config.Tuning.Trails[r.Trail].Name} trail`
+	end
+	PlayerData.push(player)
+	PlayerData.saveSoon(player)
+	return true, msg
+end
+
+function PlayerData.equipTrail(player: Player, id: any): (boolean, string)
+	local p = profiles[player]
+	if not p then
+		return false, "No profile"
+	end
+	if id == nil then
+		p.trail = nil
+		PlayerData.push(player)
+		return true, "Trail off"
+	end
+	if typeof(id) ~= "string" or not p.trails[id] then
+		return false, "You haven't unlocked that trail"
+	end
+	p.trail = id
+	PlayerData.push(player)
+	PlayerData.saveSoon(player)
+	return true, `{Config.Tuning.Trails[id].Name} trail on`
 end
 
 -- Shelves ---------------------------------------------------------------------------------

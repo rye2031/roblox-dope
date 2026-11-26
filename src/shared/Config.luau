@@ -129,6 +129,27 @@ Config.Tuning = {
 		Streak = { 25, 50, 75, 100, 150, 200, 400 }, -- login reward by day of the streak (repeats every 7)
 	},
 
+	-- Index page rewards: per wing, claimed once each. Tier: Found (any form) / Glazed / Jumbo.
+	IndexRewards = {
+		FoodCourt = {
+			{ Tier = "Found", Coins = 300, Trail = "Sunny" },
+			{ Tier = "Glazed", Coins = 600 },
+			{ Tier = "Jumbo", Coins = 1500, Trail = "Golden" },
+		},
+		Arcade = {
+			{ Tier = "Found", Coins = 1000, Trail = "Arcade" },
+			{ Tier = "Glazed", Coins = 2000 },
+			{ Tier = "Jumbo", Coins = 5000, Trail = "Prism" },
+		},
+	},
+	-- Cosmetic trails (unlocked by Index pages). Colours run head to tail.
+	Trails = {
+		Sunny = { Name = "Sunny", Order = 1, Colors = { Color3.fromRGB(255, 220, 110), Color3.fromRGB(255, 160, 120) } },
+		Arcade = { Name = "Arcade", Order = 2, Colors = { Color3.fromRGB(170, 140, 255), Color3.fromRGB(110, 200, 255) } },
+		Golden = { Name = "Golden", Order = 3, Colors = { Color3.fromRGB(255, 215, 80), Color3.fromRGB(255, 245, 200) } },
+		Prism = { Name = "Prism", Order = 4, Colors = { Color3.fromRGB(255, 120, 160), Color3.fromRGB(255, 220, 110), Color3.fromRGB(110, 220, 170), Color3.fromRGB(120, 170, 255) } },
+	},
+
 	VentOpenTime = 8, -- seconds the vent door stays open
 	-- Evolved buddies add a coin bonus to every rescue.
 	BuddyCoinBonus = { KingRangoon = 0.1, JackpotTicketoad = 0.15 },
@@ -258,6 +279,30 @@ end
 -- UTC day number; quests and the login streak roll over at 00:00 UTC.
 function Config.today(): number
 	return os.time() // 86400
+end
+
+-- Index page progress for a wing tier: (have, total).
+function Config.pageProgress(p: any, speciesTable: any, wing: string, tier: string): (number, number)
+	local have, total = 0, 0
+	for id, sp in speciesTable do
+		if sp.Wing == wing then
+			total += 1
+			local e = p.collection[id]
+			if e and (tier == "Found" or e.forms[tier]) then
+				have += 1
+			end
+		end
+	end
+	return have, total
+end
+
+function Config.pageReward(wing: string, tier: string)
+	for _, r in Config.Tuning.IndexRewards[wing] or {} do
+		if r.Tier == tier then
+			return r
+		end
+	end
+	return nil
 end
 
 function Config.evolutionTo(to: string)

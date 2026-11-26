@@ -50,6 +50,7 @@ Roblox game written as Luau files and synced into Roblox Studio with Rojo.
 - Plan and milestones: `docs/roadmap.md`
 - Shelves (B2): `PlayerData` keeps `slots`, `display` (one `{s, f}` per slot, `{}` = empty), `jar` and `lastSeen`. The server ticks income into the jar every 2 s (`Config.displayRate`, `Tuning.Display`); offline time (capped) is added on join for real saves only. Clients draw their own shelves (`src/client/Shelves.luau`, portraits on SurfaceGuis), so every player sees their own displays in the shared hideout. Debug: `jar <name> <amount> <minutesAgo>`, `autofill`, `display`, `collect`.
 - Daily quests + login streak (B2): `src/server/Quests.luau`. Quests roll per player per UTC day (seeded by UserId + day; one per tier from `Tuning.Quests.Pool`), progress from `Quests.onBank` (route tags Cozy/Vent/BallPit, `maxWake`, `regrabbed`, form, rarity) and jar collects, and are claimed with buttons. Reward maths lives in Config (`questReward`, `questBonus`, `streakPreview`, `streakReward`) so the HUD shows what the server pays. Debug: `quests <name> reroll|fill|streak <daysAgo>`, `claimquest`, `claimstreak`.
+- Index page rewards (B2): `Tuning.IndexRewards` per wing (Found / Glazed / Jumbo tiers, coins + some trails), `Config.pageProgress`. `PlayerData.claimPage` / `equipTrail`; owned trails are derived from claimed pages (not saved separately); the server draws the equipped trail on the character (`Main.server.luau` `applyTrail`). Debug: `giveform`, `claimpage`, `trail`.
 
 ## Saving
 
