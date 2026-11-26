@@ -652,6 +652,7 @@ local function buildQuietRoute()
 	decor(box("CozyRug", -HALL_X + 3, 0, BLOCK_Z0, GAP_X1, 0.08, BLOCK_Z1, Color3.fromRGB(200, 220, 255), Enum.Material.SmoothPlastic, root.Decor))
 	float("Cozy", Vector3.new(-52, 17, (BLOCK_Z0 + BLOCK_Z1) / 2), "COZY CORNER", TC.Sky, 12, { Icon = "💤", Sub = "quiet way · calms sleepers", Height = 3.2 })
 	local shelter = zone("Shelter", -HALL_X, BLOCK_Z0 - 2, GAP_X1, BLOCK_Z1 + 2)
+	shelter:SetAttribute("Route", "Cozy")
 	sound(shelter, "rbxasset://sounds/action_swim.mp3", 0.12, 0.35, 30)
 end
 

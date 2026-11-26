@@ -13,6 +13,7 @@ local Creatures = require(Shared.Creatures)
 local Noise = require(Shared.Noise)
 local Map = require(script.Parent.Map)
 local PlayerData = require(script.Parent.PlayerData)
+local Quests = require(script.Parent.Quests)
 
 local T = Config.Tuning
 
@@ -33,7 +34,9 @@ type Sleeper = {
 	wake: number,
 	exclusiveUser: number?,
 	exclusiveUntil: number,
-	routes: { [string]: boolean }, -- route tags passed while carried (Vent, BallPit)
+	routes: { [string]: boolean }, -- route tags passed while carried (Vent, BallPit, Cozy)
+	maxWake: number, -- highest wake meter during this carry (quests: "before they twitch")
+	regrabbed: boolean, -- caught again after waking up (quests: "catch a woken creature")
 	lastPos: Vector3?,
 	lastWakeSent: number,
 	path: { Vector3 }?,
@@ -114,6 +117,9 @@ end
 
 local function setWake(s: Sleeper, wake: number, force: boolean?)
 	s.wake = math.clamp(wake, 0, 100)
+	if s.state == "Carried" and s.wake > (s.maxWake or 0) then
+		s.maxWake = s.wake
+	end
 	if force or math.abs(s.wake - s.lastWakeSent) >= 0.75 or (s.wake == 0) ~= (s.lastWakeSent == 0) then
 		s.lastWakeSent = s.wake
 		s.part:SetAttribute("Wake", math.floor(s.wake * 10) / 10)
@@ -272,6 +278,8 @@ spawnSleeper = function(rarity: string, spawnIndex: number?, rareWing: string?):
 		exclusiveUser = nil,
 		exclusiveUntil = 0,
 		routes = {},
+		maxWake = 0,
+		regrabbed = false,
 		lastPos = nil,
 		lastWakeSent = 0,
 		path = nil,
@@ -337,6 +345,8 @@ function Sleepers.tryGrab(player: Player, id: number): (boolean, string?)
 	if not (regrab and sameCarrier) then
 		s.routes = {}
 	end
+	s.regrabbed = regrab
+	s.maxWake = regrab and T.Bolt.RegrabWake or 0
 	setWake(s, regrab and T.Bolt.RegrabWake or 0, true)
 	s.lastPos = hrp.Position
 	s.speed = 0
@@ -460,6 +470,8 @@ local function bank(s: Sleeper, player: Player)
 	local species = s.species
 	local rarity = s.rarity
 	local wing = s.wing
+	local maxWake = s.maxWake or 0
+	local regrabbed = s.regrabbed == true
 	destroySleeper(s)
 	scheduleRespawn(s)
 
@@ -502,6 +514,7 @@ local function bank(s: Sleeper, player: Player)
 		evo = evoInfo,
 	})
 	remotes.Fx:FireAllClients("Bank", Map.Points.Station, species, player.UserId, form.Id)
+	task.spawn(Quests.onBank, player, { wing = wing, routes = routes, maxWake = maxWake, regrabbed = regrabbed, form = form.Id, rarity = rarity })
 end
 
 local function updateCarried(s: Sleeper, dt: number)

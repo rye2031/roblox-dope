@@ -23,6 +23,8 @@ export type Profile = {
 	display: { { s: string?, f: string? } }, -- one entry per slot; {} = empty
 	jar: number, -- uncollected shelf income (fractional)
 	lastSeen: number, -- os.time() of the last save, for offline earnings
+	daily: { day: number, quests: { { k: string, n: number, p: number, t: number, c: boolean } }, bonus: boolean },
+	streak: { last: number, count: number }, -- last claimed UTC day + streak length
 }
 
 type Meta = {
@@ -51,6 +53,8 @@ local function defaults(): Profile
 		display = {},
 		jar = 0,
 		lastSeen = 0,
+		daily = { day = 0, quests = {}, bonus = false },
+		streak = { last = 0, count = 0 },
 	}
 end
 
@@ -129,6 +133,20 @@ function PlayerData.sanitize(raw: any): Profile
 	p.slots = math.clamp(int(raw.slots, Config.Tuning.Display.StartSlots), Config.Tuning.Display.StartSlots, Config.maxSlots())
 	p.jar = math.max(0, if typeof(raw.jar) == "number" and raw.jar == raw.jar then raw.jar else 0)
 	p.lastSeen = int(raw.lastSeen, 0)
+	if typeof(raw.streak) == "table" then
+		p.streak = { last = int(raw.streak.last, 0), count = int(raw.streak.count, 0) }
+	end
+	if typeof(raw.daily) == "table" and typeof(raw.daily.quests) == "table" then
+		local quests = {}
+		for _, q in raw.daily.quests do
+			if typeof(q) == "table" and typeof(q.k) == "string" and Config.questDef(q.k) and #quests < 3 then
+				local t = math.clamp(int(q.t, 1), 1, 3)
+				local n = math.max(1, int(q.n, 1))
+				table.insert(quests, { k = q.k, n = n, p = math.min(n, int(q.p, 0)), t = t, c = q.c == true })
+			end
+		end
+		p.daily = { day = int(raw.daily.day, 0), quests = quests, bonus = raw.daily.bonus == true }
+	end
 	-- shelves: keep only creatures the player owns in that form, never more than they own
 	local used = {}
 	for i = 1, p.slots do
@@ -186,6 +204,10 @@ function PlayerData.serialize(p: Profile)
 	for k, v in p.evo do
 		evo[k] = v
 	end
+	local dq = {}
+	for i, q in p.daily.quests do
+		dq[i] = { k = q.k, n = q.n, p = q.p, t = q.t, c = q.c }
+	end
 	local display = {}
 	for i = 1, p.slots do
 		local e = p.display[i]
@@ -204,6 +226,8 @@ function PlayerData.serialize(p: Profile)
 		display = display,
 		jar = math.floor(p.jar * 100) / 100,
 		lastSeen = os.time(),
+		daily = { day = p.daily.day, quests = dq, bonus = p.daily.bonus },
+		streak = { last = p.streak.last, count = p.streak.count },
 	}
 end
 

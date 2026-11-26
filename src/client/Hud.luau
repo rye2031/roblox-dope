@@ -363,7 +363,9 @@ local shopBtn, shopBadge = railButton("ShopButton", "Shop", "$", 1, C.Peach, "Sh
 local collectionBtn, newBadge = railButton("CollectionButton", "Index", "★", 2, C.Lilac, "Collection")
 local shelves, shelvesBody, shelvesSub = panel("Shelves", "Shelves", "Creatures on display earn coins", C.Mint, "🏆")
 local shelvesBtn, shelvesBadge = railButton("ShelvesButton", "Shelves", "🏆", 3, C.Mint, "Shelves")
-rail.Size = UDim2.fromOffset(px(66), px(260))
+local quests, questsBody, questsSub = panel("Quests", "Quests", "New quests every day", C.Sky, "📋")
+local questsBtn, questsBadge = railButton("QuestsButton", "Quests", "📋", 4, C.Sky, "Quests")
+rail.Size = UDim2.fromOffset(px(66), px(350))
 
 ----------------------------------------------------------------------------------------------
 -- Shop rows
@@ -729,6 +731,151 @@ local function updateJarText()
 end
 
 ----------------------------------------------------------------------------------------------
+-- Quests panel: login streak track + today's quests
+
+local streakTiles = {}
+local streakTitle, streakClaim
+local questRows = {}
+local bonusRow
+local questsFooter
+do
+	local card = new("Frame", { Name = "Streak", LayoutOrder = 1, Size = UDim2.new(1, 0, 0, px(150)), BackgroundColor3 = Theme.tint(C.Sun, 0.8), ZIndex = 12, Parent = questsBody }, { corner(16) })
+	streakTitle = text({ Position = UDim2.fromOffset(16, px(12)), Size = UDim2.new(1, -px(180), 0, px(22)), TextScaled = false, TextSize = px(19), TextXAlignment = Enum.TextXAlignment.Left, Text = "Daily reward", ZIndex = 13, Parent = card }, "Title")
+	streakClaim = button({ Name = "ClaimStreak", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -14, 0, px(8)), Size = UDim2.fromOffset(px(150), px(36)), BackgroundColor3 = C.Sun, TextScaled = false, TextSize = px(16), Text = "Claim", ZIndex = 13, Parent = card, Radius = 18 })
+	streakClaim.Activated:Connect(function()
+		local ok, msg = Remotes.ClaimStreak:InvokeServer()
+		Hud.toast(msg, ok and "good" or "info")
+		if ok then
+			CreatureView.playUi(CreatureView.SOUNDS.Pop, 0.7, 1.4)
+		end
+	end)
+	local strip = new("Frame", { Position = UDim2.fromOffset(14, px(54)), Size = UDim2.new(1, -28, 0, px(84)), BackgroundTransparency = 1, ZIndex = 13, Parent = card }, {
+		new("UIGridLayout", { CellSize = UDim2.new(1 / 7, -6, 1, 0), CellPadding = UDim2.fromOffset(6, 0), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	for i = 1, 7 do
+		local t = new("Frame", { LayoutOrder = i, BackgroundColor3 = C.Card, ZIndex = 14, Parent = strip }, { corner(12), stroke(C.Line, 2) })
+		local day = text({ Name = "Day", Position = UDim2.fromOffset(0, px(8)), Size = UDim2.new(1, 0, 0, px(16)), TextScaled = false, TextSize = px(13), TextColor3 = C.Sub, Text = "Day " .. i, ZIndex = 15, Parent = t }, "Bold")
+		local amt = text({ Name = "Amount", Position = UDim2.fromOffset(0, px(30)), Size = UDim2.new(1, 0, 0, px(22)), TextScaled = false, TextSize = px(17), Text = "", ZIndex = 15, Parent = t }, "Title")
+		local mark = text({ Name = "Mark", Position = UDim2.fromOffset(0, px(56)), Size = UDim2.new(1, 0, 0, px(18)), TextScaled = false, TextSize = px(14), TextColor3 = Color3.fromRGB(40, 160, 110), Text = "", ZIndex = 15, Parent = t }, "Title")
+		streakTiles[i] = { frame = t, day = day, amt = amt, mark = mark, stroke = t:FindFirstChildOfClass("UIStroke") }
+	end
+
+	text({ LayoutOrder = 2, Size = UDim2.new(1, 0, 0, px(20)), TextScaled = false, TextSize = px(14), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = C.Sub, Text = "TODAY'S QUESTS", ZIndex = 12, Parent = questsBody }, "Title")
+	for i = 1, 3 do
+		local r = row(questsBody, 2 + i, C.Sky, "", "", "")
+		r.row.Name = "Quest" .. i
+		r.buy.Name = "Claim"
+		r.blurb.Size = UDim2.new(1, -px(74) - px(150), 0, px(16))
+		local barBack = new("Frame", { Position = UDim2.new(0, px(74), 0, px(56)), Size = UDim2.new(1, -px(74) - px(160), 0, px(8)), BackgroundColor3 = C.Line, ZIndex = 13, Parent = r.row }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+		local fill = new("Frame", { Size = UDim2.fromScale(0, 1), BackgroundColor3 = C.Sky, ZIndex = 14, Parent = barBack }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+		r.fill = fill
+		r.buy.Activated:Connect(function()
+			local ok, msg = Remotes.ClaimQuest:InvokeServer(i)
+			Hud.toast(msg, ok and "good" or "info")
+			if ok then
+				CreatureView.playUi(CreatureView.SOUNDS.Pop, 0.6, 1.6)
+			end
+		end)
+		questRows[i] = r
+	end
+	bonusRow = row(questsBody, 7, C.Sun, "★", "Finish all three", "Bonus coins for a full day")
+	bonusRow.row.Name = "Bonus"
+	bonusRow.buy.Name = "ClaimBonus"
+	bonusRow.buy.Activated:Connect(function()
+		local ok, msg = Remotes.ClaimQuest:InvokeServer("bonus")
+		Hud.toast(msg, ok and "good" or "info")
+		if ok then
+			CreatureView.playUi(CreatureView.SOUNDS.Pop, 0.7, 1.2)
+		end
+	end)
+	questsFooter = text({ LayoutOrder = 8, Size = UDim2.new(1, 0, 0, px(20)), TextScaled = false, TextSize = px(14), TextColor3 = C.Sub, Text = "", ZIndex = 12, Parent = questsBody }, "Bold")
+end
+
+local function refreshQuests()
+	if not profile or not profile.daily then
+		return
+	end
+	local today = os.time() // 86400
+	local d, ready = Config.streakPreview(profile, today)
+	streakTitle.Text = ready and string.format("Daily reward · Day %d", d) or string.format("Daily reward · Day %d claimed", d)
+	streakClaim.Visible = ready
+	streakClaim.Text = "Claim $ " .. Config.streakReward(d)
+	local cycleStart = ((d - 1) // 7) * 7
+	for i, t in streakTiles do
+		local day = cycleStart + i
+		t.day.Text = "Day " .. day
+		t.amt.Text = "$" .. Config.streakReward(day)
+		if day < d or (day == d and not ready) then
+			t.frame.BackgroundColor3 = Theme.tint(C.Mint, 0.75)
+			t.stroke.Color = C.Mint
+			t.mark.Text = "✓"
+		elseif day == d then
+			t.frame.BackgroundColor3 = C.Card
+			t.stroke.Color = C.Sun
+			t.mark.Text = "today"
+			t.mark.TextColor3 = Color3.fromRGB(210, 150, 20)
+		else
+			t.frame.BackgroundColor3 = C.Card
+			t.stroke.Color = C.Line
+			t.mark.Text = ""
+		end
+	end
+	local allClaimed = #profile.daily.quests > 0
+	for i, r in questRows do
+		local q = profile.daily.quests[i]
+		r.row.Visible = q ~= nil
+		if q then
+			local def = Config.questDef(q.k)
+			r.title.Text = Config.questText(q.k, q.n)
+			r.row:FindFirstChild("Dot").Glyph.Text = def and def.Icon or "?"
+			r.blurb.Text = string.format("%d / %d", q.p, q.n)
+			r.fill.Size = UDim2.fromScale(q.p / q.n, 1)
+			local amount = Config.questReward(profile, q.t)
+			if q.c then
+				setBuy(r.buy, "Done", "done", C.Sky)
+				r.fill.BackgroundColor3 = C.Mint
+			elseif q.p >= q.n then
+				setBuy(r.buy, "Claim $ " .. amount, "afford", C.Sky)
+				r.fill.BackgroundColor3 = C.Mint
+			else
+				setBuy(r.buy, "$ " .. amount, "poor", C.Sky)
+				r.fill.BackgroundColor3 = C.Sky
+			end
+			allClaimed = allClaimed and q.c
+		end
+	end
+	local bonus = Config.questBonus(profile)
+	if profile.daily.bonus then
+		setBuy(bonusRow.buy, "Done", "done", C.Sun)
+	elseif allClaimed then
+		setBuy(bonusRow.buy, "Claim $ " .. bonus, "afford", C.Sun)
+	else
+		setBuy(bonusRow.buy, "$ " .. bonus, "poor", C.Sun)
+	end
+	local done = 0
+	for _, q in profile.daily.quests do
+		if q.c then
+			done += 1
+		end
+	end
+	questsSub.Text = string.format("%d of %d done today", done, #profile.daily.quests)
+end
+
+local function questsBadgeOn(): boolean
+	if not profile or not profile.daily then
+		return false
+	end
+	if player:GetAttribute("StreakReady") or (player:GetAttribute("QuestsClaimable") or 0) > 0 then
+		return true
+	end
+	local all = #profile.daily.quests > 0
+	for _, q in profile.daily.quests do
+		all = all and q.c
+	end
+	return all and not profile.daily.bonus
+end
+
+----------------------------------------------------------------------------------------------
 -- Reveal card
 
 local REVEAL_SIZE = UDim2.fromOffset(px(320), px(370))
@@ -1084,6 +1231,7 @@ function Hud.refresh()
 	end
 	shopBadge.Visible = anyAfford
 	refreshShelves()
+	refreshQuests()
 	if collection.Visible then
 		newBadge.Visible = false
 	end
@@ -1201,6 +1349,14 @@ end
 local function frame()
 	local now = workspace:GetServerTimeNow()
 	updateJarText()
+	questsBadge.Visible = questsBadgeOn()
+	if quests.Visible then
+		local left = 86400 - os.time() % 86400
+		questsFooter.Text = string.format("New quests in %dh %02dm (00:00 UTC)", left // 3600, (left % 3600) // 60)
+		if streakClaim.Visible ~= (player:GetAttribute("StreakReady") == true) then
+			refreshQuests()
+		end
+	end
 	shelvesBadge.Visible = (player:GetAttribute("Jar") or 0) >= 10 or ((player:GetAttribute("IncomeRate") or 0) <= 0 and profile ~= nil and next(profile.collection) ~= nil)
 	updateSaveStatus(now)
 	updateRare(now)
@@ -1273,7 +1429,9 @@ local function frame()
 		end
 	elseif profile then
 		local tracks = profile.tracks
-		if (player:GetAttribute("Jar") or 0) >= 25 and rescues >= 1 then
+		if (player:GetAttribute("QuestsClaimable") or 0) > 0 then
+			msg, color = "A quest is done! Open Quests to claim your coins", C.Sky
+		elseif (player:GetAttribute("Jar") or 0) >= 25 and rescues >= 1 then
 			msg, color = string.format("Your tip jar has %s coins! Step on it in the hideout", fmt(player:GetAttribute("Jar"))), C.Sun
 		elseif (player:GetAttribute("IncomeRate") or 0) <= 0 and next(profile.collection) ~= nil then
 			msg, color = "Put creatures on your Shelves: they earn coins, even while you're away", C.Mint
@@ -1300,9 +1458,28 @@ local function frame()
 end
 
 function Hud.start()
+	local autoOpened = false
+	local function maybeAutoOpen()
+		if autoOpened or not profile or not player:GetAttribute("StreakReady") then
+			return
+		end
+		autoOpened = true
+		task.delay(1.5, function()
+			if not reveal.Visible then
+				openPanel("Quests")
+			end
+		end)
+	end
 	Remotes.Profile.OnClientEvent:Connect(function(p)
 		profile = p
 		Hud.refresh()
+		maybeAutoOpen()
+	end)
+	player:GetAttributeChangedSignal("StreakReady"):Connect(function()
+		if player:GetAttribute("StreakReady") then
+			autoOpened = false -- a new day while playing: offer the reward again
+			maybeAutoOpen()
+		end
 	end)
 	Remotes.Toast.OnClientEvent:Connect(function(msg, kind)
 		Hud.toast(msg, kind)

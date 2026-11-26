@@ -8,6 +8,7 @@ local Creatures = require(ReplicatedStorage.Shared.Creatures)
 local Map = require(script.Parent.Map)
 local PlayerData = require(script.Parent.PlayerData)
 local Sleepers = require(script.Parent.Sleepers)
+local Quests = require(script.Parent.Quests)
 
 local T = Config.Tuning
 
@@ -28,7 +29,7 @@ for _, n in { "Sprint", "Profile", "Reveal", "Toast", "Fx" } do
 	r.Parent = remoteFolder
 	remotes[n] = r
 end
-for _, n in { "Buy", "Equip", "GetProfile", "Display", "AutoFill", "Collect" } do
+for _, n in { "Buy", "Equip", "GetProfile", "Display", "AutoFill", "Collect", "ClaimQuest", "ClaimStreak" } do
 	local r = Instance.new("RemoteFunction")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -69,8 +70,18 @@ remotes.Collect.OnServerInvoke = function(player)
 	local ok, msg, n = PlayerData.collect(player)
 	if ok then
 		remotes.Fx:FireAllClients("Collect", Map.Points.Jar, n, player.UserId)
+		Quests.progress(player, "Jar", n)
 	end
 	return ok, msg
+end
+
+-- Daily quests + login streak
+Quests.init(remotes)
+remotes.ClaimQuest.OnServerInvoke = function(player, index)
+	return Quests.claim(player, index)
+end
+remotes.ClaimStreak.OnServerInvoke = function(player)
+	return Quests.claimStreak(player)
 end
 task.spawn(function()
 	local last = os.clock()
@@ -205,6 +216,7 @@ local function onPlayer(player: Player)
 	-- loads the saved profile (yields on the DataStore), then sends it to the client
 	task.spawn(function()
 		if PlayerData.join(player) then
+			Quests.ensure(player)
 			PlayerData.push(player)
 			local mode = player:GetAttribute("SaveMode")
 			local earned = player:GetAttribute("OfflineEarned")
@@ -362,6 +374,26 @@ if game:GetService("RunService"):IsStudio() then
 			end
 			PlayerData.tick(0)
 			return string.format("jar=%.1f rate=%.2f cap=%.0f slots=%d", pd.jar, PlayerData.incomeRate(pd), PlayerData.jarCap(pd), pd.slots)
+		elseif cmd == "quests" then
+			-- b = "reroll" | "fill" (complete all) | "streak" (pretend last claim was c days ago, count kept)
+			local p = plr(a)
+			local pd = PlayerData.get(p)
+			if b == "reroll" then
+				pd.daily.day = 0
+			elseif b == "fill" then
+				for _, q in pd.daily.quests do
+					q.p = q.n
+				end
+			elseif b == "streak" then
+				pd.streak.last = Config.today() - c
+			end
+			Quests.ensure(p)
+			PlayerData.push(p)
+			return HttpService:JSONEncode({ daily = pd.daily, streak = pd.streak, ready = p:GetAttribute("StreakReady"), claimable = p:GetAttribute("QuestsClaimable") })
+		elseif cmd == "claimquest" then
+			return tostring(Quests.claim(plr(a), b))
+		elseif cmd == "claimstreak" then
+			return tostring(Quests.claimStreak(plr(a)))
 		elseif cmd == "home" then
 			Sleepers.debug.home(a)
 			return "ok"

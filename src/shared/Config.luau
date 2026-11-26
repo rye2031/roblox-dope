@@ -111,6 +111,24 @@ Config.Tuning = {
 		MinJarCap = 60,
 	},
 
+	-- Daily quests: 3 a day (one per tier), rerolled at 00:00 UTC. Targets and rewards by tier.
+	Quests = {
+		Rewards = { 40, 80, 150 }, -- easy, medium, hard
+		AllBonus = 100, -- finishing all three
+		ArcadeScale = 1.6, -- rewards once the Arcade is open (its coins are worth more)
+		Pool = {
+			{ Id = "Rescue", Icon = "🛏", Text = "Rescue %d creatures", Targets = { 6, 10, 15 } },
+			{ Id = "Arcade", Icon = "🕹", Text = "Rescue %d Arcade creatures", Targets = { 3, 5, 8 }, NeedsWing = "Arcade" },
+			{ Id = "Quiet", Icon = "💤", Text = "Bring %d home the quiet way (Cozy Corner, vent or ball pit)", Targets = { 2, 3, 5 } },
+			{ Id = "Perfect", Icon = "✨", Text = "Bring %d home before they even twitch", Targets = { 3, 5, 8 } },
+			{ Id = "Bolter", Icon = "🏃", Text = "Catch a creature that woke up and still bring it home", TextN = "Catch %d woken creatures and still bring them home", Targets = { 1, 1, 2 }, MinRescues = 5 },
+			{ Id = "Fancy", Icon = "🍩", Text = "Rescue %d Glazed or Jumbo creatures", Text1 = "Rescue a Glazed or Jumbo creature", Targets = { 1, 2, 3 } },
+			{ Id = "Rare", Icon = "⭐", Text = "Rescue %d rare sleepers", Text1 = "Rescue a rare sleeper", Targets = { 1, 1, 2 }, Tiers = { 2, 3 } },
+			{ Id = "Jar", Icon = "$", Text = "Collect %d coins from your tip jar", Targets = { 30, 80, 200 }, NeedsShelf = true },
+		},
+		Streak = { 25, 50, 75, 100, 150, 200, 400 }, -- login reward by day of the streak (repeats every 7)
+	},
+
 	VentOpenTime = 8, -- seconds the vent door stays open
 	-- Evolved buddies add a coin bonus to every rescue.
 	BuddyCoinBonus = { KingRangoon = 0.1, JackpotTicketoad = 0.15 },
@@ -178,6 +196,68 @@ end
 
 function Config.maxSlots(): number
 	return Config.Tuning.Display.StartSlots + #Config.Tuning.Display.SlotCosts
+end
+
+function Config.questDef(id: string)
+	for _, d in Config.Tuning.Quests.Pool do
+		if d.Id == id then
+			return d
+		end
+	end
+	return nil
+end
+
+function Config.questText(id: string, n: number): string
+	local d = Config.questDef(id)
+	if not d then
+		return id
+	end
+	if n == 1 and d.Text1 then
+		return d.Text1
+	end
+	if n ~= 1 and d.TextN then
+		return string.format(d.TextN, n)
+	end
+	if n == 1 and d.Id == "Bolter" then
+		return d.Text
+	end
+	return string.format(d.Text, n)
+end
+
+local function round5(n: number): number
+	return math.floor(n / 5 + 0.5) * 5
+end
+
+-- Coins for a quest of this tier (1..3) / for finishing all three, for this profile.
+function Config.questReward(p: any, tier: number): number
+	local Q = Config.Tuning.Quests
+	return round5(Q.Rewards[tier] * (p.wings.Arcade and Q.ArcadeScale or 1))
+end
+
+function Config.questBonus(p: any): number
+	local Q = Config.Tuning.Quests
+	return round5(Q.AllBonus * (p.wings.Arcade and Q.ArcadeScale or 1))
+end
+
+-- Login streak: the day you'd get by claiming today, and whether it's claimable.
+function Config.streakPreview(p: any, today: number): (number, boolean)
+	if p.streak.last == today then
+		return p.streak.count, false
+	end
+	if p.streak.last == today - 1 then
+		return p.streak.count + 1, true
+	end
+	return 1, true
+end
+
+function Config.streakReward(day: number): number
+	local list = Config.Tuning.Quests.Streak
+	return list[(day - 1) % #list + 1]
+end
+
+-- UTC day number; quests and the login streak roll over at 00:00 UTC.
+function Config.today(): number
+	return os.time() // 86400
 end
 
 function Config.evolutionTo(to: string)

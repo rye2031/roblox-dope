@@ -49,6 +49,7 @@ Roblox game written as Luau files and synced into Roblox Studio with Rojo.
 - Wings: the Arcade is behind a paid glass gate; unlocked characters are put in collision group `Pass_<wing>` (wings unlock in order). Each wing has its own rare stage/timer (`RareAt_<wing>` / `RareActive_<wing>` workspace attributes). Route zones carry a `Route` attribute (Vent, BallPit) that evolutions check.
 - Plan and milestones: `docs/roadmap.md`
 - Shelves (B2): `PlayerData` keeps `slots`, `display` (one `{s, f}` per slot, `{}` = empty), `jar` and `lastSeen`. The server ticks income into the jar every 2 s (`Config.displayRate`, `Tuning.Display`); offline time (capped) is added on join for real saves only. Clients draw their own shelves (`src/client/Shelves.luau`, portraits on SurfaceGuis), so every player sees their own displays in the shared hideout. Debug: `jar <name> <amount> <minutesAgo>`, `autofill`, `display`, `collect`.
+- Daily quests + login streak (B2): `src/server/Quests.luau`. Quests roll per player per UTC day (seeded by UserId + day; one per tier from `Tuning.Quests.Pool`), progress from `Quests.onBank` (route tags Cozy/Vent/BallPit, `maxWake`, `regrabbed`, form, rarity) and jar collects, and are claimed with buttons. Reward maths lives in Config (`questReward`, `questBonus`, `streakPreview`, `streakReward`) so the HUD shows what the server pays. Debug: `quests <name> reroll|fill|streak <daysAgo>`, `claimquest`, `claimstreak`.
 
 ## Saving
 

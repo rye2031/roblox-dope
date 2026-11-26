@@ -115,7 +115,7 @@ What the most-played Roblox games do well: one readable font, big rounded button
 | Milestone | Contents |
 |---|---|
 | **B1 "Bright & Big"** (this one) | light theme + one font + floating labels + walk-in shop; Sneakers / Steady Hands speed tracks; faster base speed; the Arcade wing (3 creatures + 1 evolution, its own rare stage, ball pit, dance floor, paid gate); per-wing rare timers; save schema extended (old saves load fine) |
-| B2 "Home" | hideout display shelves + idle and offline income (**built**); index page rewards; daily quests; login streak |
+| B2 "Home" | hideout display shelves + idle and offline income, daily quests, login streak (**built**); index page rewards still to do |
 | B3 "Toy Barn" | wing 3 + Snack Rush events + Wanted poster + nudge |
 | B4 "Overtime" | rebirth + token perks + leaderboard; Golden form |
 | B5 "Cinema" | wing 4 + co-op carry + Rainbow fusion |
