@@ -4,6 +4,8 @@ Roblox game written as Luau files and synced into Roblox Studio with Rojo.
 
 ## Design reference
 
+**Current direction (2026-11-26): `docs/monster_design.md`** (working title Wildbound; owner decisions are at its top). Model import steps for the owner: `docs/importing_models.md`. Imported models go in `ReplicatedStorage/CreatureModels` (outside Rojo's `Shared`). It pivots to an open-world monster-taming RPG: real-time mob combat with a team of 3 followers, 1–5★ species in 5 elements, levels plus Awakening, scrolls, turn-based PvP later. The mall stealth game below (`docs/roadmap.md`) is superseded; reuse its systems as the design doc's §12 lists.
+
 `docs/whitepaper.md` is the owner's design white paper. Build the five loops it describes (core, progression, collection, excitement, retention) into an original game: do not copy the analysed game's name, creatures, art or map.
 
 ## Dependency rules (set by the owner, 2026-11-21)

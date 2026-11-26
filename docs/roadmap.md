@@ -1,5 +1,7 @@
 # DON'T WAKE THE BRAINROT: game plan and roadmap
 
+> **Superseded 2026-11-26** by `docs/monster_design.md` (pivot to an open-world monster-taming RPG). Kept for reference: the loop lessons and B1–B4 systems feed the new design.
+
 Written 2026-11-26 after the first outside playtest. Builds on `docs/whitepaper.md` (the five loops) and the playtest feedback:
 
 > "Everything should be a lot easier to understand… fonts on places like the shop should match a minimalist look and float in the sky… you go too slow, maybe a speed system… the map's too small."
