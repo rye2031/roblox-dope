@@ -24,7 +24,7 @@ end
 local remoteFolder = Instance.new("Folder")
 remoteFolder.Name = "Remotes"
 local remotes = {}
-for _, n in { "Sprint", "Profile", "Reveal", "Toast", "Fx" } do
+for _, n in { "Sprint", "Profile", "Reveal", "Toast", "Fx", "Nudge" } do
 	local r = Instance.new("RemoteEvent")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -75,6 +75,58 @@ remotes.Collect.OnServerInvoke = function(player)
 	end
 	return ok, msg
 end
+
+-- Nudge: bump a carrier to make their creature stir. Server-validated with cooldowns, a
+-- hideout safe zone and a shield for new players.
+local lastNudge: { [Player]: number } = {}
+local lastNudged: { [Player]: number } = {}
+local function tryNudge(from: Player, target: Player?, allowSelf: boolean?): (boolean, string)
+	local N = T.Nudge
+	if not target or (target == from and not allowSelf) then
+		return false, "no target"
+	end
+	local now = os.clock()
+	if now - (lastNudge[from] or -99) < N.Cooldown then
+		return false, "cooldown"
+	end
+	if now - (lastNudged[target] or -99) < N.TargetCooldown then
+		return false, "target cooldown"
+	end
+	if not target:GetAttribute("Carrying") then
+		return false, "not carrying"
+	end
+	local pd = PlayerData.get(target)
+	if not pd or pd.rescues < N.NewbieRescues then
+		return false, "newbie shield"
+	end
+	local a = from.Character and from.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local b = target.Character and target.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not a or not b then
+		return false, "no character"
+	end
+	if (a.Position - b.Position).Magnitude > N.Range + 2 then
+		return false, "too far"
+	end
+	if Map.inHideout(b.Position) then
+		return false, "hideout"
+	end
+	if not Sleepers.nudge(target, from) then
+		return false, "not carrying"
+	end
+	lastNudge[from] = now
+	lastNudged[target] = now
+	return true, "ok"
+end
+remotes.Nudge.OnServerEvent:Connect(function(player, targetUserId)
+	if typeof(targetUserId) ~= "number" then
+		return
+	end
+	tryNudge(player, Players:GetPlayerByUserId(targetUserId))
+end)
+Players.PlayerRemoving:Connect(function(player)
+	lastNudge[player] = nil
+	lastNudged[player] = nil
+end)
 
 -- Daily quests + login streak, Snack Rush + Wanted poster
 Quests.init(remotes)
@@ -456,6 +508,15 @@ if game:GetService("RunService"):IsStudio() then
 			return tostring(Quests.claim(plr(a), b))
 		elseif cmd == "claimstreak" then
 			return tostring(Quests.claimStreak(plr(a)))
+		elseif cmd == "nudge" then
+			-- solo test: the player nudges themself (b = true skips cooldowns)
+			local p = plr(a)
+			if b then
+				lastNudge[p] = nil
+				lastNudged[p] = nil
+			end
+			local ok, why = tryNudge(p, p, true)
+			return tostring(ok) .. " " .. why
 		elseif cmd == "rush" then
 			-- force a Snack Rush in wing a for b seconds (a = nil ends it)
 			Events.forceRush(a, b)

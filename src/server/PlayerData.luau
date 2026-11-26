@@ -445,6 +445,7 @@ function PlayerData.push(player: Player)
 	player:SetAttribute("PassWing", top)
 	player:SetAttribute("IncomeRate", PlayerData.incomeRate(p))
 	player:SetAttribute("Trail", p.trail)
+	player:SetAttribute("NudgeShield", p.rescues < Config.Tuning.Nudge.NewbieRescues)
 	local claimable = 0
 	for wing, list in Config.Tuning.IndexRewards do
 		for _, r in list do

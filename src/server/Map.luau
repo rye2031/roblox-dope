@@ -1215,6 +1215,20 @@ function Map.surfaceAt(pos: Vector3): (string, string?)
 	return best, route
 end
 
+-- Inside the hideout fort (nudges aren't allowed there).
+function Map.inHideout(pos: Vector3): boolean
+	for _, z in zones:GetChildren() do
+		if z:GetAttribute("Kind") == "Hideout" then
+			local rel = z.CFrame:PointToObjectSpace(pos)
+			local h = z.Size / 2
+			if math.abs(rel.X) <= h.X and math.abs(rel.Z) <= h.Z then
+				return true
+			end
+		end
+	end
+	return false
+end
+
 function Map.wingAt(pos: Vector3): string
 	return Config.wingAt(pos)
 end

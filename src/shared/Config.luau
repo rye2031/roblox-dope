@@ -170,6 +170,15 @@ Config.Tuning = {
 		WantedFancyChance = 0.4, -- how often the poster asks for "Glazed or better"
 	},
 
+	-- Nudge: bump another player who is carrying to make their creature stir (no stealing).
+	Nudge = {
+		Wake = 14, -- added to the target's wake meter (before the creature's wake multiplier)
+		Range = 8, -- studs between the two players
+		Cooldown = 5, -- seconds between your nudges
+		TargetCooldown = 2.5, -- seconds before the same carrier can be nudged again
+		NewbieRescues = 3, -- players are shielded until they've made this many rescues
+	},
+
 	VentOpenTime = 8, -- seconds the vent door stays open
 	-- Evolved buddies add a coin bonus to every rescue.
 	BuddyCoinBonus = { KingRangoon = 0.1, JackpotTicketoad = 0.15, SqueakicornRoyale = 0.2 },

@@ -116,7 +116,7 @@ What the most-played Roblox games do well: one readable font, big rounded button
 |---|---|
 | **B1 "Bright & Big"** (this one) | light theme + one font + floating labels + walk-in shop; Sneakers / Steady Hands speed tracks; faster base speed; the Arcade wing (3 creatures + 1 evolution, its own rare stage, ball pit, dance floor, paid gate); per-wing rare timers; save schema extended (old saves load fine) |
 | B2 "Home" | hideout display shelves + idle and offline income, daily quests, login streak, index page rewards + trails (**built**) |
-| B3 "Toy Barn" | wing 3 (**built**: squeaky aisle, Plush Mountain, Toy Stage, 3 creatures + Squeakicorn Royale), Snack Rush events, Wanted posters (**built**); nudge still to do |
+| B3 "Toy Barn" | wing 3 (**built**: squeaky aisle, Plush Mountain, Toy Stage, 3 creatures + Squeakicorn Royale), Snack Rush events, Wanted posters, nudge (**built**) |
 | B4 "Overtime" | rebirth + token perks + leaderboard; Golden form |
 | B5 "Cinema" | wing 4 + co-op carry + Rainbow fusion |
 | B6 "Sky Garden" | wing 5 + Secret sleepers + hideout visits; trading if the economy holds up |

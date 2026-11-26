@@ -8,11 +8,13 @@ local CreatureView = require(script.Parent.CreatureView)
 local WorldFx = require(script.Parent.WorldFx)
 local Hud = require(script.Parent.Hud)
 local Shelves = require(script.Parent.Shelves)
+local Nudge = require(script.Parent.Nudge)
 
 WorldFx.start()
 CreatureView.start()
 Hud.start()
 task.spawn(Shelves.start)
+Nudge.start()
 
 Remotes.Fx.OnClientEvent:Connect(function(kind, pos, a, b, c)
 	WorldFx.onFx(kind, pos, a, b, c)

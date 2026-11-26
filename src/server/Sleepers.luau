@@ -655,6 +655,25 @@ local function step(dt: number)
 	end
 end
 
+-- Nudge: another player bumped this carrier. Validated in Main; this only applies it.
+function Sleepers.nudge(target: Player, from: Player): boolean
+	local s = carrying[target]
+	if not s or s.state ~= "Carried" then
+		return false
+	end
+	setWake(s, s.wake + T.Nudge.Wake * T.Rarity[s.rarity].WakeMult * Config.Wings[s.wing].WakeMult, true)
+	if s.wake > s.maxWake then
+		s.maxWake = s.wake
+	end
+	remotes.Fx:FireAllClients("Nudge", s.part.Position, target.UserId, from.UserId)
+	toast(target, `{from.DisplayName} nudged you! Your creature stirs…`, "warn")
+	toast(from, `You nudged {target.DisplayName}`, "info")
+	if s.wake >= T.WakeStages.Awake then
+		wakeUp(s)
+	end
+	return true
+end
+
 -- Carrier reset, died or left: the creature drops where they were (recoverable by anyone),
 -- or goes home if that spot is invalid.
 function Sleepers.drop(player: Player)

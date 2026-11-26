@@ -318,6 +318,10 @@ function WorldFx.onFx(kind: string, pos: Vector3, a, b, c)
 	elseif kind == "Collect" then
 		local p = burst(pos + Vector3.new(0, 4, 0), Theme.C.Sun, math.clamp(math.floor((a or 10) / 4), 10, 60), 14)
 		CreatureView.playAt(p, "rbxasset://sounds/electronicpingshort.wav", 0.5, 1.4)
+	elseif kind == "Nudge" then
+		local p = burst(pos + Vector3.new(0, 1, 0), Theme.C.Peach, 18, 10)
+		CreatureView.playAt(p, "rbxasset://sounds/action_jump.mp3", 0.8, 0.7)
+		CreatureView.playAt(p, CreatureView.SOUNDS.Twitch, 0.6, 1.6)
 	elseif kind == "Squeak" then
 		local p = burst(pos + Vector3.new(0, 2, 0), Theme.C.Rose, 8, 6)
 		CreatureView.playAt(p, "rbxasset://sounds/electronicpingshort.wav", 0.7, 2.6)
