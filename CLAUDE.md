@@ -34,7 +34,9 @@ Roblox game written as Luau files and synced into Roblox Studio with Rojo.
 
 - Meshy sources: `art/meshy/` (concepts, `models/<name>/model.glb`, `ledger.json` with task ids and credits, `STYLE.md`).
 - `python3 -I scripts/mesh_to_luau.py <glb> <Name> --tex 256` bakes a GLB into `src/shared/MeshData/<Name>.luau` (+ `_n` chunks). The client rebuilds it with EditableMesh/EditableImage (`src/shared/MeshLoader.luau`), so nothing is uploaded to Roblox.
-- `python3 -I scripts/find_eyes.py <glb> <preview.png>` finds eye positions for sleeper eyelids (`src/shared/Faces.luau`).
+- `python3 -I scripts/find_eyes.py <glb> <preview.png> [dark]` finds eye positions for sleeper eyelids (`src/shared/Faces.luau`); `dark` for glossy black eyes. Never pass a `thumb.png` as the preview path (it overwrites it).
+- `python3 -I scripts/render_portrait.py <glb> <Name> [--preview out.png]` bakes a 160 px RGBA portrait into `src/shared/PortraitData/` for the Index and reveal card (`src/shared/Portraits.luau`).
+- **Client mesh limit:** a client can hold only ~8 EditableMeshes at once, whatever their size (measured 2026-11-26; destroying the EditableMesh blanks its MeshPart). `MeshLoader` is a ref-counted pool capped at 7: call `MeshLoader.release(name)` (or `CreatureView.destroy`) for every `get`; decorative props pass `{ optional = true }`. CreatureView only builds sleepers in the player's wing; props load only in the Food Court. Screens use portraits, not viewports. Each new wing adds meshes, so the lasting fix is importing the models as uploaded assets (owner's call).
 
 ## Layout
 
@@ -42,7 +44,10 @@ Roblox game written as Luau files and synced into Roblox Studio with Rojo.
 - `src/client` → StarterPlayer.StarterPlayerScripts.Client
 - `src/shared` → ReplicatedStorage.Shared
 - `default.project.json` → the mapping above plus Lighting.Technology; the map is built by `src/server/Map.luau` at runtime
-- Tuning (noise, speeds, pickup window, prices) lives in `src/shared/Config.luau` → `Tuning`
+- Tuning (noise, speeds, pickup window, prices, upgrade tracks, evolutions) lives in `src/shared/Config.luau` → `Tuning`; wings (price, coin and wake multipliers, families) in `Config.Wings`
+- Look: `src/shared/Theme.luau` (Builder Sans, light palette, cards, floating place labels). Use it for every new UI and world label.
+- Wings: the Arcade is behind a paid glass gate; unlocked characters are put in collision group `Pass_<wing>` (wings unlock in order). Each wing has its own rare stage/timer (`RareAt_<wing>` / `RareActive_<wing>` workspace attributes). Route zones carry a `Route` attribute (Vent, BallPit) that evolutions check.
+- Plan and milestones: `docs/roadmap.md`
 
 ## Saving
 
@@ -50,4 +55,5 @@ Roblox game written as Luau files and synced into Roblox Studio with Rojo.
 - `src/server/PlayerData.luau`: `join` (load + sanitize), autosave every 60 s when dirty, `saveSoon` after purchases/new species/evolution/rares, `leave` (final save + release), `BindToClose` waits for writes.
 - Studio uses a separate `BrainrotProfiles_v1_Studio` store. It needs Experience Settings > Security > "Enable Studio Access to API Services" (File menu in the new Studio UI). Without it the game runs session-only and the HUD says "progress is not saving".
 - A failed load means that session never saves, so an outage can't overwrite good data.
-- Changing the profile shape: bump `SCHEMA` in Persistence and handle old records in `PlayerData.sanitize`.
+- Changing the profile shape: bump `SCHEMA` in Persistence and handle old records in `PlayerData.sanitize`. (B1 added `tracks`, `wings`, `evo` without a bump: sanitize defaults them and migrates the old `ventRescues`.)
+- StudioMCP's `character_navigation` pathfinding won't route through the wing gate; in playtests cross it with `face()` + `hold('W', s)`.

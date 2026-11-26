@@ -19,4 +19,21 @@ return {
 		{ Pos = Vector3.new(-0.148, 0.142, -0.45), Radius = 0.062, Lid = Color3.fromRGB(246, 242, 236) },
 		{ Pos = Vector3.new(0.164, 0.142, -0.45), Radius = 0.062, Lid = Color3.fromRGB(246, 242, 236) },
 	},
+	-- Arcade wing (dark glossy eyes: found with find_eyes.py ... dark)
+	Ticketoad = {
+		{ Pos = Vector3.new(-0.209, 0.197, -0.162), Radius = 0.085, Lid = Color3.fromRGB(205, 227, 129) },
+		{ Pos = Vector3.new(0.222, 0.195, -0.157), Radius = 0.087, Lid = Color3.fromRGB(204, 229, 127) },
+	},
+	JackpotTicketoad = {
+		{ Pos = Vector3.new(-0.171, 0.095, -0.140), Radius = 0.072, Lid = Color3.fromRGB(236, 192, 57) },
+		{ Pos = Vector3.new(0.166, 0.095, -0.140), Radius = 0.072, Lid = Color3.fromRGB(235, 191, 58) },
+	},
+	Joystingray = {
+		{ Pos = Vector3.new(-0.183, -0.088, -0.628), Radius = 0.06, Lid = Color3.fromRGB(146, 215, 245) },
+		{ Pos = Vector3.new(0.176, -0.090, -0.632), Radius = 0.06, Lid = Color3.fromRGB(145, 216, 245) },
+	},
+	Clawmato = {
+		{ Pos = Vector3.new(-0.120, -0.046, -0.347), Radius = 0.05, Lid = Color3.fromRGB(225, 36, 35) },
+		{ Pos = Vector3.new(0.125, -0.048, -0.347), Radius = 0.05, Lid = Color3.fromRGB(225, 36, 35) },
+	},
 }

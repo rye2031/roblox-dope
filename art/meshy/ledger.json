@@ -104,5 +104,81 @@
       "art/meshy/models/prop_takeout_bag/model.glb",
       "art/meshy/models/prop_takeout_bag/thumb.png"
     ]
+  },
+  {
+    "name": "ticketoad",
+    "kind": "text-to-image",
+    "task_id": "01a218d3-0ff6-77f1-aa9f-5a00e5e71f28",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/ticketoad.png"
+    ]
+  },
+  {
+    "name": "joystingray",
+    "kind": "text-to-image",
+    "task_id": "01a218d3-14ce-773e-9106-f927411f8b97",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/joystingray.png"
+    ]
+  },
+  {
+    "name": "clawmato",
+    "kind": "text-to-image",
+    "task_id": "01a218d3-1962-76b0-9897-9393a8ff57d4",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/clawmato.png"
+    ]
+  },
+  {
+    "name": "jackpot_ticketoad",
+    "kind": "image-to-image",
+    "task_id": "01a218d3-6b1d-7106-983b-a16b547f629e",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/jackpot_ticketoad.png"
+    ]
+  },
+  {
+    "name": "ticketoad",
+    "kind": "image-to-3d",
+    "task_id": "01a218d3-7188-73a1-9f48-e7806f91ccfd",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/ticketoad/model.glb",
+      "art/meshy/models/ticketoad/thumb.png"
+    ]
+  },
+  {
+    "name": "joystingray",
+    "kind": "image-to-3d",
+    "task_id": "01a218d3-77a9-7794-8cd1-4a35e337fdf6",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/joystingray/model.glb",
+      "art/meshy/models/joystingray/thumb.png"
+    ]
+  },
+  {
+    "name": "clawmato",
+    "kind": "image-to-3d",
+    "task_id": "01a218d3-7d76-76c5-8b71-50177bbe6209",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/clawmato/model.glb",
+      "art/meshy/models/clawmato/thumb.png"
+    ]
+  },
+  {
+    "name": "jackpot_ticketoad",
+    "kind": "image-to-3d",
+    "task_id": "01a218d3-e606-7224-8a41-174f937676a3",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/jackpot_ticketoad/model.glb",
+      "art/meshy/models/jackpot_ticketoad/thumb.png"
+    ]
   }
 ]

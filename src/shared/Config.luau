@@ -5,31 +5,53 @@ local Config = {
 }
 
 Config.Tuning = {
-	-- Movement (studs/s)
-	WalkSpeed = 16,
-	SprintSpeed = 26,
+	-- Movement (studs/s), before upgrades
+	WalkSpeed = 20,
+	SprintSpeed = 30,
 	CarryWalkSpeed = 14,
 	CarrySprintSpeed = 24,
 
-	-- Wake meter runs 0..100. Rates are per second, before the creature's rarity multiplier.
+	-- Upgrade tracks bought in the shop. Level n costs Costs[n].
+	Tracks = {
+		Sneakers = {
+			Name = "Sneakers",
+			Icon = "⚡",
+			Blurb = "Run faster with empty hands",
+			WalkPerLevel = 1.5,
+			SprintPerLevel = 3,
+			Costs = { 40, 90, 180, 350, 650, 1200, 2200, 4000 },
+		},
+		SteadyHands = {
+			Name = "Steady Hands",
+			Icon = "🤲",
+			Blurb = "Walk faster while carrying — still quiet",
+			CarryWalkPerLevel = 1.5,
+			CarrySprintPerLevel = 1.5,
+			Costs = { 120, 300, 700, 1500, 3200 },
+		},
+	},
+
+	-- Wake meter runs 0..100. Rates are per second, before the creature's wake multiplier.
 	-- Normal walking on quiet ground holds the meter steady.
 	Noise = {
 		IdleDrain = 2, -- standing still lets it settle a little
 		WalkQuiet = 0, -- careful walking on quiet floor: steady
 		SprintQuiet = 9, -- sprinting on quiet floor
-		WalkLoud = 9, -- walking carefully on the rattling escalator
-		SprintLoud = 38, -- sprinting on the rattling escalator
-		ShelterDrain = 28, -- standing or walking in the sheltered corner
+		WalkLoud = 9, -- walking carefully on a loud floor
+		SprintLoud = 38, -- sprinting on a loud floor
+		ShelterDrain = 28, -- standing or walking somewhere cosy (Cozy Corner, ball pit)
 		VentRate = 0, -- the vent duct is muffled
 		LandSpike = 10, -- landing a jump
-		-- The escalator rattles in a cycle. During the calm part its loud rates are scaled down,
+		-- Loud floors pulse in a cycle. During the calm part their rates are scaled down,
 		-- so a player who times the sprint can get across.
-		RattleCycle = 4.0, -- seconds per full cycle
+		RattleCycle = 4.0, -- escalator: seconds per full cycle
 		RattleLoudPortion = 0.5, -- fraction of the cycle that is loud
+		DanceCycle = 3.0, -- arcade dance floor: faster beat, longer loud part
+		DanceLoudPortion = 0.6,
 		RattleCalmScale = 0.1,
 		-- Padded Shoes multiply sprint noise while carrying.
 		PaddedShoesSprintScale = 0.45,
-		-- Speed above (carry walk speed + this) counts as sprinting.
+		-- Speed above (the player's carry walk speed + this) counts as sprinting.
 		SprintThreshold = 3,
 	},
 
@@ -39,7 +61,7 @@ Config.Tuning = {
 	Bolt = {
 		HopDistance = 9, -- first startled leap away from the carrier
 		HopTime = 0.45,
-		Speed = 15, -- studs/s while bolting (carrier sprints at 26)
+		Speed = 15, -- studs/s while bolting
 		Duration = 3.2, -- seconds of running before it stops to doze
 		CarrierStun = 0.5, -- carrier fumbles for this long
 		ExclusiveWindow = 2.0, -- seconds only the original carrier may re-grab
@@ -69,17 +91,74 @@ Config.Tuning = {
 	},
 
 	Shop = {
-		PaddedShoes = { Price = 60, Name = "Padded Shoes" },
+		PaddedShoes = { Price = 60, Name = "Padded Shoes", Icon = "👟", Blurb = "Running while carrying is 55% quieter" },
 	},
 
-	Evolution = {
-		From = "CrabRangoon",
-		To = "KingRangoon",
-		VentRescuesNeeded = 3,
+	-- Evolutions: rescue with the From buddy equipped, through the named route, Needed times.
+	Evolutions = {
+		{ From = "CrabRangoon", To = "KingRangoon", Route = "Vent", RouteName = "the vent", Needed = 3 },
+		{ From = "Ticketoad", To = "JackpotTicketoad", Route = "BallPit", RouteName = "the ball pit", Needed = 3 },
 	},
 
 	VentOpenTime = 8, -- seconds the vent door stays open
-	KingCoinBonus = 0.1,
+	-- Evolved buddies add a coin bonus to every rescue.
+	BuddyCoinBonus = { KingRangoon = 0.1, JackpotTicketoad = 0.15 },
 }
+
+-- Wings of the mall. Each has its own sleepers, rare stage and (except the first) a paid gate.
+Config.Wings = {
+	FoodCourt = {
+		Id = "FoodCourt",
+		Name = "Food Court",
+		Order = 1,
+		Price = 0,
+		CoinMult = 1,
+		WakeMult = 1,
+		Families = { "Dumpling", "Clog", "Candy" },
+		RareStageName = "the north stage",
+	},
+	Arcade = {
+		Id = "Arcade",
+		Name = "Arcade",
+		Order = 2,
+		Price = 300,
+		CoinMult = 2.25,
+		WakeMult = 1.2,
+		Families = { "Ticket", "Joystick", "Plush" },
+		RareStageName = "the Prize Stage",
+	},
+}
+
+function Config.wingList()
+	local list = {}
+	for _, w in Config.Wings do
+		table.insert(list, w)
+	end
+	table.sort(list, function(a, b)
+		return a.Order < b.Order
+	end)
+	return list
+end
+
+-- Movement speeds for upgrade levels (used by the server and the HUD).
+function Config.speeds(sneakers: number, hands: number)
+	local T = Config.Tuning
+	local s, h = T.Tracks.Sneakers, T.Tracks.SteadyHands
+	return {
+		walk = T.WalkSpeed + sneakers * s.WalkPerLevel,
+		sprint = T.SprintSpeed + sneakers * s.SprintPerLevel,
+		carryWalk = T.CarryWalkSpeed + hands * h.CarryWalkPerLevel,
+		carrySprint = T.CarrySprintSpeed + hands * h.CarrySprintPerLevel,
+	}
+end
+
+function Config.evolutionTo(to: string)
+	for _, e in Config.Tuning.Evolutions do
+		if e.To == to then
+			return e
+		end
+	end
+	return nil
+end
 
 return Config

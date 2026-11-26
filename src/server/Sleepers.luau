@@ -21,6 +21,7 @@ local Sleepers = {}
 type Sleeper = {
 	id: number,
 	rarity: string,
+	wing: string,
 	family: string,
 	species: string,
 	spawnPos: Vector3,
@@ -32,7 +33,7 @@ type Sleeper = {
 	wake: number,
 	exclusiveUser: number?,
 	exclusiveUntil: number,
-	passedVent: boolean,
+	routes: { [string]: boolean }, -- route tags passed while carried (Vent, BallPit)
 	lastPos: Vector3?,
 	lastWakeSent: number,
 	path: { Vector3 }?,
@@ -81,10 +82,11 @@ function Sleepers.applySpeed(player: Player)
 		return
 	end
 	local sprint = player:GetAttribute("Sprinting") == true
+	local sp = Config.speeds(player:GetAttribute("Sneakers") or 0, player:GetAttribute("SteadyHands") or 0)
 	if carrying[player] then
-		hum.WalkSpeed = sprint and T.CarrySprintSpeed or T.CarryWalkSpeed
+		hum.WalkSpeed = sprint and sp.carrySprint or sp.carryWalk
 	else
-		hum.WalkSpeed = sprint and T.SprintSpeed or T.WalkSpeed
+		hum.WalkSpeed = sprint and sp.sprint or sp.walk
 	end
 end
 
@@ -162,8 +164,8 @@ local spawnSleeper -- forward
 
 local function scheduleRespawn(s: Sleeper)
 	if s.rarity == "Rare" then
-		workspace:SetAttribute("RareAt", now() + T.Spawns.RareRespawn)
-		workspace:SetAttribute("RareActive", false)
+		workspace:SetAttribute("RareAt_" .. s.wing, now() + T.Spawns.RareRespawn)
+		workspace:SetAttribute("RareActive_" .. s.wing, false)
 	elseif s.spawnIndex then
 		local idx = s.spawnIndex
 		task.delay(T.Spawns.CommonRespawn, function()
@@ -177,7 +179,7 @@ local function returnHome(s: Sleeper)
 	detach(s)
 	s.exclusiveUser = nil
 	s.exclusiveUntil = 0
-	s.passedVent = false
+	s.routes = {}
 	s.part:SetAttribute("ExclusiveId", nil)
 	s.part:SetAttribute("ExclusiveUntil", 0)
 	setWake(s, 0, true)
@@ -209,20 +211,23 @@ local function weighted(list: { any }, key: string): any
 	return list[#list]
 end
 
-spawnSleeper = function(rarity: string, spawnIndex: number?): Sleeper
+spawnSleeper = function(rarity: string, spawnIndex: number?, rareWing: string?): Sleeper
 	nextId += 1
-	local species, family, pos
+	local species, family, pos, wing
 	if rarity == "Rare" then
-		species = weighted(Creatures.RarePool, "Weight").Species
+		wing = rareWing or "FoodCourt"
+		species = weighted(Creatures.RarePools[wing], "Weight").Species
 		family = Creatures.Species[species].Family
-		pos = Map.Points.RareStage + Vector3.new(0, 1, 0)
+		pos = Map.Points.RareStages[wing] + Vector3.new(0, 1, 0)
 	else
-		local fams = { "Dumpling", "Clog", "Candy" }
+		local spot = Map.Points.Spawns[spawnIndex :: number]
+		wing = spot.wing
+		local fams = Config.Wings[wing].Families
 		-- the very first sleeper by the hideout is always a Dumpling, so a new player can
 		-- get Crab Rangoon early
 		family = (spawnIndex == 1 and nextId == 1) and "Dumpling" or fams[math.random(1, #fams)]
 		species = rollSpecies("Common", family)
-		pos = Map.Points.CommonSpawns[spawnIndex :: number]
+		pos = spot.pos
 	end
 	local sp = Creatures.Species[species]
 	local size = rarity == "Rare" and 4 or 3
@@ -237,6 +242,7 @@ spawnSleeper = function(rarity: string, spawnIndex: number?): Sleeper
 	part.Anchored = true
 	part:SetAttribute("Id", nextId)
 	part:SetAttribute("Rarity", rarity)
+	part:SetAttribute("Wing", wing)
 	part:SetAttribute("Family", family)
 	-- Field visuals show the family's base look; exact species/form stays server-side.
 	part:SetAttribute("FieldMesh", Creatures.Families[family].Common[1])
@@ -253,6 +259,7 @@ spawnSleeper = function(rarity: string, spawnIndex: number?): Sleeper
 	local s: Sleeper = {
 		id = nextId,
 		rarity = rarity,
+		wing = wing,
 		family = family,
 		species = species,
 		spawnPos = pos,
@@ -264,7 +271,7 @@ spawnSleeper = function(rarity: string, spawnIndex: number?): Sleeper
 		wake = 0,
 		exclusiveUser = nil,
 		exclusiveUntil = 0,
-		passedVent = false,
+		routes = {},
 		lastPos = nil,
 		lastWakeSent = 0,
 		path = nil,
@@ -283,8 +290,8 @@ spawnSleeper = function(rarity: string, spawnIndex: number?): Sleeper
 		Sleepers.tryGrab(player, s.id)
 	end)
 	if rarity == "Rare" then
-		workspace:SetAttribute("RareActive", true)
-		remotes.Fx:FireAllClients("RareSpawn", part.Position, family)
+		workspace:SetAttribute("RareActive_" .. wing, true)
+		remotes.Fx:FireAllClients("RareSpawn", part.Position, family, wing)
 	end
 	return s
 end
@@ -328,7 +335,7 @@ function Sleepers.tryGrab(player: Player, id: number): (boolean, string?)
 	s.path = nil
 	s.hop = nil
 	if not (regrab and sameCarrier) then
-		s.passedVent = false
+		s.routes = {}
 	end
 	setWake(s, regrab and T.Bolt.RegrabWake or 0, true)
 	s.lastPos = hrp.Position
@@ -343,7 +350,7 @@ function Sleepers.tryGrab(player: Player, id: number): (boolean, string?)
 	local hum = player.Character:FindFirstChildOfClass("Humanoid")
 	s.landConn = hum.StateChanged:Connect(function(_, new)
 		if new == Enum.HumanoidStateType.Landed and s.carrier == player then
-			setWake(s, s.wake + T.Noise.LandSpike * T.Rarity[s.rarity].WakeMult)
+			setWake(s, s.wake + T.Noise.LandSpike * T.Rarity[s.rarity].WakeMult * Config.Wings[s.wing].WakeMult)
 		end
 	end)
 	setState(s, "Carried")
@@ -438,45 +445,51 @@ local function wakeUp(s: Sleeper)
 	remotes.Fx:FireAllClients("Wake", start, s.id)
 end
 
+-- Wake multiplier for this sleeper (rarity x wing: deeper wings wake faster).
+local function wakeMult(s: Sleeper): number
+	return T.Rarity[s.rarity].WakeMult * Config.Wings[s.wing].WakeMult
+end
+
 local function bank(s: Sleeper, player: Player)
 	local p = PlayerData.get(player)
 	if not p or s.state ~= "Carried" or s.carrier ~= player then
 		return
 	end
 	-- claim first so nothing else can touch this encounter
-	local passedVent = s.passedVent
+	local routes = s.routes
 	local species = s.species
 	local rarity = s.rarity
+	local wing = s.wing
 	destroySleeper(s)
 	scheduleRespawn(s)
 
 	local formsKey = rarity == "Rare" and "RareWeight" or "Weight"
 	local form = weighted(T.Forms, formsKey)
-	local coins = math.floor(T.Rarity[rarity].BaseCoins * form.CoinMult)
-	if p.buddy == "KingRangoon" then
-		coins = math.floor(coins * (1 + T.KingCoinBonus))
+	local coins = T.Rarity[rarity].BaseCoins * Config.Wings[wing].CoinMult * form.CoinMult
+	local bonus = p.buddy and T.BuddyCoinBonus[p.buddy]
+	if bonus then
+		coins *= 1 + bonus
 	end
+	coins = math.floor(coins)
 	p.coins += coins
 	p.rescues += 1
 	local isNew = PlayerData.record(p, species, form.Id)
 
-	local evolved = false
-	local ventCounted = false
-	local evo = T.Evolution
-	if passedVent and p.buddy == evo.From then
-		ventCounted = true
-		p.ventRescues += 1
-		if p.ventRescues >= evo.VentRescuesNeeded then
-			evolved = true
-			local newKing = PlayerData.record(p, evo.To, "Normal")
-			p.buddy = evo.To
-			if newKing then
-				isNew = isNew or false
+	-- evolution progress: the From buddy equipped, and this rescue passed the route
+	local evoInfo = nil
+	for _, evo in T.Evolutions do
+		if p.buddy == evo.From and routes[evo.Route] and not p.collection[evo.To] then
+			p.evo[evo.To] = (p.evo[evo.To] or 0) + 1
+			evoInfo = { to = evo.To, from = evo.From, count = p.evo[evo.To], needed = evo.Needed, route = evo.RouteName }
+			if p.evo[evo.To] >= evo.Needed then
+				PlayerData.record(p, evo.To, "Normal")
+				p.buddy = evo.To
+				evoInfo.evolved = true
 			end
 		end
 	end
 	PlayerData.push(player)
-	if isNew or evolved or rarity == "Rare" then
+	if isNew or evoInfo or rarity == "Rare" then
 		PlayerData.saveSoon(player)
 	end
 	remotes.Reveal:FireClient(player, {
@@ -485,9 +498,8 @@ local function bank(s: Sleeper, player: Player)
 		coins = coins,
 		isNew = isNew,
 		rarity = rarity,
-		ventCounted = ventCounted,
-		ventRescues = p.ventRescues,
-		evolved = evolved,
+		wing = wing,
+		evo = evoInfo,
 	})
 	remotes.Fx:FireAllClients("Bank", Map.Points.Station, species, player.UserId, form.Id)
 end
@@ -511,9 +523,9 @@ local function updateCarried(s: Sleeper, dt: number)
 	-- Replicated positions arrive in bursts, so per-frame speed is spiky; smooth it (~0.3 s).
 	s.speed = s.speed + (inst - s.speed) * (1 - math.exp(-dt / 0.3))
 	local speed = s.speed
-	local surface = Map.surfaceAt(pos)
-	if surface == "Vent" then
-		s.passedVent = true
+	local surface, route = Map.surfaceAt(pos)
+	if route then
+		s.routes[route] = true
 	end
 	if (pos - Map.Points.Station).Magnitude <= T.BankRadius then
 		bank(s, player)
@@ -525,6 +537,8 @@ local function updateCarried(s: Sleeper, dt: number)
 		t = now(),
 		rarity = s.rarity,
 		paddedShoes = player:GetAttribute("PaddedShoes") == true,
+		carryWalk = Config.speeds(0, player:GetAttribute("SteadyHands") or 0).carryWalk,
+		mult = wakeMult(s),
 	})
 	setWake(s, s.wake + rate * dt)
 	s.part:SetAttribute("Surface", surface)
@@ -595,13 +609,17 @@ local function step(dt: number)
 			s.part:SetAttribute("ExclusiveUntil", 0)
 		end
 	end
-	-- rare spawn timer
-	if not workspace:GetAttribute("RareActive") and t >= (workspace:GetAttribute("RareAt") or math.huge) then
-		spawnSleeper("Rare", nil)
-	end
-	local beam = Map.beam
-	if beam then
-		beam.Transparency = workspace:GetAttribute("RareActive") and 0.6 or 1
+	-- rare spawn timers, one per wing
+	for wing in Config.Wings do
+		local active = workspace:GetAttribute("RareActive_" .. wing)
+		if not active and t >= (workspace:GetAttribute("RareAt_" .. wing) or math.huge) then
+			spawnSleeper("Rare", nil, wing)
+			active = true
+		end
+		local beam = Map.beams[wing]
+		if beam then
+			beam.Transparency = active and 0.6 or 1
+		end
 	end
 end
 
@@ -637,9 +655,11 @@ function Sleepers.init(r: { [string]: any }, mapFolder: Folder)
 	folder = Instance.new("Folder")
 	folder.Name = "Sleepers"
 	folder.Parent = workspace
-	workspace:SetAttribute("RareAt", now() + T.Spawns.RareFirstDelay)
-	workspace:SetAttribute("RareActive", false)
-	for i = 1, #Map.Points.CommonSpawns do
+	for wing, w in Config.Wings do
+		workspace:SetAttribute("RareAt_" .. wing, now() + T.Spawns.RareFirstDelay + (w.Order - 1) * 15)
+		workspace:SetAttribute("RareActive_" .. wing, false)
+	end
+	for i = 1, #Map.Points.Spawns do
 		spawnSleeper("Common", i)
 	end
 	RunService.Heartbeat:Connect(step)
@@ -667,7 +687,7 @@ Sleepers.debug = {
 	list = function()
 		local out = {}
 		for id, s in sleepers do
-			out[id] = { state = s.state, rarity = s.rarity, family = s.family, species = s.species, wake = s.wake, carrier = s.carrier and s.carrier.Name, exclusive = s.exclusiveUser, passedVent = s.passedVent, pos = s.part.Position, speed = s.speed, surface = s.part:GetAttribute("Surface") }
+			out[id] = { state = s.state, rarity = s.rarity, wing = s.wing, family = s.family, species = s.species, wake = s.wake, carrier = s.carrier and s.carrier.Name, exclusive = s.exclusiveUser, passedVent = s.routes.Vent == true, routes = s.routes, pos = s.part.Position, speed = s.speed, surface = s.part:GetAttribute("Surface") }
 		end
 		return out
 	end,
@@ -687,8 +707,8 @@ Sleepers.debug = {
 			returnHome(s)
 		end
 	end,
-	forceRare = function()
-		workspace:SetAttribute("RareAt", now())
+	forceRare = function(wing)
+		workspace:SetAttribute("RareAt_" .. (wing or "FoodCourt"), now())
 	end,
 	setWake = function(id, w)
 		local s = sleepers[id]

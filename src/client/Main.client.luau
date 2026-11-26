@@ -15,7 +15,11 @@ Hud.start()
 Remotes.Fx.OnClientEvent:Connect(function(kind, pos, a, b, c)
 	WorldFx.onFx(kind, pos, a, b, c)
 	if kind == "RareSpawn" then
-		Hud.toast("⭐ A RARE sleeper is snoring on the north stage!", "good")
+		local wing = Config.Wings[b or "FoodCourt"]
+		local p = Hud.getProfile()
+		if wing and (not p or p.wings[wing.Id]) then
+			Hud.toast("A rare sleeper is napping on " .. wing.RareStageName .. "!", "good")
+		end
 	end
 end)
 
@@ -35,9 +39,10 @@ if game:GetService("RunService"):IsStudio() then
 					table.insert(out, "meterText=" .. d.Text)
 				end
 			end
-			table.insert(out, "hint=" .. (gui.Hint.Visible and gui.Hint.Text or ""))
-			table.insert(out, "rare=" .. gui.Top.Rare.Text)
-			table.insert(out, "coins=" .. gui.Top.Coins.Text)
+			table.insert(out, "hint=" .. (gui.Hint.Visible and gui.Hint.Text.Text or ""))
+			table.insert(out, "rare=" .. gui.Top.Rare.Card.Value.Text)
+			table.insert(out, "coins=" .. gui.Top.Coins.Card.Value.Text)
+			table.insert(out, "shop=" .. tostring(gui.Shop.Visible) .. " index=" .. tostring(gui.Collection.Visible))
 			table.insert(out, "reveal=" .. tostring(gui.Reveal.Visible))
 			for _, d in gui.Reveal:GetDescendants() do
 				if d:IsA("TextLabel") and gui.Reveal.Visible then
@@ -45,6 +50,12 @@ if game:GetService("RunService"):IsStudio() then
 				end
 			end
 			return table.concat(out, " | ")
+		elseif cmd == "meshes" then
+			local n, list = require(ReplicatedStorage.Shared.MeshLoader).stats()
+			return n .. " | " .. list
+		elseif cmd == "open" then
+			Hud.openPanel(a)
+			return "ok"
 		elseif cmd == "sprint" then
 			Hud.setSprint(a == true)
 			return "ok"

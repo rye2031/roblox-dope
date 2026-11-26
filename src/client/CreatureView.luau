@@ -62,12 +62,13 @@ local holder = Instance.new("Folder")
 holder.Name = "CreatureViews"
 holder.Parent = workspace
 
--- Build a creature model: mesh body (or labelled placeholder) + eyelids.
-function CreatureView.build(meshName: string, height: number, parent: Instance?)
+-- Build a creature model: mesh body (or a soft coloured placeholder when no mesh slot is free)
+-- + eyelids. Pair every build with CreatureView.destroy so the mesh slot is handed back.
+function CreatureView.build(meshName: string, height: number, parent: Instance?, opts: { optional: boolean? }?)
 	local sp = Creatures.Species[meshName]
 	local model = Instance.new("Model")
 	model.Name = meshName
-	local body: BasePart? = MeshLoader.get(meshName, height)
+	local body: BasePart? = MeshLoader.get(meshName, height, opts)
 	local temp = false
 	if not body then
 		temp = true
@@ -81,20 +82,6 @@ function CreatureView.build(meshName: string, height: number, parent: Instance?)
 		ball.CanQuery = false
 		ball.CanTouch = false
 		body = ball
-		local bb = Instance.new("BillboardGui")
-		bb.Size = UDim2.fromOffset(120, 24)
-		bb.StudsOffset = Vector3.new(0, height / 2 + 0.5, 0)
-		bb.AlwaysOnTop = false
-		bb.MaxDistance = 60
-		local t = Instance.new("TextLabel")
-		t.Size = UDim2.fromScale(1, 1)
-		t.BackgroundTransparency = 0.3
-		t.BackgroundColor3 = Color3.new(0, 0, 0)
-		t.TextColor3 = Color3.new(1, 1, 1)
-		t.TextScaled = true
-		t.Text = "TEMP " .. meshName
-		t.Parent = bb
-		bb.Parent = ball
 	end
 	local b = body :: BasePart
 	b.Name = "Body"
@@ -138,7 +125,17 @@ function CreatureView.build(meshName: string, height: number, parent: Instance?)
 		end
 	end
 	model.Parent = parent or holder
-	return { model = model, body = b, lids = lids, height = height, temp = temp }
+	return { model = model, body = b, lids = lids, height = height, temp = temp, mesh = meshName }
+end
+
+function CreatureView.destroy(c)
+	if c.model then
+		c.model:Destroy()
+	end
+	if not c.temp and not c.released then
+		c.released = true
+		MeshLoader.release(c.mesh)
+	end
 end
 
 -- open = 0 closed .. 1 fully open
@@ -153,36 +150,49 @@ local function setLid(l, open: number)
 	end
 end
 
+local Theme = require(Shared.Theme)
+
+-- Small white name pill over a creature: family name + status line.
 local function billboard(adornee: BasePart, offsetY: number)
 	local bb = Instance.new("BillboardGui")
-	bb.Size = UDim2.fromOffset(200, 60)
+	bb.Size = UDim2.fromOffset(170, 52)
 	bb.StudsOffset = Vector3.new(0, offsetY, 0)
 	bb.MaxDistance = 80
 	bb.LightInfluence = 0
 	bb.Adornee = adornee
+	local pill = Instance.new("Frame")
+	pill.Name = "Pill"
+	pill.AnchorPoint = Vector2.new(0.5, 0)
+	pill.Position = UDim2.fromScale(0.5, 0)
+	pill.Size = UDim2.new(0.8, 0, 0.5, 0)
+	pill.BackgroundColor3 = Color3.new(1, 1, 1)
+	pill.BackgroundTransparency = 0.05
+	pill.Parent = bb
+	local c = Instance.new("UICorner")
+	c.CornerRadius = UDim.new(0.5, 0)
+	c.Parent = pill
 	local title = Instance.new("TextLabel")
 	title.Name = "Title"
-	title.Size = UDim2.new(1, 0, 0.5, 0)
+	title.Size = UDim2.new(1, -12, 1, -6)
+	title.Position = UDim2.fromOffset(6, 3)
 	title.BackgroundTransparency = 1
-	title.Font = Enum.Font.FredokaOne
+	title.FontFace = Theme.Font.Title
 	title.TextScaled = true
-	title.TextColor3 = Color3.new(1, 1, 1)
-	title.Parent = bb
-	local st = Instance.new("UIStroke")
-	st.Thickness = 2
-	st.Parent = title
+	title.TextColor3 = Theme.C.Ink
+	title.Parent = pill
 	local sub = Instance.new("TextLabel")
 	sub.Name = "Sub"
 	sub.Size = UDim2.new(1, 0, 0.42, 0)
-	sub.Position = UDim2.fromScale(0, 0.55)
+	sub.Position = UDim2.fromScale(0, 0.56)
 	sub.BackgroundTransparency = 1
-	sub.Font = Enum.Font.FredokaOne
+	sub.FontFace = Theme.Font.Title
 	sub.TextScaled = true
-	sub.TextColor3 = Color3.fromRGB(255, 230, 120)
+	sub.TextColor3 = Color3.fromRGB(120, 160, 230)
 	sub.Parent = bb
-	local st2 = Instance.new("UIStroke")
-	st2.Thickness = 2
-	st2.Parent = sub
+	local st = Instance.new("UIStroke")
+	st.Thickness = 2
+	st.Color = Color3.new(1, 1, 1)
+	st.Parent = sub
 	bb.Parent = adornee
 	return bb
 end
@@ -220,8 +230,8 @@ local function addSleeper(part: BasePart)
 	local c = CreatureView.build(fieldMesh, height)
 	local family = part:GetAttribute("Family")
 	local bb = billboard(c.body, height / 2 + 1.6)
-	bb.Title.Text = (rarity == "Rare" and "⭐ " or "") .. family .. (rarity == "Rare" and " ???" or "")
-	bb.Title.TextColor3 = rarity == "Rare" and Color3.fromRGB(255, 215, 80) or Creatures.Families[family].Color:Lerp(Color3.new(1, 1, 1), 0.35)
+	bb.Pill.Title.Text = (rarity == "Rare" and "★ RARE " or "") .. family
+	bb.Pill.Title.TextColor3 = rarity == "Rare" and Color3.fromRGB(210, 150, 20) or Creatures.Families[family].Color:Lerp(Color3.new(0, 0, 0), 0.25)
 	bb.Sub.Text = "z z Z"
 	local a0 = Instance.new("Attachment")
 	a0.Position = Vector3.new(0, -height * 0.35, 0.3)
@@ -294,9 +304,10 @@ end
 local function removeSleeper(part: BasePart)
 	local v = views[part]
 	if v then
-		v.c.model:Destroy()
+		CreatureView.destroy(v.c)
 		if v.bag then
 			v.bag:Destroy()
+			MeshLoader.release("PropTakeoutBag")
 		end
 		views[part] = nil
 	end
@@ -415,24 +426,24 @@ local function updateSleeper(v: View, dt: number, t: number)
 	local prompt = part:FindFirstChild("GrabPrompt") :: ProximityPrompt?
 	if state == "Sleeping" then
 		bb.Sub.Text = string.rep("z ", 1 + math.floor(t * 2) % 3) .. "Z"
-		bb.Sub.TextColor3 = Color3.fromRGB(180, 210, 255)
+		bb.Sub.TextColor3 = Color3.fromRGB(110, 150, 230)
 	elseif carried then
-		bb.Sub.Text = ({ "z z Z", "*twitch*", "*SQUIRM*", "👁 ONE EYE OPEN!" })[stage + 1] or ""
-		bb.Sub.TextColor3 = stage >= 2 and Color3.fromRGB(255, 110, 90) or Color3.fromRGB(255, 230, 120)
+		bb.Sub.Text = ({ "z z Z", "*twitch*", "*SQUIRM*", "ONE EYE OPEN!" })[stage + 1] or ""
+		bb.Sub.TextColor3 = stage >= 2 and Color3.fromRGB(235, 80, 70) or Color3.fromRGB(220, 160, 30)
 	elseif exclusiveId and left > 0 then
 		if exclusiveId == player.UserId then
 			bb.Sub.Text = string.format("CATCH IT! %.1fs", left)
-			bb.Sub.TextColor3 = Color3.fromRGB(120, 255, 140)
+			bb.Sub.TextColor3 = Color3.fromRGB(40, 170, 110)
 		else
 			bb.Sub.Text = string.format("🔒 locked %.1fs", left)
-			bb.Sub.TextColor3 = Color3.fromRGB(255, 120, 120)
+			bb.Sub.TextColor3 = Color3.fromRGB(230, 80, 90)
 		end
 	elseif state == "Bolting" then
 		bb.Sub.Text = "IT'S LOOSE! GRAB IT!"
-		bb.Sub.TextColor3 = Color3.fromRGB(255, 160, 80)
+		bb.Sub.TextColor3 = Color3.fromRGB(235, 120, 50)
 	elseif state == "Loose" then
 		bb.Sub.Text = "?! dozing… grab it!"
-		bb.Sub.TextColor3 = Color3.fromRGB(255, 200, 120)
+		bb.Sub.TextColor3 = Color3.fromRGB(220, 140, 40)
 	end
 	if prompt then
 		local lockedForMe = exclusiveId ~= nil and exclusiveId ~= player.UserId and left > 0
@@ -451,7 +462,7 @@ local function updateBuddy(plr: Player, dt: number, t: number)
 	local want = plr:GetAttribute("Buddy")
 	local b = buddies[plr]
 	if b and b.species ~= want then
-		b.c.model:Destroy()
+		CreatureView.destroy(b.c)
 		buddies[plr] = nil
 		b = nil
 	end
@@ -502,18 +513,47 @@ end
 ----------------------------------------------------------------------------------------------
 
 function CreatureView.start()
+	-- Level of detail: only sleepers in the player's wing (or very close) get a mesh view, so the
+	-- client stays inside its EditableMesh budget as the mall grows.
 	local folder = workspace:WaitForChild("Sleepers")
+	local known: { [BasePart]: boolean } = {}
 	for _, p in folder:GetChildren() do
-		task.spawn(addSleeper, p)
+		known[p] = true
 	end
 	folder.ChildAdded:Connect(function(p)
-		addSleeper(p)
+		known[p] = true
 	end)
-	folder.ChildRemoved:Connect(removeSleeper)
+	folder.ChildRemoved:Connect(function(p)
+		known[p] = nil
+		removeSleeper(p)
+	end)
+	local function wingAt(pos: Vector3): string
+		return pos.X > 61 and "Arcade" or "FoodCourt"
+	end
+	task.spawn(function()
+		while true do
+			local cam = workspace.CurrentCamera
+			local char = player.Character
+			local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+			local focus = hrp and hrp.Position or (cam and cam.CFrame.Position) or Vector3.zero
+			local myWing = wingAt(focus)
+			for p in known do
+				local d = (p.Position - focus).Magnitude
+				local carriedByMe = p:GetAttribute("CarrierId") == player.UserId
+				local want = carriedByMe or d < 45 or (wingAt(p.Position) == myWing and d < 230)
+				if want and not views[p] then
+					addSleeper(p)
+				elseif not want and views[p] and d > 60 then
+					removeSleeper(p)
+				end
+			end
+			task.wait(0.4)
+		end
+	end)
 	Players.PlayerRemoving:Connect(function(plr)
 		local b = buddies[plr]
 		if b then
-			b.c.model:Destroy()
+			CreatureView.destroy(b.c)
 			buddies[plr] = nil
 		end
 	end)

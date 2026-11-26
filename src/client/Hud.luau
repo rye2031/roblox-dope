@@ -1,5 +1,7 @@
--- Screen UI: coins, rare timer, wake meter, sprint (Shift / touch button), toasts, reveal card,
--- collection page with silhouettes + evolution goal, and the Padded Shoes shop.
+-- Screen UI in the light house style (src/shared/Theme.luau): coins + rare timer pills, a left
+-- rail (Shop, Index), the wake meter while carrying, hints, toasts, the reveal card, the shop
+-- (upgrade tracks, Padded Shoes, wing unlocks) and the index (per-wing pages, evolution goals).
+-- The Shop and Index also open by stepping on their glowing pads in the hideout.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -10,43 +12,20 @@ local ContextActionService = game:GetService("ContextActionService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Creatures = require(Shared.Creatures)
-local MeshLoader = require(Shared.MeshLoader)
+local Theme = require(Shared.Theme)
+local Portraits = require(Shared.Portraits)
 local CreatureView = require(script.Parent.CreatureView)
 
 local T = Config.Tuning
+local C = Theme.C
+local F = Theme.Font
+local new, corner, pad, stroke, text, button = Theme.new, Theme.corner, Theme.pad, Theme.stroke, Theme.text, Theme.button
 local player = Players.LocalPlayer
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
 local Hud = {}
 
 local profile = nil
-local FONT = Enum.Font.FredokaOne
-
-local function new(class: string, props: { [string]: any }, children: { Instance }?)
-	local i = Instance.new(class)
-	for k, v in props do
-		if k ~= "Parent" then
-			(i :: any)[k] = v
-		end
-	end
-	for _, c in children or {} do
-		c.Parent = i
-	end
-	if props.Parent then
-		i.Parent = props.Parent
-	end
-	return i
-end
-
-local function corner(r: number?)
-	return new("UICorner", { CornerRadius = UDim.new(0, r or 12) })
-end
-local function stroke(th: number?, col: Color3?)
-	return new("UIStroke", { Thickness = th or 3, Color = col or Color3.fromRGB(30, 20, 50), ApplyStrokeMode = Enum.ApplyStrokeMode.Border })
-end
-local function textStroke()
-	return new("UIStroke", { Thickness = 2, Color = Color3.fromRGB(20, 10, 30) })
-end
 
 local gui = new("ScreenGui", {
 	Name = "BrainrotHud",
@@ -58,463 +37,506 @@ local gui = new("ScreenGui", {
 
 local isTouch = UserInputService.TouchEnabled
 local small = workspace.CurrentCamera.ViewportSize.X < 900
+local S = small and 0.85 or 1 -- type scale
+local function px(n: number): number
+	return math.floor(n * S + 0.5)
+end
+
+local function fmt(n: number): string
+	local s = tostring(math.floor(n))
+	local out = s:reverse():gsub("(%d%d%d)", "%1,"):reverse()
+	return (out:gsub("^,", ""))
+end
+
+-- White card with a soft shadow.
+local function card(props: { [string]: any }, radius: number?)
+	props.BackgroundColor3 = props.BackgroundColor3 or C.Card
+	local children = props.Children or {}
+	props.Children = nil
+	table.insert(children, corner(radius or 16))
+	local f = new("Frame", props, children)
+	Theme.shadow(f, radius or 16, 3)
+	return f
+end
+
+-- Round coloured dot with an icon glyph.
+local function dot(parent: Instance, color: Color3, glyph: string, size: number, pos: UDim2?, anchor: Vector2?)
+	local d = new("Frame", {
+		Name = "Dot",
+		AnchorPoint = anchor or Vector2.new(0, 0.5),
+		Position = pos or UDim2.new(0, 6, 0.5, 0),
+		Size = UDim2.fromOffset(size, size),
+		BackgroundColor3 = color,
+		Parent = parent,
+	}, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	text({ Name = "Glyph", Size = UDim2.fromScale(1, 1), Text = glyph, TextColor3 = Color3.new(1, 1, 1), Parent = d, Children = { pad(math.floor(size * 0.18)) } }, "Title")
+	return d
+end
 
 ----------------------------------------------------------------------------------------------
--- Top bar
+-- Top bar: coins + rare timer
 
 local top = new("Frame", {
 	Name = "Top",
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 6),
-	Size = UDim2.fromOffset(small and 330 or 420, 40),
+	Position = UDim2.new(0.5, 0, 0, 8),
+	Size = UDim2.fromOffset(px(440), px(40)),
 	Parent = gui,
 }, {
-	new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+	new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
 })
 
-local coinsPill = new("TextLabel", {
-	Name = "Coins",
-	LayoutOrder = 1,
-	Size = UDim2.fromOffset(small and 104 or 130, 38),
-	BackgroundColor3 = Color3.fromRGB(255, 205, 60),
-	Font = FONT,
-	TextScaled = true,
-	Text = "💰 0",
-	TextColor3 = Color3.new(1, 1, 1),
-	Parent = top,
-}, { corner(19), stroke(3), textStroke(), new("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4) }) })
+local function pill(name: string, order: number, width: number, color: Color3, glyph: string)
+	local holder = new("Frame", { Name = name, LayoutOrder = order, BackgroundTransparency = 1, Size = UDim2.fromOffset(px(width), px(40)), Parent = top })
+	local p = card({ Name = "Card", Size = UDim2.fromScale(1, 1), Parent = holder }, 20)
+	local d = dot(p, color, glyph, px(30), UDim2.new(0, 5, 0.5, 0))
+	local v = text({
+		Name = "Value",
+		Position = UDim2.new(0, px(42), 0, 0),
+		Size = UDim2.new(1, -px(50), 1, 0),
+		TextScaled = false,
+		TextSize = px(18),
+		TextXAlignment = Enum.TextXAlignment.Left,
+		Text = "",
+		Parent = p,
+	}, "Title")
+	return holder, v, d
+end
+local coinsPill, coinsText = pill("Coins", 1, 128, C.Sun, "$")
+local rarePill, rareText, rareDot = pill("Rare", 2, 270, C.Lilac, "★")
 
-local rarePill = new("TextLabel", {
-	Name = "Rare",
-	LayoutOrder = 2,
-	Size = UDim2.fromOffset(small and 214 or 270, 38),
-	BackgroundColor3 = Color3.fromRGB(90, 60, 150),
-	Font = FONT,
-	TextScaled = true,
-	Text = "⭐ Rare sleeper soon",
-	TextColor3 = Color3.new(1, 1, 1),
-	Parent = top,
-}, { corner(19), stroke(3), textStroke(), new("UIPadding", { PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8), PaddingTop = UDim.new(0, 5), PaddingBottom = UDim.new(0, 5) }) })
-
-local saveLabel = new("TextLabel", {
+local saveLabel = text({
 	Name = "SaveStatus",
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, 48),
-	Size = UDim2.fromOffset(small and 200 or 240, small and 18 or 20),
-	BackgroundTransparency = 1,
-	Font = FONT,
-	TextScaled = true,
+	Position = UDim2.new(0.5, 0, 0, px(54)),
+	Size = UDim2.fromOffset(240, 18),
+	TextScaled = false,
+	TextSize = px(14),
 	Text = "",
-	TextColor3 = Color3.fromRGB(150, 255, 170),
+	TextColor3 = C.Sub,
 	Parent = gui,
-}, { textStroke() })
+}, "Bold")
 
 ----------------------------------------------------------------------------------------------
--- Wake meter (only while carrying)
+-- Wake meter (only while carrying), bottom centre so the creature overhead stays visible
 
--- Bottom centre: the carried creature floats above the player's head, so the top of the
--- screen must stay clear (on a phone the meter used to cover the eye-open telegraph).
-local METER_POS = UDim2.new(0.5, 0, 1, small and -10 or -26)
-local meter = new("Frame", {
+local METER_POS = UDim2.new(0.5, 0, 1, small and -12 or -28)
+local meter = card({
 	Name = "WakeMeter",
 	AnchorPoint = Vector2.new(0.5, 1),
 	Position = METER_POS,
-	Size = UDim2.new(small and 0.42 or 0.36, 0, 0, small and 54 or 64),
-	BackgroundColor3 = Color3.fromRGB(30, 22, 50),
-	BackgroundTransparency = 0.15,
+	Size = UDim2.new(small and 0.46 or 0.34, 0, 0, px(66)),
 	Visible = false,
 	Parent = gui,
-}, { corner(14), stroke(3, Color3.fromRGB(255, 255, 255)) })
-
-local meterTitle = new("TextLabel", {
-	BackgroundTransparency = 1,
-	Position = UDim2.fromOffset(10, 3),
-	Size = UDim2.new(1, -20, 0, small and 22 or 24),
-	Font = FONT,
-	TextScaled = true,
+	Children = { new("UISizeConstraint", { MaxSize = Vector2.new(460, 80) }) },
+}, 18)
+local meterTitle = text({
+	Position = UDim2.fromOffset(14, 8),
+	Size = UDim2.new(0.6, 0, 0, px(22)),
+	TextScaled = false,
+	TextSize = px(18),
 	TextXAlignment = Enum.TextXAlignment.Left,
-	Text = "💤 Sleeping soundly",
-	TextColor3 = Color3.new(1, 1, 1),
+	Text = "Sleeping soundly",
 	Parent = meter,
-}, { textStroke() })
-local meterSurface = new("TextLabel", {
-	BackgroundTransparency = 1,
+}, "Title")
+local meterSurface = text({
 	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -10, 0, 3),
-	Size = UDim2.new(0.45, 0, 0, small and 22 or 24),
-	Font = FONT,
-	TextScaled = true,
+	Position = UDim2.new(1, -14, 0, 10),
+	Size = UDim2.new(0.45, 0, 0, px(18)),
+	TextScaled = false,
+	TextSize = px(14),
 	TextXAlignment = Enum.TextXAlignment.Right,
 	Text = "",
-	TextColor3 = Color3.fromRGB(255, 220, 120),
+	TextColor3 = C.Sub,
 	Parent = meter,
-}, { textStroke() })
+}, "Bold")
 local barBack = new("Frame", {
-	Position = UDim2.new(0, 10, 1, small and -26 or -28),
-	Size = UDim2.new(1, -20, 0, small and 18 or 20),
-	BackgroundColor3 = Color3.fromRGB(60, 50, 80),
+	Position = UDim2.new(0, 14, 1, -px(24)),
+	Size = UDim2.new(1, -28, 0, px(12)),
+	BackgroundColor3 = C.Soft,
 	Parent = meter,
-}, { corner(9) })
+}, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 local barFill = new("Frame", {
 	Size = UDim2.fromScale(0, 1),
-	BackgroundColor3 = Color3.fromRGB(120, 230, 140),
+	BackgroundColor3 = C.Mint,
 	Parent = barBack,
-}, { corner(9) })
+}, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 for _, v in { T.WakeStages.Twitch, T.WakeStages.Squirm, T.WakeStages.EyeOpen } do
-	new("Frame", { Position = UDim2.new(v / 100, -1, 0, 0), Size = UDim2.new(0, 2, 1, 0), BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.3, BorderSizePixel = 0, ZIndex = 3, Parent = barBack })
+	new("Frame", { Position = UDim2.new(v / 100, -1, 0, 0), Size = UDim2.new(0, 2, 1, 0), BackgroundColor3 = Color3.new(1, 1, 1), BorderSizePixel = 0, ZIndex = 3, Parent = barBack })
 end
 
 ----------------------------------------------------------------------------------------------
 -- Hint line + toasts
 
-local hint = new("TextLabel", {
+local hint = card({
 	Name = "Hint",
 	AnchorPoint = Vector2.new(0.5, 1),
-	Position = UDim2.new(0.5, 0, 1, small and -70 or -98),
-	Size = UDim2.new(small and 0.5 or 0.42, 0, 0, small and 26 or 30),
-	BackgroundColor3 = Color3.fromRGB(20, 14, 34),
-	BackgroundTransparency = 0.35,
-	Font = FONT,
-	TextScaled = true,
-	Text = "",
-	TextColor3 = Color3.new(1, 1, 1),
+	Position = UDim2.new(0.5, 0, 1, small and -88 or -110),
+	Size = UDim2.fromOffset(px(420), px(36)),
 	Visible = false,
 	Parent = gui,
-}, { corner(10), textStroke(), new("UIPadding", { PaddingTop = UDim.new(0, 3), PaddingBottom = UDim.new(0, 3), PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8) }) })
+}, 18)
+local hintDot = dot(hint, C.Sky, "!", px(24), UDim2.new(0, 6, 0.5, 0))
+local hintText = text({
+	Name = "Text",
+	Position = UDim2.fromOffset(px(38), 0),
+	Size = UDim2.new(1, -px(48), 1, 0),
+	TextScaled = false,
+	TextSize = px(15),
+	TextWrapped = true,
+	TextXAlignment = Enum.TextXAlignment.Left,
+	Parent = hint,
+}, "Bold")
 
 local toastHolder = new("Frame", {
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0.3, 0),
+	Position = UDim2.new(0.5, 0, 0, px(84)),
 	Size = UDim2.new(0.8, 0, 0, 200),
 	Parent = gui,
-}, { new("UIListLayout", { HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
+}, { new("UIListLayout", { HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
 
+local TOAST_COLORS = { info = C.Sky, warn = C.Peach, alert = C.Coral, good = C.Mint }
+local TOAST_GLYPH = { info = "i", warn = "!", alert = "!", good = "✓" }
 local toastN = 0
-function Hud.toast(text: string, kind: string?)
+function Hud.toast(msg: string, kind: string?)
 	toastN += 1
-	local colors = { info = Color3.fromRGB(60, 50, 110), warn = Color3.fromRGB(170, 90, 20), alert = Color3.fromRGB(190, 30, 40), good = Color3.fromRGB(40, 140, 70) }
-	local t = new("TextLabel", {
-		LayoutOrder = toastN,
-		Size = UDim2.new(1, 0, 0, small and 34 or 40),
-		BackgroundColor3 = colors[kind or "info"] or colors.info,
-		Font = FONT,
-		TextScaled = true,
-		Text = text,
-		TextColor3 = Color3.new(1, 1, 1),
-		Parent = toastHolder,
-	}, { corner(12), stroke(3), textStroke(), new("UISizeConstraint", { MaxSize = Vector2.new(560, 60) }), new("UIPadding", { PaddingTop = UDim.new(0, 5), PaddingBottom = UDim.new(0, 5), PaddingLeft = UDim.new(0, 10), PaddingRight = UDim.new(0, 10) }) })
-	task.delay(kind == "alert" and 2 or 3, function()
-		TweenService:Create(t, TweenInfo.new(0.3), { BackgroundTransparency = 1, TextTransparency = 1 }):Play()
+	local k = kind or "info"
+	local holder = new("Frame", { LayoutOrder = toastN, BackgroundTransparency = 1, Size = UDim2.new(0, 0, 0, px(38)), AutomaticSize = Enum.AutomaticSize.X, Parent = toastHolder })
+	local t = new("Frame", {
+		BackgroundColor3 = C.Card,
+		Size = UDim2.new(0, 0, 1, 0),
+		AutomaticSize = Enum.AutomaticSize.X,
+		Parent = holder,
+	}, { corner(19), stroke(TOAST_COLORS[k] or C.Sky, 2) })
+	new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 8), Parent = t })
+	pad(0, 7, 0, 14).Parent = t
+	local d = dot(t, TOAST_COLORS[k] or C.Sky, TOAST_GLYPH[k] or "i", px(24))
+	d.LayoutOrder = 1
+	local label = text({ LayoutOrder = 2, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), TextScaled = false, TextSize = px(16), Text = msg, Parent = t }, "Bold")
+	new("UISizeConstraint", { MaxSize = Vector2.new(560, 60), Parent = label })
+	task.delay(k == "alert" and 2 or 3, function()
+		for _, x in t:GetDescendants() do
+			if x:IsA("TextLabel") then
+				TweenService:Create(x, TweenInfo.new(0.3), { TextTransparency = 1 }):Play()
+			elseif x:IsA("Frame") then
+				TweenService:Create(x, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
+			elseif x:IsA("UIStroke") then
+				TweenService:Create(x, TweenInfo.new(0.3), { Transparency = 1 }):Play()
+			end
+		end
+		TweenService:Create(t, TweenInfo.new(0.3), { BackgroundTransparency = 1 }):Play()
 		task.wait(0.3)
-		t:Destroy()
+		holder:Destroy()
 	end)
 end
 
 ----------------------------------------------------------------------------------------------
--- Viewport helper
+-- Portraits (2D images: they don't use the client's few EditableMesh slots)
 
-local function viewport(species: string, size: UDim2, silhouette: boolean, parent: Instance)
-	local vf = new("ViewportFrame", {
+local function setSilhouette(img: ImageLabel, on: boolean)
+	img.ImageColor3 = on and Color3.new(0, 0, 0) or Color3.new(1, 1, 1)
+	img.ImageTransparency = on and 0.55 or 0
+end
+
+local function portrait(species: string, size: UDim2, silhouette: boolean, parent: Instance)
+	local img = new("ImageLabel", {
 		Size = size,
 		BackgroundTransparency = 1,
-		Ambient = Color3.fromRGB(200, 200, 210),
-		LightColor = Color3.fromRGB(255, 250, 240),
-		LightDirection = Vector3.new(-0.4, -1, -0.6),
-		ImageColor3 = silhouette and Color3.new(0, 0, 0) or Color3.new(1, 1, 1),
+		ScaleType = Enum.ScaleType.Fit,
 		Parent = parent,
 	})
-	local sp = Creatures.Species[species]
-	local mp = MeshLoader.get(species, 4)
-	local part: BasePart
-	if mp then
-		part = mp
-	else
-		local ball = Instance.new("Part")
-		ball.Shape = Enum.PartType.Ball
-		ball.Size = Vector3.new(4, 4, 4)
-		ball.Color = sp.Color
-		part = ball
-	end
-	part.CFrame = CFrame.Angles(0, -0.45, 0) -- meshes face -Z; camera sits at -Z, so this is a front 3/4 view
-	part.Parent = vf
-	local cam = Instance.new("Camera")
-	cam.FieldOfView = 30
-	cam.CFrame = CFrame.lookAt(Vector3.new(0, 1.2, -9.5), Vector3.new(0, 0, 0))
-	cam.Parent = vf
-	vf.CurrentCamera = cam
-	return vf, part
+	Portraits.apply(img, species)
+	setSilhouette(img, silhouette)
+	return img
 end
 
 ----------------------------------------------------------------------------------------------
--- Modal panels
+-- Panels
 
-local function panel(name: string, title: string)
-	local p = new("Frame", {
+local panels = {}
+local function panel(name: string, title: string, subtitle: string, accent: Color3, glyph: string)
+	local p = card({
 		Name = name,
 		AnchorPoint = Vector2.new(0.5, 0.5),
-		Position = UDim2.fromScale(0.5, 0.52),
-		Size = UDim2.new(small and 0.92 or 0.6, 0, small and 0.8 or 0.7, 0),
-		BackgroundColor3 = Color3.fromRGB(44, 32, 72),
+		Position = UDim2.fromScale(0.5, 0.53),
+		Size = UDim2.new(small and 0.9 or 0.62, 0, small and 0.82 or 0.72, 0),
 		Visible = false,
 		ZIndex = 10,
 		Parent = gui,
-	}, { corner(18), stroke(4, Color3.new(1, 1, 1)), new("UISizeConstraint", { MaxSize = Vector2.new(720, 520) }) })
-	new("TextLabel", {
-		BackgroundTransparency = 1,
-		Position = UDim2.fromOffset(14, 8),
-		Size = UDim2.new(1, -70, 0, 36),
-		Font = FONT,
-		TextScaled = true,
-		TextXAlignment = Enum.TextXAlignment.Left,
-		Text = title,
-		TextColor3 = Color3.new(1, 1, 1),
-		ZIndex = 11,
-		Parent = p,
-	}, { textStroke() })
-	local close = new("TextButton", {
+		Children = { new("UISizeConstraint", { MaxSize = Vector2.new(720, 540) }) },
+	}, 24)
+	dot(p, accent, glyph, px(40), UDim2.new(0, 18, 0, 18), Vector2.new(0, 0)).ZIndex = 11
+	text({ Position = UDim2.fromOffset(px(68), 16), Size = UDim2.new(1, -150, 0, px(26)), TextScaled = false, TextSize = px(24), TextXAlignment = Enum.TextXAlignment.Left, Text = title, ZIndex = 11, Parent = p }, "Title")
+	local sub = text({ Name = "Subtitle", Position = UDim2.fromOffset(px(68), 16 + px(27)), Size = UDim2.new(1, -150, 0, px(16)), TextScaled = false, TextSize = px(14), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = C.Sub, Text = subtitle, ZIndex = 11, Parent = p }, "Bold")
+	local close = button({
 		Name = "Close",
 		AnchorPoint = Vector2.new(1, 0),
-		Position = UDim2.new(1, -8, 0, 8),
-		Size = UDim2.fromOffset(44, 44),
-		BackgroundColor3 = Color3.fromRGB(220, 60, 80),
-		Font = FONT,
-		TextScaled = true,
+		Position = UDim2.new(1, -16, 0, 16),
+		Size = UDim2.fromOffset(px(38), px(38)),
+		BackgroundColor3 = C.Soft,
+		TextColor3 = C.Sub,
+		TextScaled = false,
+		TextSize = px(18),
 		Text = "X",
-		TextColor3 = Color3.new(1, 1, 1),
 		ZIndex = 11,
 		Parent = p,
-	}, { corner(22), stroke(3) })
+		Radius = 19,
+	})
 	close.Activated:Connect(function()
 		p.Visible = false
 	end)
-	return p
-end
-
-local collection = panel("Collection", "📖 Collection")
-local shop = panel("Shop", "👟 Shop")
-
-local function sideButton(text: string, order: number, color: Color3, target: Frame)
-	local b = new("TextButton", {
-		Name = target.Name .. "Button",
-		AnchorPoint = Vector2.new(0, 0.5),
-		Position = UDim2.new(0, 10, 0.42, (order - 1) * (small and 70 or 84)),
-		Size = UDim2.fromOffset(small and 62 or 74, small and 62 or 74),
-		BackgroundColor3 = color,
-		Font = FONT,
-		TextScaled = true,
-		Text = text,
-		TextColor3 = Color3.new(1, 1, 1),
-		Parent = gui,
-	}, { corner(16), stroke(3), textStroke(), new("UIPadding", { PaddingTop = UDim.new(0, 6), PaddingBottom = UDim.new(0, 6), PaddingLeft = UDim.new(0, 4), PaddingRight = UDim.new(0, 4) }) })
-	b.Activated:Connect(function()
-		local open = not target.Visible
-		collection.Visible = false
-		shop.Visible = false
-		target.Visible = open
-		if open then
-			Hud.refresh()
-		end
-	end)
-	return b
-end
-local collectionBtn = sideButton("📖\nIndex", 1, Color3.fromRGB(80, 140, 255), collection)
-local shopBtn = sideButton("👟\nShop", 2, Color3.fromRGB(255, 120, 60), shop)
-local newBadge = new("TextLabel", {
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, 6, 0, -6),
-	Size = UDim2.fromOffset(24, 24),
-	BackgroundColor3 = Color3.fromRGB(255, 50, 80),
-	Font = FONT,
-	TextScaled = true,
-	Text = "!",
-	TextColor3 = Color3.new(1, 1, 1),
-	Visible = false,
-	Parent = collectionBtn,
-}, { corner(12) })
-local shopBadge = newBadge:Clone()
-shopBadge.Parent = shopBtn
-
--- Collection contents
-local evoBox = new("Frame", {
-	Position = UDim2.new(0, 14, 1, -84),
-	Size = UDim2.new(1, -28, 0, 72),
-	BackgroundColor3 = Color3.fromRGB(70, 52, 110),
-	ZIndex = 11,
-	Parent = collection,
-}, { corner(12) })
-local evoText = new("TextLabel", {
-	BackgroundTransparency = 1,
-	Position = UDim2.fromOffset(10, 4),
-	Size = UDim2.new(1, -20, 0, 34),
-	Font = FONT,
-	TextScaled = true,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	TextColor3 = Color3.new(1, 1, 1),
-	ZIndex = 12,
-	Parent = evoBox,
-}, { textStroke() })
-local evoSub = new("TextLabel", {
-	BackgroundTransparency = 1,
-	Position = UDim2.fromOffset(10, 40),
-	Size = UDim2.new(1, -20, 0, 26),
-	Font = FONT,
-	TextScaled = true,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	TextColor3 = Color3.fromRGB(255, 220, 120),
-	ZIndex = 12,
-	Parent = evoBox,
-}, { textStroke() })
-local foundLabel = new("TextLabel", {
-	BackgroundTransparency = 1,
-	AnchorPoint = Vector2.new(1, 0),
-	Position = UDim2.new(1, -60, 0, 12),
-	Size = UDim2.fromOffset(140, 30),
-	Font = FONT,
-	TextScaled = true,
-	TextColor3 = Color3.fromRGB(255, 220, 120),
-	ZIndex = 11,
-	Parent = collection,
-}, { textStroke() })
-local grid = new("Frame", {
-	Name = "Grid",
-	BackgroundTransparency = 1,
-	Position = UDim2.fromOffset(14, 56),
-	Size = UDim2.new(1, -28, 1, -150),
-	ZIndex = 11,
-	Parent = collection,
-}, { new("UIGridLayout", { CellSize = UDim2.new(0.25, -8, 1, 0), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
-
-local cards = {}
-for _, sp in Creatures.ordered() do
-	local card = new("Frame", {
-		Name = "Card_" .. sp.Id,
-		LayoutOrder = sp.Order,
-		BackgroundColor3 = Color3.fromRGB(64, 48, 100),
+	local body = new("ScrollingFrame", {
+		Name = "Body",
+		BackgroundTransparency = 1,
+		Position = UDim2.fromOffset(16, px(76)),
+		Size = UDim2.new(1, -32, 1, -px(76) - 16),
+		CanvasSize = UDim2.new(),
+		AutomaticCanvasSize = Enum.AutomaticSize.Y,
+		ScrollBarThickness = 4,
+		ScrollBarImageColor3 = C.Mute,
+		BorderSizePixel = 0,
 		ZIndex = 11,
-		Parent = grid,
-	}, { corner(12) })
-	local vf = viewport(sp.Id, UDim2.new(1, 0, 0.55, 0), true, card)
-	vf.ZIndex = 12
-	local name = new("TextLabel", {
-		BackgroundTransparency = 1,
-		Position = UDim2.new(0, 4, 0.55, 0),
-		Size = UDim2.new(1, -8, 0.13, 0),
-		Font = FONT,
-		TextScaled = true,
-		Text = "???",
-		TextColor3 = Color3.new(1, 1, 1),
-		ZIndex = 12,
-		Parent = card,
-	}, { textStroke() })
-	local info = new("TextLabel", {
-		BackgroundTransparency = 1,
-		Position = UDim2.new(0, 4, 0.68, 0),
-		Size = UDim2.new(1, -8, 0.11, 0),
-		Font = FONT,
-		TextScaled = true,
-		Text = "",
-		TextColor3 = Color3.fromRGB(200, 190, 230),
-		ZIndex = 12,
-		Parent = card,
-	})
-	local equip = new("TextButton", {
-		Name = "Equip",
-		AnchorPoint = Vector2.new(0.5, 1),
-		Position = UDim2.new(0.5, 0, 1, -6),
-		Size = UDim2.new(0.9, 0, 0.16, 0),
-		BackgroundColor3 = Color3.fromRGB(80, 200, 120),
-		Font = FONT,
-		TextScaled = true,
-		Text = "Buddy",
-		TextColor3 = Color3.new(1, 1, 1),
-		Visible = false,
-		ZIndex = 12,
-		Parent = card,
-	}, { corner(8), textStroke() })
-	equip.Activated:Connect(function()
-		local isBuddy = profile and profile.buddy == sp.Id
-		local ok, msg = Remotes.Equip:InvokeServer(if isBuddy then nil else sp.Id)
-		Hud.toast(msg, ok and "good" or "warn")
-	end)
-	cards[sp.Id] = { vf = vf, name = name, info = info, equip = equip }
+		Parent = p,
+	}, { new("UIListLayout", { Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }), pad(2, 2, 8, 6) })
+	panels[name] = p
+	return p, body, sub
 end
 
--- Shop contents
-local shopCard = new("Frame", {
-	Name = "ShopCard",
-	Position = UDim2.fromOffset(14, 56),
-	Size = UDim2.new(1, -28, 0, 150),
-	BackgroundColor3 = Color3.fromRGB(64, 48, 100),
-	ZIndex = 11,
-	Parent = shop,
-}, { corner(12) })
-new("TextLabel", {
+local function openPanel(name: string?)
+	for n, p in panels do
+		p.Visible = n == name
+	end
+	if name then
+		Hud.refresh()
+		CreatureView.playUi("rbxasset://sounds/electronicpingshort.wav", 0.3, 1.3)
+	end
+end
+Hud.openPanel = openPanel
+
+local shop, shopBody = panel("Shop", "Shop", "Upgrades stay forever", C.Peach, "$")
+local collection, indexBody, indexSub = panel("Collection", "Index", "Find every creature", C.Lilac, "★")
+
+-- Left rail
+local rail = new("Frame", {
+	Name = "Rail",
 	BackgroundTransparency = 1,
-	Position = UDim2.fromOffset(12, 8),
-	Size = UDim2.new(1, -24, 0, 40),
-	Font = FONT,
-	TextScaled = true,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	Text = "👟 Padded Shoes",
-	TextColor3 = Color3.new(1, 1, 1),
-	ZIndex = 12,
-	Parent = shopCard,
-}, { textStroke() })
-new("TextLabel", {
-	BackgroundTransparency = 1,
-	Position = UDim2.fromOffset(12, 52),
-	Size = UDim2.new(1, -24, 0, 28),
-	Font = FONT,
-	TextScaled = true,
-	TextXAlignment = Enum.TextXAlignment.Left,
-	Text = string.format("Sprint noise −%d%% while carrying", math.floor((1 - T.Noise.PaddedShoesSprintScale) * 100 + 0.5)),
-	TextColor3 = Color3.fromRGB(255, 220, 120),
-	ZIndex = 12,
-	Parent = shopCard,
-})
-local buyBtn = new("TextButton", {
-	Name = "BuyPaddedShoes",
-	Position = UDim2.new(0, 12, 1, -58),
-	Size = UDim2.new(1, -24, 0, 48),
-	BackgroundColor3 = Color3.fromRGB(255, 190, 40),
-	Font = FONT,
-	TextScaled = true,
-	Text = "Buy 💰 " .. T.Shop.PaddedShoes.Price,
-	TextColor3 = Color3.new(1, 1, 1),
-	ZIndex = 12,
-	Parent = shopCard,
-}, { corner(12), stroke(3), textStroke() })
-buyBtn.Activated:Connect(function()
-	local ok, msg = Remotes.Buy:InvokeServer("PaddedShoes")
+	AnchorPoint = Vector2.new(0, 0.5),
+	Position = UDim2.new(0, 12, 0.45, 0),
+	Size = UDim2.fromOffset(px(66), px(170)),
+	Parent = gui,
+}, { new("UIListLayout", { Padding = UDim.new(0, 12), SortOrder = Enum.SortOrder.LayoutOrder }) })
+
+local function railButton(name: string, label: string, glyph: string, order: number, color: Color3, target: string)
+	local holder = new("Frame", { Name = name .. "Holder", LayoutOrder = order, BackgroundTransparency = 1, Size = UDim2.fromOffset(px(66), px(74)), Parent = rail })
+	local b = button({
+		Name = name,
+		Size = UDim2.fromOffset(px(66), px(74)),
+		BackgroundColor3 = C.Card,
+		Text = "",
+		Parent = holder,
+		Radius = 18,
+	})
+	Theme.shadow(b, 18, 3)
+	dot(b, color, glyph, px(38), UDim2.new(0.5, 0, 0, px(8)), Vector2.new(0.5, 0))
+	text({ Position = UDim2.new(0, 0, 1, -px(24)), Size = UDim2.new(1, 0, 0, px(18)), TextScaled = false, TextSize = px(14), Text = label, Parent = b }, "Title")
+	local badge = new("Frame", {
+		Name = "Badge",
+		AnchorPoint = Vector2.new(1, 0),
+		Position = UDim2.new(1, 4, 0, -4),
+		Size = UDim2.fromOffset(16, 16),
+		BackgroundColor3 = C.Rose,
+		Visible = false,
+		ZIndex = 3,
+		Parent = b,
+	}, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), stroke(Color3.new(1, 1, 1), 2) })
+	b.Activated:Connect(function()
+		openPanel(if panels[target].Visible then nil else target)
+	end)
+	return b, badge
+end
+local shopBtn, shopBadge = railButton("ShopButton", "Shop", "$", 1, C.Peach, "Shop")
+local collectionBtn, newBadge = railButton("CollectionButton", "Index", "★", 2, C.Lilac, "Collection")
+
+----------------------------------------------------------------------------------------------
+-- Shop rows
+
+local function row(parent: Instance, order: number, accent: Color3, glyph: string, title: string, blurb: string)
+	local r = new("Frame", {
+		Name = "Row",
+		LayoutOrder = order,
+		Size = UDim2.new(1, 0, 0, px(78)),
+		BackgroundColor3 = C.Soft,
+		ZIndex = 12,
+		Parent = parent,
+	}, { corner(16) })
+	local d = dot(r, Theme.tint(accent, 0.15), glyph, px(48), UDim2.new(0, 14, 0.5, 0))
+	d.ZIndex = 13
+	local name = text({ Name = "Title", Position = UDim2.fromOffset(px(74), px(14)), Size = UDim2.new(1, -px(74) - px(150), 0, px(22)), TextScaled = false, TextSize = px(19), TextXAlignment = Enum.TextXAlignment.Left, Text = title, ZIndex = 13, Parent = r }, "Title")
+	local sub = text({ Name = "Blurb", Position = UDim2.fromOffset(px(74), px(38)), Size = UDim2.new(1, -px(74) - px(150), 0, px(30)), TextScaled = false, TextSize = px(14), TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, TextColor3 = C.Sub, Text = blurb, ZIndex = 13, Parent = r }, "Bold")
+	local buy = button({
+		Name = "Buy",
+		AnchorPoint = Vector2.new(1, 0.5),
+		Position = UDim2.new(1, -14, 0.5, 0),
+		Size = UDim2.fromOffset(px(128), px(44)),
+		BackgroundColor3 = accent,
+		TextScaled = false,
+		TextSize = px(17),
+		Text = "",
+		ZIndex = 13,
+		Parent = r,
+		Radius = 22,
+	})
+	return { row = r, title = name, blurb = sub, buy = buy, accent = accent }
+end
+
+local function setBuy(b: TextButton, label: string, state: string, accent: Color3)
+	-- state: "afford" | "poor" | "done"
+	b.Text = label
+	if state == "afford" then
+		b.BackgroundColor3 = accent
+		b.TextColor3 = Color3.new(1, 1, 1)
+	elseif state == "poor" then
+		b.BackgroundColor3 = C.Line
+		b.TextColor3 = C.Sub
+	else
+		b.BackgroundColor3 = Theme.tint(C.Mint, 0.6)
+		b.TextColor3 = Color3.fromRGB(40, 140, 100)
+	end
+end
+
+local shopRows = {}
+local function buyItem(item: string)
+	local ok, msg = Remotes.Buy:InvokeServer(item)
 	Hud.toast(msg, ok and "good" or "warn")
 	if ok then
 		CreatureView.playUi(CreatureView.SOUNDS.Pop, 0.5, 1.8)
 	end
-end)
+end
+
+do
+	local order = 0
+	local function section(title: string)
+		order += 1
+		text({ LayoutOrder = order, Size = UDim2.new(1, 0, 0, px(20)), TextScaled = false, TextSize = px(14), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = C.Sub, Text = title, ZIndex = 12, Parent = shopBody }, "Title")
+	end
+	section("SPEED")
+	for _, id in { "Sneakers", "SteadyHands" } do
+		local def = T.Tracks[id]
+		order += 1
+		local r = row(shopBody, order, id == "Sneakers" and C.Sky or C.Mint, def.Icon, def.Name, def.Blurb)
+		r.buy.Name = "Buy" .. id
+		r.buy.Activated:Connect(function()
+			buyItem(id)
+		end)
+		shopRows[id] = r
+	end
+	section("GEAR")
+	for id, def in T.Shop do
+		order += 1
+		local r = row(shopBody, order, C.Peach, def.Icon, def.Name, def.Blurb)
+		r.buy.Name = "Buy" .. id
+		r.buy.Activated:Connect(function()
+			buyItem(id)
+		end)
+		shopRows[id] = r
+	end
+	section("WINGS OF THE MALL")
+	for _, w in Config.wingList() do
+		if w.Price > 0 then
+			order += 1
+			local r = row(shopBody, order, C.Lilac, "🕹", w.Name, "New creatures worth more coins. Opens the gate in the east wall.")
+			r.buy.Name = "Buy" .. w.Id
+			r.buy.Activated:Connect(function()
+				buyItem(w.Id)
+			end)
+			shopRows[w.Id] = r
+		end
+	end
+end
+
+----------------------------------------------------------------------------------------------
+-- Index pages
+
+local cards = {}
+local wingHeaders = {}
+local evoLines = {}
+do
+	local order = 0
+	-- evolution goals first: the next thing to work toward
+	order += 1
+	local goals = new("Frame", { Name = "Goals", LayoutOrder = order, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = Theme.tint(C.Sun, 0.8), ZIndex = 12, Parent = indexBody }, {
+		corner(16),
+		pad(10, 14),
+		new("UIListLayout", { Padding = UDim.new(0, 4), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	text({ LayoutOrder = 0, Size = UDim2.new(1, 0, 0, px(20)), TextScaled = false, TextSize = px(16), TextXAlignment = Enum.TextXAlignment.Left, Text = "Evolution goals", ZIndex = 13, Parent = goals }, "Title")
+	for i, e in T.Evolutions do
+		evoLines[e.To] = text({ LayoutOrder = i, Size = UDim2.new(1, 0, 0, px(18)), TextScaled = false, TextSize = px(14), TextWrapped = true, AutomaticSize = Enum.AutomaticSize.Y, TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = C.Ink, ZIndex = 13, Parent = goals }, "Bold")
+	end
+	for _, w in Config.wingList() do
+		order += 1
+		wingHeaders[w.Id] = text({ LayoutOrder = order, Size = UDim2.new(1, 0, 0, px(22)), TextScaled = false, TextSize = px(14), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = C.Sub, Text = string.upper(w.Name), ZIndex = 12, Parent = indexBody }, "Title")
+		order += 1
+		local grid = new("Frame", { Name = "Grid_" .. w.Id, LayoutOrder = order, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, ZIndex = 12, Parent = indexBody }, {
+			new("UIGridLayout", { CellSize = UDim2.new(0.25, -8, 0, px(170)), CellPadding = UDim2.fromOffset(10, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
+		})
+		for _, sp in Creatures.ordered() do
+			if sp.Wing == w.Id then
+				local c = new("Frame", { Name = "Card_" .. sp.Id, LayoutOrder = sp.Order, BackgroundColor3 = C.Soft, ZIndex = 12, Parent = grid }, { corner(16) })
+				local vf = portrait(sp.Id, UDim2.new(1, -16, 0, px(88)), true, c)
+				vf.Position = UDim2.fromOffset(8, px(6))
+				vf.ZIndex = 13
+				local name = text({ Position = UDim2.new(0, 6, 0, px(96)), Size = UDim2.new(1, -12, 0, px(18)), TextScaled = false, TextSize = px(15), TextTruncate = Enum.TextTruncate.AtEnd, Text = "???", ZIndex = 13, Parent = c }, "Title")
+				local info = text({ Position = UDim2.new(0, 6, 0, px(114)), Size = UDim2.new(1, -12, 0, px(16)), TextScaled = false, TextSize = px(13), Text = "", TextColor3 = C.Sub, ZIndex = 13, Parent = c }, "Bold")
+				local equip = button({
+					Name = "Equip",
+					AnchorPoint = Vector2.new(0.5, 1),
+					Position = UDim2.new(0.5, 0, 1, -6),
+					Size = UDim2.new(1, -12, 0, px(26)),
+					BackgroundColor3 = C.Mint,
+					TextScaled = false,
+					TextSize = px(14),
+					Text = "Make buddy",
+					Visible = false,
+					ZIndex = 13,
+					Parent = c,
+					Radius = 13,
+				})
+				equip.Activated:Connect(function()
+					local isBuddy = profile and profile.buddy == sp.Id
+					local ok, msg = Remotes.Equip:InvokeServer(if isBuddy then nil else sp.Id)
+					Hud.toast(msg, ok and "good" or "warn")
+				end)
+				cards[sp.Id] = { vf = vf, name = name, info = info, equip = equip }
+			end
+		end
+	end
+end
 
 ----------------------------------------------------------------------------------------------
 -- Reveal card
 
-local reveal = new("Frame", {
+local REVEAL_SIZE = UDim2.fromOffset(px(320), px(370))
+local reveal = card({
 	Name = "Reveal",
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.5),
-	Size = UDim2.fromOffset(small and 280 or 340, small and 320 or 380),
-	BackgroundColor3 = Color3.fromRGB(255, 120, 190),
+	Size = REVEAL_SIZE,
 	Visible = false,
 	ZIndex = 20,
 	Parent = gui,
-}, { corner(24), stroke(5, Color3.new(1, 1, 1)) })
+}, 28)
 local revealBurst = new("Frame", {
 	AnchorPoint = Vector2.new(0.5, 0.5),
 	Position = UDim2.fromScale(0.5, 0.4),
-	Size = UDim2.fromScale(0.9, 0.62),
-	BackgroundColor3 = Color3.fromRGB(255, 240, 160),
+	Size = UDim2.fromScale(0.78, 0.6),
+	SizeConstraint = Enum.SizeConstraint.RelativeXX,
+	BackgroundColor3 = Theme.tint(C.Sun, 0.6),
 	ZIndex = 20,
 	Parent = reveal,
-}, { corner(200) })
+}, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 local revealVfHolder = new("Frame", {
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(0.5, 0.5),
@@ -523,42 +545,41 @@ local revealVfHolder = new("Frame", {
 	ZIndex = 21,
 	Parent = reveal,
 })
-local revealName = new("TextLabel", {
-	BackgroundTransparency = 1,
-	Position = UDim2.new(0, 10, 0.72, 0),
-	Size = UDim2.new(1, -20, 0.12, 0),
-	Font = FONT,
-	TextScaled = true,
+local revealName = text({
+	Position = UDim2.new(0, 12, 0.74, 0),
+	Size = UDim2.new(1, -24, 0, px(28)),
+	TextScaled = false,
+	TextSize = px(24),
 	Text = "???",
-	TextColor3 = Color3.new(1, 1, 1),
 	ZIndex = 22,
 	Parent = reveal,
-}, { textStroke() })
-local revealSub = new("TextLabel", {
-	BackgroundTransparency = 1,
-	Position = UDim2.new(0, 10, 0.84, 0),
-	Size = UDim2.new(1, -20, 0.1, 0),
-	Font = FONT,
-	TextScaled = true,
+}, "Title")
+local revealSub = text({
+	Position = UDim2.new(0, 12, 0.74, px(32)),
+	Size = UDim2.new(1, -24, 0, px(20)),
+	TextScaled = false,
+	TextSize = px(16),
 	Text = "",
-	TextColor3 = Color3.fromRGB(255, 240, 150),
+	TextColor3 = C.Sub,
 	ZIndex = 22,
 	Parent = reveal,
-}, { textStroke() })
-local revealNew = new("TextLabel", {
+}, "Bold")
+local revealNew = text({
 	AnchorPoint = Vector2.new(0.5, 0.5),
-	Position = UDim2.new(0.82, 0, 0.1, 0),
-	Size = UDim2.fromOffset(90, 40),
-	Rotation = 12,
-	BackgroundColor3 = Color3.fromRGB(255, 60, 80),
-	Font = FONT,
-	TextScaled = true,
-	Text = "NEW!",
+	Position = UDim2.new(0.84, 0, 0.08, 0),
+	Size = UDim2.fromOffset(px(76), px(32)),
+	Rotation = 10,
+	BackgroundTransparency = 0,
+	BackgroundColor3 = C.Rose,
+	TextScaled = false,
+	TextSize = px(17),
+	Text = "NEW",
 	TextColor3 = Color3.new(1, 1, 1),
 	Visible = false,
 	ZIndex = 23,
 	Parent = reveal,
-}, { corner(10), stroke(3, Color3.new(1, 1, 1)) })
+	Children = { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) },
+}, "Title")
 
 local revealToken = 0
 function Hud.reveal(data)
@@ -568,32 +589,33 @@ function Hud.reveal(data)
 	for _, c in revealVfHolder:GetChildren() do
 		c:Destroy()
 	end
-	local vf, part = viewport(data.species, UDim2.fromScale(1, 1), true, revealVfHolder)
+	local vf = portrait(data.species, UDim2.fromScale(0.86, 0.86), true, revealVfHolder)
+	vf.AnchorPoint = Vector2.new(0.5, 0.5)
+	vf.Position = UDim2.fromScale(0.5, 0.5)
 	vf.ZIndex = 21
+	local scale = new("UIScale", { Scale = 0.6, Parent = vf })
 	local jumbo = data.form == "Jumbo"
 	reveal.Visible = true
 	reveal.Size = UDim2.fromOffset(10, 10)
-	revealName.Text = (data.rarity == "Rare" and "⭐ " or "") .. sp.Family .. " family…"
+	revealName.Text = (data.rarity == "Rare" and "★ " or "") .. sp.Family .. " family…"
 	revealSub.Text = "?"
 	revealNew.Visible = false
-	revealBurst.BackgroundTransparency = 0.6
-	TweenService:Create(reveal, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = UDim2.fromOffset(small and 280 or 340, small and 320 or 380) }):Play()
+	revealBurst.BackgroundColor3 = Theme.tint(data.rarity == "Rare" and C.Sun or C.Sky, 0.7)
+	TweenService:Create(reveal, TweenInfo.new(0.25, Enum.EasingStyle.Back, Enum.EasingDirection.Out), { Size = REVEAL_SIZE }):Play()
 	CreatureView.playUi(CreatureView.SOUNDS.Twitch, 0.6, 1.2)
-	-- silhouette spin, then the flash
-	-- spin fast as a silhouette, then settle facing the player with a small sway
+	-- the silhouette wobbles and grows, then pops into colour and settles with a gentle sway
 	local t0 = os.clock()
-	local angle = 0
+	local target = jumbo and 1.12 or 1
 	local spin
 	spin = RunService.RenderStepped:Connect(function(dt)
 		local k = os.clock() - t0
 		if k < 0.75 then
-			angle += (6 + k * 20) * dt
+			vf.Rotation = math.sin(k * 34) * (14 - k * 10)
+			scale.Scale = 0.6 + k * 0.4
 		else
-			local front = -0.45 + math.sin(k * 2) * 0.25
-			local target = front + math.round((angle - front) / (2 * math.pi)) * 2 * math.pi
-			angle += (target - angle) * (1 - math.exp(-8 * dt))
+			vf.Rotation = math.sin(k * 2.2) * 4
+			scale.Scale += (target - scale.Scale) * (1 - math.exp(-10 * dt))
 		end
-		part.CFrame = CFrame.Angles(0, angle, 0)
 		if revealToken ~= token then
 			spin:Disconnect()
 		end
@@ -602,16 +624,17 @@ function Hud.reveal(data)
 	if revealToken ~= token then
 		return
 	end
-	vf.ImageColor3 = data.form == "Glazed" and Color3.fromRGB(255, 245, 190) or Color3.new(1, 1, 1)
-	if jumbo then
-		part.Size *= 1.25
+	setSilhouette(vf, false)
+	if data.form == "Glazed" then
+		vf.ImageColor3 = Color3.fromRGB(255, 245, 200)
 	end
-	revealBurst.BackgroundTransparency = 0
-	TweenService:Create(revealBurst, TweenInfo.new(0.5), { BackgroundTransparency = 0.5 }):Play()
-	revealName.Text = (data.form ~= "Normal" and (data.form .. " ") or "") .. sp.Name .. "!"
-	local sub = "+💰 " .. data.coins
-	if data.ventCounted and not data.evolved then
-		sub ..= string.format("   🦀 vent %d/%d", data.ventRescues, T.Evolution.VentRescuesNeeded)
+	scale.Scale = target * 1.15
+	revealBurst.BackgroundColor3 = Theme.tint(data.form == "Normal" and C.Mint or C.Sun, 0.55)
+	TweenService:Create(revealBurst, TweenInfo.new(0.5), { BackgroundColor3 = Theme.tint(data.form == "Normal" and C.Mint or C.Sun, 0.8) }):Play()
+	revealName.Text = (data.form ~= "Normal" and (data.form .. " ") or "") .. sp.Name
+	local sub = "+ " .. fmt(data.coins) .. " coins"
+	if data.evo and not data.evo.evolved then
+		sub ..= string.format("  ·  evolution %d/%d", data.evo.count, data.evo.needed)
 	end
 	revealSub.Text = sub
 	revealNew.Visible = data.isNew
@@ -624,20 +647,22 @@ function Hud.reveal(data)
 	if revealToken ~= token then
 		return
 	end
-	if data.evolved then
+	if data.evo and data.evo.evolved then
 		-- second beat: the buddy evolves
 		for _, c in revealVfHolder:GetChildren() do
 			c:Destroy()
 		end
-		local vf2 = viewport("KingRangoon", UDim2.fromScale(1, 1), false, revealVfHolder)
+		local vf2 = portrait(data.evo.to, UDim2.fromScale(0.86, 0.86), false, revealVfHolder)
+		vf2.AnchorPoint = Vector2.new(0.5, 0.5)
+		vf2.Position = UDim2.fromScale(0.5, 0.5)
 		vf2.ZIndex = 21
-		revealBurst.BackgroundColor3 = Color3.fromRGB(255, 215, 80)
-		revealName.Text = "✨ EVOLVED: King Rangoon!"
-		revealSub.Text = "Your buddy got a crown"
+		revealBurst.BackgroundColor3 = Theme.tint(C.Sun, 0.5)
+		revealName.Text = "Evolved: " .. Creatures.Species[data.evo.to].Name
+		revealSub.Text = "Your buddy levelled up"
 		revealNew.Visible = true
+		newBadge.Visible = true
 		CreatureView.playUi(CreatureView.SOUNDS.Pop, 0.8, 1.1)
 		task.wait(2.6)
-		revealBurst.BackgroundColor3 = Color3.fromRGB(255, 240, 160)
 		if revealToken ~= token then
 			return
 		end
@@ -662,40 +687,43 @@ local function setSprint(on: boolean)
 	Hud.updateSprintButton()
 end
 
-local sprintBtn = new("TextButton", {
+local sprintBtn = button({
 	Name = "Sprint",
 	AnchorPoint = Vector2.new(1, 1),
 	Position = small and UDim2.new(1, -112, 1, -24) or UDim2.new(1, -200, 1, -60),
-	Size = UDim2.fromOffset(small and 76 or 92, small and 76 or 92),
-	BackgroundColor3 = Color3.fromRGB(255, 120, 60),
-	BackgroundTransparency = 0.15,
-	Font = FONT,
-	TextScaled = true,
-	Text = "🏃\nRUN",
-	TextColor3 = Color3.new(1, 1, 1),
+	Size = UDim2.fromOffset(px(84), px(84)),
+	BackgroundColor3 = C.Card,
+	TextColor3 = C.Ink,
+	TextScaled = false,
+	TextSize = px(17),
+	Text = "RUN",
 	Visible = isTouch,
 	Parent = gui,
-}, { corner(46), stroke(3, Color3.new(1, 1, 1)), textStroke(), new("UIPadding", { PaddingTop = UDim.new(0, 10), PaddingBottom = UDim.new(0, 10), PaddingLeft = UDim.new(0, 8), PaddingRight = UDim.new(0, 8) }) })
+	Radius = 42,
+	Children = { stroke(C.Peach, 3) },
+})
+function Hud.updateSprintButton()
+	sprintBtn.BackgroundColor3 = sprinting and C.Peach or C.Card
+	sprintBtn.TextColor3 = sprinting and Color3.new(1, 1, 1) or C.Ink
+	sprintBtn.Text = sprinting and "RUNNING" or "RUN"
+end
 sprintBtn.Activated:Connect(function()
 	setSprint(not sprinting)
 end)
-function Hud.updateSprintButton()
-	sprintBtn.BackgroundColor3 = sprinting and Color3.fromRGB(230, 40, 40) or Color3.fromRGB(255, 120, 60)
-	sprintBtn.Text = sprinting and "🏃\nRUNNING" or "🏃\nRUN"
-end
-local pcSprintHint = new("TextLabel", {
+local pcSprintHint = text({
 	AnchorPoint = Vector2.new(1, 1),
-	Position = UDim2.new(1, -12, 1, -12),
-	Size = UDim2.fromOffset(200, 28),
-	BackgroundColor3 = Color3.fromRGB(20, 14, 34),
-	BackgroundTransparency = 0.35,
-	Font = FONT,
-	TextScaled = true,
+	Position = UDim2.new(1, -14, 1, -14),
+	Size = UDim2.fromOffset(170, 30),
+	BackgroundTransparency = 0,
+	BackgroundColor3 = C.Card,
+	TextScaled = false,
+	TextSize = 14,
+	TextColor3 = C.Sub,
 	Text = "Hold SHIFT to run",
-	TextColor3 = Color3.new(1, 1, 1),
 	Visible = not isTouch,
 	Parent = gui,
-}, { corner(8), new("UIPadding", { PaddingTop = UDim.new(0, 4), PaddingBottom = UDim.new(0, 4) }) })
+	Children = { corner(15) },
+}, "Bold")
 
 ContextActionService:BindAction("BrainrotSprint", function(_, state)
 	if state == Enum.UserInputState.Begin then
@@ -710,7 +738,7 @@ end, false, Enum.KeyCode.LeftShift, Enum.KeyCode.RightShift, Enum.KeyCode.Button
 Hud.setSprint = setSprint
 
 ----------------------------------------------------------------------------------------------
--- Guidance beam (first rescues): to the nearest sleeper, then to the hideout
+-- Guidance beam (first rescues and new goals)
 
 local beamA0 = Instance.new("Attachment")
 local beamA1 = Instance.new("Attachment")
@@ -720,7 +748,7 @@ guide.Attachment1 = beamA1
 guide.Width0 = 1.2
 guide.Width1 = 1.2
 guide.FaceCamera = true
-guide.LightEmission = 1
+guide.LightEmission = 0.6
 guide.Texture = "rbxasset://textures/particles/sparkles_main.dds"
 guide.TextureMode = Enum.TextureMode.Static
 guide.TextureLength = 3
@@ -740,55 +768,108 @@ guide.Parent = beamAnchor
 ----------------------------------------------------------------------------------------------
 -- Refresh (profile-driven)
 
+local function evoLine(e): string
+	local fromName = Creatures.Species[e.From].Name
+	local toName = Creatures.Species[e.To].Name
+	if profile.collection[e.To] then
+		return "✓  " .. toName .. " evolved"
+	end
+	local n = profile.evo[e.To] or 0
+	local dots = string.rep("●", n) .. string.rep("○", e.Needed - n)
+	if profile.buddy == e.From then
+		return string.format("%s  %s → %s: carry rescues through %s", dots, fromName, toName, e.RouteName)
+	elseif profile.collection[e.From] then
+		return string.format("%s  %s → %s: make %s your buddy first", dots, fromName, toName, fromName)
+	end
+	return string.format("%s  %s → %s: rescue a %s first", dots, fromName, toName, fromName)
+end
+
 function Hud.refresh()
 	if not profile then
 		return
 	end
-	coinsPill.Text = "💰 " .. profile.coins
-	local found = 0
+	coinsText.Text = fmt(profile.coins)
+	local found, total = 0, 0
+	local perWing = {}
 	for _, sp in Creatures.ordered() do
+		total += 1
 		local entry = profile.collection[sp.Id]
 		local card = cards[sp.Id]
+		perWing[sp.Wing] = perWing[sp.Wing] or { 0, 0 }
+		perWing[sp.Wing][2] += 1
 		if entry then
 			found += 1
-			card.vf.ImageColor3 = Color3.new(1, 1, 1)
+			perWing[sp.Wing][1] += 1
+			setSilhouette(card.vf, false)
 			card.name.Text = sp.Name
 			local forms = {}
 			for _, f in T.Forms do
 				table.insert(forms, entry.forms[f.Id] and "●" or "○")
 			end
-			card.info.Text = "x" .. entry.count .. "  " .. table.concat(forms, "")
+			card.info.Text = "×" .. entry.count .. "   " .. table.concat(forms, " ")
 			card.equip.Visible = true
 			local isBuddy = profile.buddy == sp.Id
-			card.equip.Text = isBuddy and "★ Buddy" or "Make buddy"
-			card.equip.BackgroundColor3 = isBuddy and Color3.fromRGB(255, 180, 40) or Color3.fromRGB(80, 200, 120)
+			card.equip.Text = isBuddy and "Buddy ✓" or "Make buddy"
+			card.equip.BackgroundColor3 = isBuddy and C.Sun or C.Mint
 		else
-			card.vf.ImageColor3 = Color3.new(0, 0, 0)
+			setSilhouette(card.vf, true)
 			card.name.Text = "???"
 			card.info.Text = sp.EvolvesFrom and "evolves…" or (sp.Family .. " family")
 			card.equip.Visible = false
 		end
 	end
-	foundLabel.Text = string.format("Found %d/%d", found, #Creatures.ordered())
-	local evo = T.Evolution
-	if profile.collection[evo.To] then
-		evoText.Text = "✨ King Rangoon evolved!"
-		evoSub.Text = "Next goal: complete the collection"
-	else
-		evoText.Text = "🎯 First evolution: Crab Rangoon → King Rangoon"
-		local dots = string.rep("●", profile.ventRescues) .. string.rep("○", evo.VentRescuesNeeded - profile.ventRescues)
-		if profile.buddy == evo.From then
-			evoSub.Text = "Rescue sleepers through the 🦀 vent: " .. dots
-		elseif profile.collection[evo.From] then
-			evoSub.Text = "Make Crab Rangoon your buddy, then use the vent: " .. dots
+	for id, h in wingHeaders do
+		local w = Config.Wings[id]
+		local c = perWing[id] or { 0, 0 }
+		h.Text = string.format("%s   %d/%d%s", string.upper(w.Name), c[1], c[2], profile.wings[id] and "" or "   ·  locked")
+	end
+	indexSub.Text = string.format("Found %d of %d", found, total)
+	for _, e in T.Evolutions do
+		evoLines[e.To].Text = evoLine(e)
+	end
+
+	-- shop
+	local anyAfford = false
+	for id, def in T.Tracks do
+		local r = shopRows[id]
+		local lvl = profile.tracks[id] or 0
+		local price = def.Costs[lvl + 1]
+		local pips = string.rep("●", lvl) .. string.rep("○", #def.Costs - lvl)
+		local sp = Config.speeds(profile.tracks.Sneakers or 0, profile.tracks.SteadyHands or 0)
+		local stat = id == "Sneakers" and string.format("run %d", sp.sprint) or string.format("careful walk %.1f", sp.carryWalk)
+		r.title.Text = string.format("%s  ·  Lv %d", def.Name, lvl)
+		r.blurb.Text = def.Blurb .. "\n" .. pips .. "   " .. stat
+		if price then
+			local can = profile.coins >= price
+			anyAfford = anyAfford or can
+			setBuy(r.buy, "$ " .. fmt(price), can and "afford" or "poor", r.accent)
 		else
-			evoSub.Text = "Rescue a Crab Rangoon (Dumpling family) first: " .. dots
+			setBuy(r.buy, "MAX", "done", r.accent)
 		end
 	end
-	local owned = profile.upgrades.PaddedShoes
-	buyBtn.Text = owned and "Owned ✓" or ("Buy 💰 " .. T.Shop.PaddedShoes.Price)
-	buyBtn.BackgroundColor3 = owned and Color3.fromRGB(90, 170, 110) or (profile.coins >= T.Shop.PaddedShoes.Price and Color3.fromRGB(255, 190, 40) or Color3.fromRGB(130, 120, 140))
-	shopBadge.Visible = not owned and profile.coins >= T.Shop.PaddedShoes.Price
+	for id, def in T.Shop do
+		local r = shopRows[id]
+		if profile.upgrades[id] then
+			setBuy(r.buy, "Owned", "done", r.accent)
+		else
+			local can = profile.coins >= def.Price
+			anyAfford = anyAfford or can
+			setBuy(r.buy, "$ " .. fmt(def.Price), can and "afford" or "poor", r.accent)
+		end
+	end
+	for _, w in Config.wingList() do
+		local r = shopRows[w.Id]
+		if r then
+			if profile.wings[w.Id] then
+				setBuy(r.buy, "Open", "done", r.accent)
+			else
+				local can = profile.coins >= w.Price
+				anyAfford = anyAfford or can
+				setBuy(r.buy, "$ " .. fmt(w.Price), can and "afford" or "poor", r.accent)
+			end
+		end
+	end
+	shopBadge.Visible = anyAfford
 	if collection.Visible then
 		newBadge.Visible = false
 	end
@@ -798,11 +879,14 @@ end
 -- Per-frame
 
 local SURFACE_HINT = {
-	Loud = "🔊 LOUD FLOOR",
-	Shelter = "💤 cozy — settling",
-	Vent = "🤫 muffled vent",
+	Loud = "loud floor",
+	Dance = "loud floor",
+	Shelter = "cosy, settling down",
+	Vent = "muffled vent",
 	Quiet = "",
 }
+local STAGE_COLORS = { C.Mint, C.Sun, C.Peach, C.Coral, C.Coral }
+local STAGE_TITLES = { "Sleeping soundly", "Twitching…", "Squirming!", "One eye open!", "Awake!" }
 
 local function carriedPart(): BasePart?
 	local id = player:GetAttribute("Carrying")
@@ -820,7 +904,8 @@ local function nearestSleeper(pos: Vector3): BasePart?
 	end
 	local best, bd = nil, math.huge
 	for _, p in f:GetChildren() do
-		if p:GetAttribute("State") ~= "Carried" then
+		local wing = p:GetAttribute("Wing") or "FoodCourt"
+		if p:GetAttribute("State") ~= "Carried" and (not profile or profile.wings[wing]) then
 			local d = (p.Position - pos).Magnitude
 			if d < bd then
 				best, bd = p, d
@@ -831,49 +916,78 @@ local function nearestSleeper(pos: Vector3): BasePart?
 end
 
 local stationPos = Vector3.new(0, 0.5, -4)
+local padParts: { [string]: BasePart } = {}
+local onPad: string? = nil
 
 local function updateSaveStatus(now: number)
 	local mode = player:GetAttribute("SaveMode")
 	if mode == "Loading" then
-		saveLabel.Text = "☁️ loading your save…"
-		saveLabel.TextColor3 = Color3.fromRGB(200, 210, 255)
+		saveLabel.Text = "loading your save…"
+		saveLabel.TextColor3 = C.Sub
 		saveLabel.TextTransparency = 0
 	elseif mode == "Session" or mode == "Failed" then
-		saveLabel.Text = "⚠️ progress is not saving"
-		saveLabel.TextColor3 = Color3.fromRGB(255, 190, 90)
+		saveLabel.Text = "progress is not saving here"
+		saveLabel.TextColor3 = C.Peach
 		saveLabel.TextTransparency = 0
 	elseif mode == "Retrying" then
-		saveLabel.Text = "☁️ save failed, retrying…"
-		saveLabel.TextColor3 = Color3.fromRGB(255, 190, 90)
+		saveLabel.Text = "save failed, retrying…"
+		saveLabel.TextColor3 = C.Peach
 		saveLabel.TextTransparency = 0
 	elseif mode == "Cloud" then
-		-- brief "saved" flash after each write, then fade out
 		local age = now - (player:GetAttribute("LastSave") or 0)
-		saveLabel.Text = "☁️ progress saved"
-		saveLabel.TextColor3 = Color3.fromRGB(150, 255, 170)
+		saveLabel.Text = "✓ saved"
+		saveLabel.TextColor3 = Color3.fromRGB(60, 170, 120)
 		saveLabel.TextTransparency = math.clamp((age - 2) / 1, 0, 1)
 	else
 		saveLabel.Text = ""
 	end
-	saveLabel.TextStrokeTransparency = 1
-	local st = saveLabel:FindFirstChildOfClass("UIStroke")
-	if st then
-		st.Transparency = saveLabel.TextTransparency
+end
+
+local function updateRare(now: number)
+	local soonest, soonestWing = math.huge, nil
+	-- the wing you're standing in comes first
+	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local here = hrp and hrp.Position.X > 61 and "Arcade" or "FoodCourt"
+	local list = Config.wingList()
+	table.sort(list, function(a, b)
+		return (a.Id == here and 0 or a.Order) < (b.Id == here and 0 or b.Order)
+	end)
+	for _, w in list do
+		if not profile or profile.wings[w.Id] then
+			if workspace:GetAttribute("RareActive_" .. w.Id) then
+				rareText.Text = "Rare on " .. w.RareStageName .. "!"
+				rareDot.BackgroundColor3 = C.Sun
+				return
+			end
+			local at = workspace:GetAttribute("RareAt_" .. w.Id) or math.huge
+			if at < soonest then
+				soonest, soonestWing = at, w
+			end
+		end
+	end
+	rareDot.BackgroundColor3 = C.Lilac
+	if soonestWing then
+		local left = math.max(0, soonest - now)
+		rareText.Text = string.format("Rare in %d:%02d", left // 60, left % 60)
+	else
+		rareText.Text = "Rare soon"
+	end
+end
+
+local function setHint(msg: string?, color: Color3?)
+	hint.Visible = msg ~= nil
+	if msg then
+		hintText.Text = msg
+		hintDot.BackgroundColor3 = color or C.Sky
+		local w = math.min(560, math.max(260, #msg * px(8) + 70))
+		hint.Size = UDim2.fromOffset(w, px(36))
 	end
 end
 
 local function frame()
 	local now = workspace:GetServerTimeNow()
 	updateSaveStatus(now)
-	-- rare pill
-	if workspace:GetAttribute("RareActive") then
-		rarePill.Text = "⭐ RARE snoring — north stage!"
-		rarePill.BackgroundColor3 = Color3.fromRGB(200, 140, 20)
-	else
-		local left = math.max(0, (workspace:GetAttribute("RareAt") or now) - now)
-		rarePill.Text = string.format("⭐ Rare sleeper in %d:%02d", left // 60, left % 60)
-		rarePill.BackgroundColor3 = Color3.fromRGB(90, 60, 150)
-	end
+	updateRare(now)
 	local part = carriedPart()
 	meter.Visible = part ~= nil
 	local char = player.Character
@@ -882,14 +996,13 @@ local function frame()
 		local wake = part:GetAttribute("Wake") or 0
 		local stage = part:GetAttribute("Stage") or 0
 		barFill.Size = UDim2.fromScale(wake / 100, 1)
-		local cols = { Color3.fromRGB(120, 230, 140), Color3.fromRGB(255, 220, 70), Color3.fromRGB(255, 140, 40), Color3.fromRGB(255, 50, 50), Color3.fromRGB(255, 50, 50) }
-		barFill.BackgroundColor3 = cols[stage + 1]
-		local titles = { "💤 Sleeping soundly", "😬 Twitching…", "😱 SQUIRMING!", "👁 ONE EYE OPEN!", "💥 AWAKE!" }
-		meterTitle.Text = titles[stage + 1]
+		barFill.BackgroundColor3 = STAGE_COLORS[stage + 1]
+		meterTitle.Text = STAGE_TITLES[stage + 1]
+		meterTitle.TextColor3 = stage >= 2 and C.Coral or C.Ink
 		local surf = part:GetAttribute("Surface") or "Quiet"
 		local s = SURFACE_HINT[surf] or ""
 		if s == "" and sprinting then
-			s = "🏃 running = noise"
+			s = "running makes noise"
 		end
 		meterSurface.Text = s
 		if stage >= 3 then
@@ -898,34 +1011,59 @@ local function frame()
 			meter.Position = METER_POS
 		end
 	end
-	-- hints + guidance beam for new players
+
+	-- walk-in pads in the hideout
+	if hrp then
+		local here = nil
+		for name, p in padParts do
+			local d = (p.Position - hrp.Position) * Vector3.new(1, 0, 1)
+			if d.Magnitude < 3.6 and math.abs(p.Position.Y - hrp.Position.Y) < 5 then
+				here = name
+			end
+		end
+		if here ~= onPad then
+			onPad = here
+			if here then
+				openPanel(here == "Shop" and "Shop" or "Collection")
+			end
+		end
+	end
+
+	-- hints + guidance beam
 	local rescues = profile and profile.rescues or 0
-	local hintText = nil
+	local msg, color = nil, nil
 	local beamTarget: Vector3? = nil
 	if part then
 		if rescues < 3 then
-			hintText = "Carry it to the 🛏️ HIDEOUT — walk, don't run!"
+			msg = "Walk it to the pink pad in your HIDEOUT. Running makes noise!"
+			color = C.Rose
 			beamTarget = stationPos
 		end
 	elseif rescues == 0 and hrp then
 		local n = nearestSleeper(hrp.Position)
 		if n then
-			hintText = "Sneak up and GRAB a sleeping creature!"
+			msg = "Sneak up to a sleeping creature and grab it"
 			beamTarget = n.Position
 		end
-	elseif profile and profile.coins >= T.Shop.PaddedShoes.Price and not profile.upgrades.PaddedShoes then
-		hintText = "You can afford 👟 Padded Shoes!"
-	elseif profile and profile.collection.CrabRangoon and not profile.buddy and rescues < 6 then
-		hintText = "Open 📖 and make Crab Rangoon your buddy (opens vents)"
+	elseif profile then
+		local tracks = profile.tracks
+		if (tracks.Sneakers or 0) == 0 and profile.coins >= T.Tracks.Sneakers.Costs[1] then
+			msg, color = "You can afford Sneakers! Open the Shop to run faster", C.Peach
+		elseif not profile.upgrades.PaddedShoes and profile.coins >= T.Shop.PaddedShoes.Price then
+			msg, color = "Padded Shoes are in the Shop: quieter running while carrying", C.Peach
+		elseif not profile.wings.Arcade and profile.coins >= Config.Wings.Arcade.Price then
+			msg, color = "The ARCADE can be unlocked! Go to the gate in the east wall", C.Lilac
+		elseif profile.collection.CrabRangoon and not profile.buddy and rescues < 8 then
+			msg, color = "Open the Index and make Crab Rangoon your buddy (it opens vents)", C.Mint
+		end
 	end
-	hint.Visible = hintText ~= nil
-	hint.Text = hintText or ""
+	setHint(msg, color)
 	if beamTarget and hrp then
 		beamA0.Parent = hrp
 		beamA0.Position = Vector3.new(0, -2, 0)
 		beamAnchor.Position = beamTarget + Vector3.new(0, 0.5, 0)
 		guide.Enabled = true
-		guide.Color = ColorSequence.new(part and Color3.fromRGB(255, 120, 200) or Color3.fromRGB(120, 220, 255))
+		guide.Color = ColorSequence.new(part and C.Rose or C.Sky)
 	else
 		guide.Enabled = false
 	end
@@ -936,8 +1074,8 @@ function Hud.start()
 		profile = p
 		Hud.refresh()
 	end)
-	Remotes.Toast.OnClientEvent:Connect(function(text, kind)
-		Hud.toast(text, kind)
+	Remotes.Toast.OnClientEvent:Connect(function(msg, kind)
+		Hud.toast(msg, kind)
 		if kind == "alert" then
 			CreatureView.playUi(CreatureView.SOUNDS.Eye, 0.6, 1.1)
 		end
@@ -952,8 +1090,13 @@ function Hud.start()
 			Hud.refresh()
 		end
 	end)
-	local station = workspace:WaitForChild("Map"):WaitForChild("Hideout"):WaitForChild("StationPad")
+	local hideout = workspace:WaitForChild("Map"):WaitForChild("Hideout")
+	local station = hideout:WaitForChild("StationPad")
 	stationPos = station.Position
+	for _, k in { "Shop", "Index" } do
+		local kiosk = hideout:WaitForChild(k .. "Kiosk")
+		padParts[k] = kiosk:WaitForChild(k .. "Pad")
+	end
 	RunService.RenderStepped:Connect(frame)
 	player.CharacterAdded:Connect(function()
 		sprinting = false

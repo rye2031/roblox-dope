@@ -104,6 +104,42 @@ local function setVent(open: boolean)
 	end
 end
 
+-- Wing gates: buy the wing at the gate; unlocked characters pass through (collision groups).
+local function setPass(player: Player)
+	local char = player.Character
+	if not char then
+		return
+	end
+	local wing = player:GetAttribute("PassWing")
+	local group = wing and ("Pass_" .. wing) or "Default"
+	for _, d in char:GetDescendants() do
+		if d:IsA("BasePart") then
+			d.CollisionGroup = group
+		end
+	end
+end
+
+PlayerData.onPush = function(player: Player)
+	Sleepers.applySpeed(player)
+	setPass(player)
+end
+
+for wingId, gate in Map.Gates do
+	local prompt = gate:FindFirstChild("GatePrompt") :: ProximityPrompt
+	prompt.Triggered:Connect(function(player)
+		local pd = PlayerData.get(player)
+		if pd and pd.wings[wingId] then
+			remotes.Toast:FireClient(player, `{Config.Wings[wingId].Name} is open for you, walk on through`, "good")
+			return
+		end
+		local ok, msg = PlayerData.buy(player, wingId)
+		remotes.Toast:FireClient(player, msg, ok and "good" or "warn")
+		if ok then
+			remotes.Fx:FireAllClients("Unlock", gate.Position, wingId, player.UserId)
+		end
+	end)
+end
+
 for _, d in ventDoors do
 	d.VentPrompt.Triggered:Connect(function(player)
 		local buddy = player:GetAttribute("Buddy")
@@ -131,6 +167,13 @@ setVent(false)
 local function onPlayer(player: Player)
 	player.CharacterAdded:Connect(function(char)
 		Sleepers.onCharacter(player, char)
+		setPass(player)
+		char.DescendantAdded:Connect(function(d)
+			if d:IsA("BasePart") then
+				local wing = player:GetAttribute("PassWing")
+				d.CollisionGroup = wing and ("Pass_" .. wing) or "Default"
+			end
+		end)
 	end)
 	if player.Character then
 		Sleepers.onCharacter(player, player.Character)
@@ -164,22 +207,22 @@ if game:GetService("RunService"):IsStudio() then
 	local bf = Instance.new("BindableFunction")
 	bf.Name = "BrainrotDebug"
 	local function plr(name)
-		return Players:FindFirstChild(name) or Players:GetPlayers()[1]
+		return (name and Players:FindFirstChild(name)) or Players:GetPlayers()[1]
 	end
 	local function vec(v)
 		return { math.floor(v.X * 10) / 10, math.floor(v.Y * 10) / 10, math.floor(v.Z * 10) / 10 }
 	end
 	bf.OnInvoke = function(cmd, a, b, c)
 		if cmd == "state" then
-			local out = { sleepers = {}, players = {}, rareAt = workspace:GetAttribute("RareAt") - workspace:GetServerTimeNow(), rareActive = workspace:GetAttribute("RareActive"), ventOpen = workspace:GetAttribute("VentOpen") }
+			local out = { sleepers = {}, players = {}, rareAt = workspace:GetAttribute("RareAt_FoodCourt") - workspace:GetServerTimeNow(), rareActive = workspace:GetAttribute("RareActive_FoodCourt"), arcadeRareAt = workspace:GetAttribute("RareAt_Arcade") - workspace:GetServerTimeNow(), arcadeRareActive = workspace:GetAttribute("RareActive_Arcade"), ventOpen = workspace:GetAttribute("VentOpen") }
 			for id, s in Sleepers.debug.list() do
-				out.sleepers[tostring(id)] = { st = s.state, rar = s.rarity, fam = s.family, sp = s.species, wake = math.floor(s.wake), carrier = s.carrier, ex = s.exclusive, vent = s.passedVent, pos = vec(s.pos), speed = math.floor(s.speed or 0), surf = s.surface }
+				out.sleepers[tostring(id)] = { st = s.state, rar = s.rarity, wing = s.wing, fam = s.family, sp = s.species, wake = math.floor(s.wake), carrier = s.carrier, ex = s.exclusive, vent = s.passedVent, pit = s.routes.BallPit == true, pos = vec(s.pos), speed = math.floor(s.speed or 0), surf = s.surface }
 			end
 			for _, p in Players:GetPlayers() do
 				local hrp = p.Character and p.Character:FindFirstChild("HumanoidRootPart")
 				local hum = p.Character and p.Character:FindFirstChildOfClass("Humanoid")
 				local pd = PlayerData.get(p)
-				out.players[p.Name] = { pos = hrp and vec(hrp.Position), speed = hum and hum.WalkSpeed, carrying = p:GetAttribute("Carrying"), sprint = p:GetAttribute("Sprinting"), coins = pd and pd.coins, rescues = pd and pd.rescues, vent = pd and pd.ventRescues, buddy = pd and pd.buddy, shoes = pd and pd.upgrades.PaddedShoes, collection = pd and pd.collection }
+				out.players[p.Name] = { pos = hrp and vec(hrp.Position), speed = hum and hum.WalkSpeed, carrying = p:GetAttribute("Carrying"), sprint = p:GetAttribute("Sprinting"), coins = pd and pd.coins, rescues = pd and pd.rescues, evo = pd and pd.evo, vent = pd and (pd.evo.KingRangoon or 0), buddy = pd and pd.buddy, shoes = pd and pd.upgrades.PaddedShoes, tracks = pd and pd.tracks, wings = pd and pd.wings, group = hrp and hrp.CollisionGroup, collection = pd and pd.collection }
 			end
 			return HttpService:JSONEncode(out)
 		elseif cmd == "grab" then
@@ -192,7 +235,7 @@ if game:GetService("RunService"):IsStudio() then
 			end
 			return "ok"
 		elseif cmd == "forceRare" then
-			Sleepers.debug.forceRare()
+			Sleepers.debug.forceRare(a)
 			return "ok"
 		elseif cmd == "tp" then
 			local p = plr(a)
@@ -257,6 +300,19 @@ if game:GetService("RunService"):IsStudio() then
 			local ok = PlayerData.join(p) ~= nil
 			PlayerData.push(p)
 			return HttpService:JSONEncode({ ok = ok, seconds = math.floor((os.clock() - t0) * 10) / 10, mode = p:GetAttribute("SaveMode") })
+		elseif cmd == "reset" then
+			-- wipe player a's progress back to a fresh profile (session only until the next save)
+			local p = plr(a)
+			local pd = PlayerData.get(p)
+			local fresh = PlayerData.sanitize(nil)
+			for k in pd do
+				pd[k] = nil
+			end
+			for k, v in fresh do
+				pd[k] = v
+			end
+			PlayerData.push(p)
+			return "ok"
 		elseif cmd == "home" then
 			Sleepers.debug.home(a)
 			return "ok"

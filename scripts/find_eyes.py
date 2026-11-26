@@ -2,7 +2,8 @@
 """Render a front orthographic view of a Meshy GLB (same transform as mesh_to_luau.py), find the
 two eye whites, and print Luau eye data (normalized coords) plus a preview PNG.
 
-Usage: python3 -I scripts/find_eyes.py <model.glb> <out_preview.png>
+Usage: python3 -I scripts/find_eyes.py <model.glb> <out_preview.png> [dark]
+  dark: look for dark pupils (glossy black eyes) instead of eye whites.
 """
 import math
 import os
@@ -29,6 +30,9 @@ def write_png(path, w, h, rgb):
 
 def main():
     glb, out = sys.argv[1], sys.argv[2]
+    dark = len(sys.argv) > 3 and sys.argv[3] == 'dark'
+    if os.path.basename(out) == 'thumb.png':
+        sys.exit('refusing to overwrite a Meshy thumbnail; pass a preview path instead')
     js, binchunk = M.read_glb(glb)
     prim = js['meshes'][0]['primitives'][0]
     at = prim['attributes']
@@ -89,7 +93,7 @@ def main():
     white = [False] * (RES * RES)
     for i in range(RES * RES):
         r, g, b = img[i * 3:i * 3 + 3]
-        if zbuf[i] < 1e8 and min(r, g, b) > 200 and max(r, g, b) - min(r, g, b) < 40:
+        if zbuf[i] < 1e8 and (max(r, g, b) < 75 if dark else (min(r, g, b) > 200 and max(r, g, b) - min(r, g, b) < 40)):
             white[i] = True
     seen = [False] * (RES * RES)
     blobs = []
@@ -102,12 +106,12 @@ def main():
                 for nj in (j - 1, j + 1, j - RES, j + RES):
                     if 0 <= nj < RES * RES and white[nj] and not seen[nj] and abs((nj % RES) - x) <= 1:
                         seen[nj] = True; stack.append(nj)
-            if len(pts) > 12:
+            if len(pts) > (6 if dark else 12):
                 blobs.append(pts)
     def stats(pts):
         xs = [p % RES for p in pts]; ys = [p // RES for p in pts]
         return sum(xs) / len(xs), sum(ys) / len(ys), len(pts), min(ys), max(ys), min(xs), max(xs)
-    cands = sorted([stats(b) + (b,) for b in blobs if stats(b)[1] < RES * 0.48], key=lambda s: -s[2])
+    cands = sorted([stats(b) + (b,) for b in blobs if stats(b)[1] < RES * (0.62 if dark else 0.48)], key=lambda s: -s[2])
     # pick the largest pair at similar height, mirrored about the centre
     best = None
     for i in range(len(cands)):

@@ -14,8 +14,10 @@ export type Profile = {
 	coins: number,
 	collection: { [string]: { count: number, forms: { [string]: boolean } } },
 	upgrades: { [string]: boolean },
+	tracks: { [string]: number }, -- upgrade track levels (Sneakers, SteadyHands)
+	wings: { [string]: boolean }, -- unlocked wings
+	evo: { [string]: number }, -- evolution progress by target species
 	buddy: string?,
-	ventRescues: number,
 	rescues: number,
 }
 
@@ -36,8 +38,10 @@ local function defaults(): Profile
 		coins = 0,
 		collection = {},
 		upgrades = {},
+		tracks = { Sneakers = 0, SteadyHands = 0 },
+		wings = { FoodCourt = true },
+		evo = {},
 		buddy = nil,
-		ventRescues = 0,
 		rescues = 0,
 	}
 end
@@ -57,8 +61,34 @@ function PlayerData.sanitize(raw: any): Profile
 		return p
 	end
 	p.coins = int(raw.coins, 0)
-	p.ventRescues = int(raw.ventRescues, 0)
 	p.rescues = int(raw.rescues, 0)
+	if typeof(raw.tracks) == "table" then
+		for id, def in Config.Tuning.Tracks do
+			p.tracks[id] = math.min(#def.Costs, int(raw.tracks[id], 0))
+		end
+	end
+	if typeof(raw.wings) == "table" then
+		for id in Config.Wings do
+			if raw.wings[id] == true then
+				p.wings[id] = true
+			end
+		end
+	end
+	if typeof(raw.evo) == "table" then
+		for _, e in Config.Tuning.Evolutions do
+			local n = int(raw.evo[e.To], 0)
+			if n > 0 then
+				p.evo[e.To] = math.min(n, e.Needed)
+			end
+		end
+	end
+	-- schema 1 records kept King Rangoon progress in ventRescues
+	if raw.ventRescues ~= nil and p.evo.KingRangoon == nil then
+		local n = int(raw.ventRescues, 0)
+		if n > 0 then
+			p.evo.KingRangoon = math.min(n, 3)
+		end
+	end
 	local validForms = {}
 	for _, f in Config.Tuning.Forms do
 		validForms[f.Id] = true
@@ -105,12 +135,24 @@ function PlayerData.serialize(p: Profile)
 	for k, v in p.upgrades do
 		upgrades[k] = v
 	end
+	local tracks, wings, evo = {}, {}, {}
+	for k, v in p.tracks do
+		tracks[k] = v
+	end
+	for k, v in p.wings do
+		wings[k] = v
+	end
+	for k, v in p.evo do
+		evo[k] = v
+	end
 	return {
 		coins = p.coins,
 		collection = collection,
 		upgrades = upgrades,
+		tracks = tracks,
+		wings = wings,
+		evo = evo,
 		buddy = p.buddy,
-		ventRescues = p.ventRescues,
 		rescues = p.rescues,
 	}
 end
@@ -277,6 +319,19 @@ function PlayerData.push(player: Player)
 	end
 	player:SetAttribute("Buddy", p.buddy)
 	player:SetAttribute("PaddedShoes", p.upgrades.PaddedShoes == true)
+	player:SetAttribute("Sneakers", p.tracks.Sneakers)
+	player:SetAttribute("SteadyHands", p.tracks.SteadyHands)
+	-- highest unlocked wing decides which gates the character passes through
+	local top = nil
+	for _, w in Config.wingList() do
+		if p.wings[w.Id] and w.Price > 0 then
+			top = w.Id
+		end
+	end
+	player:SetAttribute("PassWing", top)
+	if PlayerData.onPush then
+		PlayerData.onPush(player)
+	end
 	remote:FireClient(player, p)
 end
 
@@ -293,10 +348,49 @@ function PlayerData.record(p: Profile, species: string, form: string): boolean
 	return isNew
 end
 
+-- Buys a shop item, the next level of an upgrade track, or a wing unlock.
 function PlayerData.buy(player: Player, item: string): (boolean, string)
 	local p = profiles[player]
+	if not p or typeof(item) ~= "string" then
+		return false, "Unknown item"
+	end
+	local track = Config.Tuning.Tracks[item]
+	if track then
+		local lvl = p.tracks[item] or 0
+		local price = track.Costs[lvl + 1]
+		if not price then
+			return false, `{track.Name} is maxed out`
+		end
+		if p.coins < price then
+			return false, `Need {price - p.coins} more coins`
+		end
+		p.coins -= price
+		p.tracks[item] = lvl + 1
+		PlayerData.push(player)
+		PlayerData.saveSoon(player)
+		return true, `{track.Name} level {lvl + 1}!`
+	end
+	local wing = Config.Wings[item]
+	if wing then
+		if p.wings[item] then
+			return false, `{wing.Name} is already open`
+		end
+		for _, w in Config.wingList() do
+			if w.Order < wing.Order and not p.wings[w.Id] then
+				return false, `Unlock {w.Name} first`
+			end
+		end
+		if p.coins < wing.Price then
+			return false, `Need {wing.Price - p.coins} more coins`
+		end
+		p.coins -= wing.Price
+		p.wings[item] = true
+		PlayerData.push(player)
+		PlayerData.saveSoon(player)
+		return true, `{wing.Name} unlocked! Walk through the gate`
+	end
 	local def = Config.Tuning.Shop[item]
-	if not p or not def then
+	if not def then
 		return false, "Unknown item"
 	end
 	if p.upgrades[item] then
