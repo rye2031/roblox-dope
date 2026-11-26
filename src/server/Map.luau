@@ -582,6 +582,17 @@ local function buildHideout()
 	}, f)
 	poster:SetAttribute("WantedPoster", true)
 	float("Wanted", Vector3.new(16.5, 13.5, 9.5), "WANTED", TC.Coral, 8, { Icon = "!", Sub = "pays 3x coins this hour", Height = 2.4 })
+	-- Top Keepers board on the other side of the mouth (clients draw the scores)
+	local boardPos = Vector3.new(-16, 4.8, 8.2)
+	local board = part({
+		Name = "LeaderBoard",
+		Size = Vector3.new(12, 7.4, 0.2),
+		CFrame = CFrame.lookAt(boardPos, boardPos + Vector3.new(0, 0, 1)),
+		Color = Color3.fromRGB(250, 248, 255),
+		CanCollide = false,
+	}, f)
+	board:SetAttribute("LeaderBoard", true)
+	float("TopKeepers", Vector3.new(-16, 13.5, 9.5), "TOP KEEPERS", TC.Lilac, 10, { Icon = "★", Sub = "best in every server", Height = 2.4 })
 	zone("Hideout", -22, HALL_Z0, 22, 6)
 end
 

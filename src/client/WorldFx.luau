@@ -390,9 +390,69 @@ local function setupPoster(map: Instance)
 	end)
 end
 
+-- Top Keepers board: global top 10 by Overtime and by rescues (published by the server).
+local function setupLeaderboard(map: Instance)
+	local board = map:WaitForChild("Hideout"):WaitForChild("LeaderBoard") :: BasePart
+	local data = ReplicatedStorage:WaitForChild("Leaderboard") :: StringValue
+	local C = Theme.C
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 50
+	gui.LightInfluence = 0
+	gui.Parent = board
+	local bg = Theme.new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(250, 248, 255), Parent = gui }, {
+		Theme.new("UIStroke", { Thickness = 10, Color = C.Lilac, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }),
+	})
+	Theme.text({ Size = UDim2.new(1, -30, 0.11, 0), Position = UDim2.new(0, 15, 0.03, 0), Text = "TOP KEEPERS", TextColor3 = C.Lilac, Parent = bg }, "Title")
+	local cols = {}
+	for i, spec in { { "Overtime", "HIGHEST OVERTIME" }, { "Rescues", "MOST RESCUES" } } do
+		local col = Theme.new("Frame", { Size = UDim2.new(0.5, -22, 0.8, 0), Position = UDim2.new((i - 1) * 0.5, 15, 0.16, 0), BackgroundTransparency = 1, Parent = bg })
+		Theme.text({ Size = UDim2.new(1, 0, 0.09, 0), Text = spec[2], TextColor3 = C.Sub, Parent = col }, "Title")
+		local rows = {}
+		for r = 1, 10 do
+			local lbl = Theme.text({ Size = UDim2.new(1, 0, 0.083, 0), Position = UDim2.new(0, 0, 0.1 + (r - 1) * 0.09, 0), Text = "", TextXAlignment = Enum.TextXAlignment.Left, Parent = col }, "Bold")
+			rows[r] = lbl
+		end
+		cols[spec[1]] = rows
+	end
+	local function fmtN(n: number): string
+		local s = tostring(math.floor(n))
+		return (s:reverse():gsub("(%d%d%d)", "%1,"):reverse():gsub("^,", ""))
+	end
+	local function render()
+		local ok, t = pcall(function()
+			return game:GetService("HttpService"):JSONDecode(data.Value)
+		end)
+		t = ok and t or {}
+		for board2, rows in cols do
+			local list = {}
+			for _, e in t[board2] or {} do
+				if board2 ~= "Overtime" or (e.ot or 0) > 0 then
+					table.insert(list, e)
+				end
+			end
+			for r, lbl in rows do
+				local e = list[r]
+				if e then
+					local value = board2 == "Overtime" and string.format("OT %d · %s", e.ot, fmtN(e.r)) or fmtN(e.r)
+					lbl.Text = string.format("%d.  %s   %s", r, e.n or "?", value)
+					lbl.TextColor3 = e.id == player.UserId and Color3.fromRGB(40, 160, 110) or C.Ink
+				else
+					lbl.Text = r == 1 and #list == 0 and "no scores yet" or ""
+					lbl.TextColor3 = C.Sub
+				end
+			end
+		end
+	end
+	data:GetPropertyChangedSignal("Value"):Connect(render)
+	render()
+end
+
 function WorldFx.start()
 	local map = workspace:WaitForChild("Map")
 	task.spawn(setupPoster, map)
+	task.spawn(setupLeaderboard, map)
 	task.spawn(function()
 		local last = nil
 		while true do

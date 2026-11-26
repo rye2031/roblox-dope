@@ -231,7 +231,7 @@ local function addSleeper(part: BasePart)
 	local c = CreatureView.build(fieldMesh, height)
 	local family = part:GetAttribute("Family")
 	local bb = billboard(c.body, height / 2 + 1.6)
-	bb.Pill.Title.Text = (rarity == "Rare" and "★ RARE " or "") .. family
+	bb.Pill.Title.Text = (rarity == "Rare" and "★ RARE " or "Sleeping ") .. family
 	bb.Pill.Title.TextColor3 = rarity == "Rare" and Color3.fromRGB(210, 150, 20) or Creatures.Families[family].Color:Lerp(Color3.new(0, 0, 0), 0.25)
 	bb.Sub.Text = "z z Z"
 	local a0 = Instance.new("Attachment")

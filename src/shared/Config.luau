@@ -88,8 +88,9 @@ Config.Tuning = {
 	Forms = {
 		-- Exact form is only revealed after banking.
 		{ Id = "Normal", Weight = 75, CoinMult = 1, RareWeight = 30, RushWeight = 0 },
-		{ Id = "Glazed", Weight = 20, CoinMult = 2, RareWeight = 45, RushWeight = 75 },
-		{ Id = "Jumbo", Weight = 5, CoinMult = 3, RareWeight = 25, RushWeight = 25 },
+		{ Id = "Glazed", Weight = 20, CoinMult = 2, RareWeight = 42, RushWeight = 67 },
+		{ Id = "Jumbo", Weight = 4, CoinMult = 3, RareWeight = 23, RushWeight = 25 },
+		{ Id = "Golden", Weight = 1, CoinMult = 5, RareWeight = 5, RushWeight = 8 }, -- best during a Snack Rush
 	},
 
 	Shop = {
@@ -139,16 +140,19 @@ Config.Tuning = {
 			{ Tier = "Found", Coins = 300, Trail = "Sunny" },
 			{ Tier = "Glazed", Coins = 600 },
 			{ Tier = "Jumbo", Coins = 1500, Trail = "Golden" },
+			{ Tier = "Golden", Coins = 4000 },
 		},
 		Arcade = {
 			{ Tier = "Found", Coins = 1000, Trail = "Arcade" },
 			{ Tier = "Glazed", Coins = 2000 },
 			{ Tier = "Jumbo", Coins = 5000, Trail = "Prism" },
+			{ Tier = "Golden", Coins = 12000 },
 		},
 		ToyBarn = {
 			{ Tier = "Found", Coins = 2500, Trail = "Bubble" },
 			{ Tier = "Glazed", Coins = 5000 },
 			{ Tier = "Jumbo", Coins = 12000, Trail = "Confetti" },
+			{ Tier = "Golden", Coins = 30000 },
 		},
 	},
 	-- Cosmetic trails (unlocked by Index pages). Colours run head to tail.

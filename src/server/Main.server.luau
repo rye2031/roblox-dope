@@ -10,6 +10,7 @@ local PlayerData = require(script.Parent.PlayerData)
 local Sleepers = require(script.Parent.Sleepers)
 local Quests = require(script.Parent.Quests)
 local Events = require(script.Parent.Events)
+local Leaderboard = require(script.Parent.Leaderboard)
 
 local T = Config.Tuning
 
@@ -131,6 +132,7 @@ end)
 -- Daily quests + login streak, Snack Rush + Wanted poster
 Quests.init(remotes)
 Events.init(remotes, PlayerData)
+Leaderboard.init()
 remotes.ClaimQuest.OnServerInvoke = function(player, index)
 	return Quests.claim(player, index)
 end
@@ -376,6 +378,7 @@ for _, p in Players:GetPlayers() do
 	onPlayer(p)
 end
 Players.PlayerRemoving:Connect(function(player)
+	Leaderboard.onLeave(player)
 	PlayerData.leave(player)
 end)
 
@@ -530,6 +533,14 @@ if game:GetService("RunService"):IsStudio() then
 			return tostring(Quests.claim(plr(a), b))
 		elseif cmd == "claimstreak" then
 			return tostring(Quests.claimStreak(plr(a)))
+		elseif cmd == "leaderboard" then
+			local p = plr(a)
+			Leaderboard.submit(p.UserId, PlayerData.get(p), p:GetAttribute("SaveMode") == "Cloud")
+			Leaderboard.refresh()
+			return ReplicatedStorage.Leaderboard.Value
+		elseif cmd == "nextform" then
+			Sleepers.debug.nextForm = a
+			return "ok"
 		elseif cmd == "clockin" then
 			local ok, msg = PlayerData.clockIn(plr(a))
 			return tostring(ok) .. " " .. msg

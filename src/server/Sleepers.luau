@@ -107,7 +107,7 @@ local function setState(s: Sleeper, state: string)
 	local p = s.prompt
 	if state == "Sleeping" then
 		p.Enabled = true
-		p.ActionText = "Grab"
+		p.ActionText = "Pick up"
 		p.HoldDuration = 0.25
 	elseif state == "Bolting" or state == "Loose" then
 		p.Enabled = true
@@ -260,8 +260,8 @@ spawnSleeper = function(rarity: string, spawnIndex: number?, rareWing: string?):
 	part:SetAttribute("Stage", 0)
 	local prompt = Instance.new("ProximityPrompt")
 	prompt.Name = "GrabPrompt"
-	prompt.ObjectText = (rarity == "Rare" and "⭐ RARE " or "") .. family .. " sleeper"
-	prompt.ActionText = "Grab"
+	prompt.ObjectText = (rarity == "Rare" and "⭐ RARE sleeping " or "Sleeping ") .. family
+	prompt.ActionText = "Pick up"
 	prompt.KeyboardKeyCode = Enum.KeyCode.E
 	prompt.MaxActivationDistance = T.PickupRange
 	prompt.RequiresLineOfSight = false
@@ -493,14 +493,24 @@ local function bank(s: Sleeper, player: Player)
 			if f.Id == "Normal" then
 				w -= cut
 			elseif f.Id == "Glazed" then
-				w += cut * 0.75
+				w += cut * 0.72
+			elseif f.Id == "Jumbo" then
+				w += cut * 0.24
 			else
-				w += cut * 0.25
+				w += cut * 0.04 -- Golden
 			end
 			table.insert(formList, { Id = f.Id, CoinMult = f.CoinMult, Weight = w })
 		end
 	end
 	local form = weighted(formList, formsKey)
+	if Sleepers.debug.nextForm then -- Studio test hook
+		for _, f in T.Forms do
+			if f.Id == Sleepers.debug.nextForm then
+				form = f
+			end
+		end
+		Sleepers.debug.nextForm = nil
+	end
 	local coins = T.Rarity[rarity].BaseCoins * Config.Wings[wing].CoinMult * form.CoinMult
 	local ws, wf = Events.wanted(wing)
 	local wanted = Config.isWanted(ws, wf, species, form.Id)

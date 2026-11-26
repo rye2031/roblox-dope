@@ -81,7 +81,7 @@ local top = new("Frame", {
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 8),
-	Size = UDim2.fromOffset(px(660), px(40)),
+	Size = UDim2.fromOffset(px(720), px(40)),
 	Parent = gui,
 }, {
 	new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
@@ -103,6 +103,9 @@ local function pill(name: string, order: number, width: number, color: Color3, g
 	}, "Title")
 	return holder, v, d
 end
+local helpHolder = new("Frame", { Name = "Help", LayoutOrder = 0, BackgroundTransparency = 1, Size = UDim2.fromOffset(px(40), px(40)), Parent = top })
+local helpBtn = button({ Name = "HelpButton", Size = UDim2.fromScale(1, 1), BackgroundColor3 = C.Card, TextColor3 = C.Ink, TextScaled = false, TextSize = px(20), Text = "?", Parent = helpHolder, Radius = 20 })
+Theme.shadow(helpBtn, 20, 3)
 local coinsPill, coinsText = pill("Coins", 1, 128, C.Sun, "$")
 local rarePill, rareText, rareDot = pill("Rare", 2, 240, C.Lilac, "★")
 local eventPill, eventText, eventDot = pill("Event", 3, 250, C.Peach, "🍩")
@@ -390,6 +393,34 @@ do
 end
 
 ----------------------------------------------------------------------------------------------
+-- How to play (first join, and the ? button)
+
+local welcome, welcomeBody = panel("Welcome", "How to play", "Rescue the sleeping brainrots", C.Mint, "?")
+do
+	local touch = UserInputService.TouchEnabled
+	local steps = {
+		{ C.Sky, "💤", "Find a sleeping creature", "Brainrot creatures nap all over the mall. Look for the  z z Z  above their heads." },
+		{ C.Peach, "✋", "Pick it up", touch and "Walk right up to it and tap Pick up." or "Walk right up to it and press E to pick it up." },
+		{ C.Rose, "🏠", "Carry it home to your Hideout", "Follow the sparkle trail to the pink pad in your hideout. That's a rescue!" },
+		{ C.Coral, "🤫", "Don't wake it up", "Running and loud floors fill its wake meter. Walk, or take the quiet way. If it wakes, it runs: catch it!" },
+		{ C.Sun, "$", "Get coins and surprises", "Every rescue pays coins and reveals what you caught. Spend coins in the Shop to run faster and open new wings." },
+	}
+	for i, st in steps do
+		local r = new("Frame", { Name = "Step" .. i, LayoutOrder = i, Size = UDim2.new(1, 0, 0, px(68)), BackgroundColor3 = C.Soft, ZIndex = 12, Parent = welcomeBody }, { corner(16) })
+		dot(r, st[1], st[2], px(44), UDim2.new(0, 12, 0.5, 0)).ZIndex = 13
+		text({ Position = UDim2.fromOffset(px(68), px(10)), Size = UDim2.new(1, -px(80), 0, px(20)), TextScaled = false, TextSize = px(18), TextXAlignment = Enum.TextXAlignment.Left, Text = i .. ".  " .. st[3], ZIndex = 13, Parent = r }, "Title")
+		text({ Position = UDim2.fromOffset(px(68), px(32)), Size = UDim2.new(1, -px(80), 0, px(32)), TextScaled = false, TextSize = px(14), TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, TextColor3 = C.Sub, Text = st[4], ZIndex = 13, Parent = r }, "Bold")
+	end
+	local go = button({ Name = "LetsGo", LayoutOrder = 10, Size = UDim2.new(1, 0, 0, px(48)), BackgroundColor3 = C.Mint, TextScaled = false, TextSize = px(18), Text = "Let's go!", ZIndex = 12, Parent = welcomeBody, Radius = 24 })
+	go.Activated:Connect(function()
+		welcome.Visible = false
+	end)
+end
+helpBtn.Activated:Connect(function()
+	Hud.openPanel(if welcome.Visible then nil else "Welcome")
+end)
+
+----------------------------------------------------------------------------------------------
 -- Shop rows
 
 local function row(parent: Instance, order: number, accent: Color3, glyph: string, title: string, blurb: string)
@@ -494,8 +525,8 @@ local wingHeaders = {}
 local evoLines = {}
 local pageChips = {} -- [wing..":"..tier] = chip
 local trailChips = {}
-local TIER_LABEL = { Found = "Complete page", Glazed = "All Glazed", Jumbo = "All Jumbo" }
-local TIER_COLOR = { Found = C.Lilac, Glazed = C.Sun, Jumbo = C.Peach }
+local TIER_LABEL = { Found = "Complete page", Glazed = "All Glazed", Jumbo = "All Jumbo", Golden = "All Golden" }
+local TIER_COLOR = { Found = C.Lilac, Glazed = C.Sun, Jumbo = C.Peach, Golden = Color3.fromRGB(230, 170, 40) }
 do
 	local order = 0
 	-- evolution goals first: the next thing to work toward
@@ -515,7 +546,7 @@ do
 		-- page rewards: complete / all Glazed / all Jumbo
 		order += 1
 		local strip = new("Frame", { Name = "Rewards_" .. w.Id, LayoutOrder = order, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, px(92)), ZIndex = 12, Parent = indexBody }, {
-			new("UIGridLayout", { CellSize = UDim2.new(1 / 3, -7, 1, 0), CellPadding = UDim2.fromOffset(10, 0), SortOrder = Enum.SortOrder.LayoutOrder }),
+			new("UIGridLayout", { CellSize = UDim2.new(0.25, -8, 1, 0), CellPadding = UDim2.fromOffset(10, 0), SortOrder = Enum.SortOrder.LayoutOrder }),
 		})
 		for i, r in T.IndexRewards[w.Id] or {} do
 			local col = TIER_COLOR[r.Tier]
@@ -746,9 +777,7 @@ function Hud.openPicker(slot: number)
 		if species then
 			local img = new("ImageLabel", { Position = UDim2.fromOffset(8, px(6)), Size = UDim2.new(1, -16, 0, px(84)), BackgroundTransparency = 1, ScaleType = Enum.ScaleType.Fit, ZIndex = 33, Parent = c })
 			Portraits.apply(img, species)
-			if form == "Glazed" then
-				img.ImageColor3 = Color3.fromRGB(255, 245, 200)
-			end
+			img.ImageColor3 = Creatures.FormTint[form] or Color3.new(1, 1, 1)
 			img.ImageTransparency = enabled and 0 or 0.6
 		else
 			text({ Position = UDim2.fromOffset(0, px(24)), Size = UDim2.new(1, 0, 0, px(40)), TextScaled = false, TextSize = px(30), TextColor3 = C.Mute, Text = "–", ZIndex = 33, Parent = c }, "Title")
@@ -803,7 +832,7 @@ local function refreshShelves()
 			local r = Config.displayRate(sp, e.f)
 			rate += r
 			Portraits.apply(sl.img, e.s)
-			sl.img.ImageColor3 = e.f == "Glazed" and Color3.fromRGB(255, 245, 200) or Color3.new(1, 1, 1)
+			sl.img.ImageColor3 = Creatures.FormTint[e.f] or Color3.new(1, 1, 1)
 			sl.img.Visible = true
 			sl.name.Text = (e.f ~= "Normal" and (e.f .. " ") or "") .. sp.Name
 			sl.info.Text = fmtRate(r * Config.coinMult(profile)) .. " / min"
@@ -1188,12 +1217,16 @@ function Hud.reveal(data)
 		return
 	end
 	setSilhouette(vf, false)
-	if data.form == "Glazed" then
-		vf.ImageColor3 = Color3.fromRGB(255, 245, 200)
-	end
+	vf.ImageColor3 = Creatures.FormTint[data.form] or Color3.new(1, 1, 1)
 	scale.Scale = target * 1.15
-	revealBurst.BackgroundColor3 = Theme.tint(data.form == "Normal" and C.Mint or C.Sun, 0.55)
-	TweenService:Create(revealBurst, TweenInfo.new(0.5), { BackgroundColor3 = Theme.tint(data.form == "Normal" and C.Mint or C.Sun, 0.8) }):Play()
+	local golden = data.form == "Golden"
+	if golden then
+		-- the big one: gold burst, extra pop
+		CreatureView.playUi(CreatureView.SOUNDS.Pop, 0.9, 0.8)
+		Hud.toast("GOLDEN! 5x coins", "good")
+	end
+	revealBurst.BackgroundColor3 = golden and Color3.fromRGB(255, 200, 70) or Theme.tint(data.form == "Normal" and C.Mint or C.Sun, 0.55)
+	TweenService:Create(revealBurst, TweenInfo.new(0.5), { BackgroundColor3 = golden and Color3.fromRGB(255, 225, 130) or Theme.tint(data.form == "Normal" and C.Mint or C.Sun, 0.8) }):Play()
 	revealName.Text = (data.form ~= "Normal" and (data.form .. " ") or "") .. sp.Name
 	local sub = "+ " .. fmt(data.coins) .. " coins"
 	if data.wanted then
@@ -1646,14 +1679,14 @@ local function frame()
 	local beamTarget: Vector3? = nil
 	if part then
 		if rescues < 3 then
-			msg = "Walk it to the pink pad in your HIDEOUT. Running makes noise!"
+			msg = "Now carry it to the pink pad in your HIDEOUT (follow the sparkles). Walk, don't run!"
 			color = C.Rose
 			beamTarget = stationPos
 		end
 	elseif rescues == 0 and hrp then
 		local n = nearestSleeper(hrp.Position)
 		if n then
-			msg = "Sneak up to a sleeping creature and grab it"
+			msg = UserInputService.TouchEnabled and "Follow the sparkles to a sleeping creature (z z Z) and tap Pick up" or "Follow the sparkles to a sleeping creature (z z Z) and press E to pick it up"
 			beamTarget = n.Position
 		end
 	elseif profile then
@@ -1699,8 +1732,23 @@ end
 
 function Hud.start()
 	local autoOpened = false
+	local welcomed = false
 	local function maybeAutoOpen()
-		if autoOpened or not profile or not player:GetAttribute("StreakReady") then
+		if not profile then
+			return
+		end
+		-- brand-new players get How to play first (the daily reward waits behind the Quests badge)
+		if profile.rescues == 0 then
+			if not welcomed then
+				welcomed = true
+				autoOpened = true
+				task.delay(1, function()
+					openPanel("Welcome")
+				end)
+			end
+			return
+		end
+		if autoOpened or not player:GetAttribute("StreakReady") then
 			return
 		end
 		autoOpened = true

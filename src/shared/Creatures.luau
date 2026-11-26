@@ -197,9 +197,16 @@ Creatures.FormColor = {
 	Normal = nil,
 	Glazed = Color3.fromRGB(255, 240, 160),
 	Jumbo = nil,
+	Golden = Color3.fromRGB(255, 205, 90),
 }
 
-Creatures.FormScale = { Normal = 1, Glazed = 1, Jumbo = 1.45 }
+-- Tint for a form's portrait (multiplied onto the image).
+Creatures.FormTint = {
+	Glazed = Color3.fromRGB(255, 245, 200),
+	Golden = Color3.fromRGB(255, 212, 110),
+}
+
+Creatures.FormScale = { Normal = 1, Glazed = 1, Jumbo = 1.45, Golden = 1 }
 
 function Creatures.ordered()
 	local list = {}

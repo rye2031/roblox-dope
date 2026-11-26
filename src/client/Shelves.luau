@@ -76,7 +76,7 @@ local function render(profile)
 			else
 				local sp = Creatures.Species[e.s]
 				Portraits.apply(sl.img, e.s)
-				sl.img.ImageColor3 = e.f == "Glazed" and Color3.fromRGB(255, 245, 200) or Color3.new(1, 1, 1)
+				sl.img.ImageColor3 = Creatures.FormTint[e.f] or Color3.new(1, 1, 1)
 				sl.img.Visible = true
 				sl.big.Visible = false
 				sl.title.Text = sp.Name
