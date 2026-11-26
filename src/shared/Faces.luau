@@ -36,4 +36,21 @@ return {
 		{ Pos = Vector3.new(-0.120, -0.046, -0.347), Radius = 0.05, Lid = Color3.fromRGB(225, 36, 35) },
 		{ Pos = Vector3.new(0.125, -0.048, -0.347), Radius = 0.05, Lid = Color3.fromRGB(225, 36, 35) },
 	},
+	-- Toy Barn wing
+	Squeakicorn = {
+		{ Pos = Vector3.new(-0.132, 0.222, -0.264), Radius = 0.046, Lid = Color3.fromRGB(254, 179, 204) },
+		{ Pos = Vector3.new(0.135, 0.216, -0.266), Radius = 0.046, Lid = Color3.fromRGB(254, 179, 202) },
+	},
+	Yoyoctopus = {
+		{ Pos = Vector3.new(-0.214, 0.171, -0.264), Radius = 0.096, Lid = Color3.fromRGB(219, 149, 228) },
+		{ Pos = Vector3.new(0.219, 0.172, -0.265), Radius = 0.096, Lid = Color3.fromRGB(219, 149, 228) },
+	},
+	Blockodile = {
+		{ Pos = Vector3.new(-0.136, 0.333, -0.647), Radius = 0.096, Lid = Color3.fromRGB(153, 230, 210) },
+		{ Pos = Vector3.new(0.141, 0.334, -0.646), Radius = 0.096, Lid = Color3.fromRGB(160, 228, 206) },
+	},
+	SqueakicornRoyale = {
+		{ Pos = Vector3.new(-0.121, 0.166, -0.576), Radius = 0.04, Lid = Color3.fromRGB(248, 173, 204) },
+		{ Pos = Vector3.new(0.121, 0.166, -0.576), Radius = 0.04, Lid = Color3.fromRGB(248, 173, 204) },
+	},
 }

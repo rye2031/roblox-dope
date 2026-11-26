@@ -454,7 +454,7 @@ do
 	for _, w in Config.wingList() do
 		if w.Price > 0 then
 			order += 1
-			local r = row(shopBody, order, C.Lilac, "🕹", w.Name, "New creatures worth more coins. Opens the gate in the east wall.")
+			local r = row(shopBody, order, C.Lilac, w.Icon or "★", w.Name, "New creatures worth " .. w.CoinMult .. "x coins. " .. (w.Where or ""))
 			r.buy.Name = "Buy" .. w.Id
 			r.buy.Activated:Connect(function()
 				buyItem(w.Id)
@@ -550,8 +550,8 @@ end
 -- Trails (unlocked by Index pages), at the bottom of the Index
 do
 	text({ LayoutOrder = 100, Size = UDim2.new(1, 0, 0, px(22)), TextScaled = false, TextSize = px(14), TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = C.Sub, Text = "TRAILS", ZIndex = 12, Parent = indexBody }, "Title")
-	local strip = new("Frame", { Name = "Trails", LayoutOrder = 101, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, px(96)), ZIndex = 12, Parent = indexBody }, {
-		new("UIGridLayout", { CellSize = UDim2.new(0.25, -8, 1, 0), CellPadding = UDim2.fromOffset(10, 0), SortOrder = Enum.SortOrder.LayoutOrder }),
+	local strip = new("Frame", { Name = "Trails", LayoutOrder = 101, BackgroundTransparency = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, ZIndex = 12, Parent = indexBody }, {
+		new("UIGridLayout", { CellSize = UDim2.new(0.25, -8, 0, px(96)), CellPadding = UDim2.fromOffset(10, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
 	local source = {}
 	for wing, list in T.IndexRewards do
@@ -1399,7 +1399,7 @@ local function updateRare(now: number)
 	local soonest, soonestWing = math.huge, nil
 	-- the wing you're standing in comes first
 	local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
-	local here = hrp and hrp.Position.X > 61 and "Arcade" or "FoodCourt"
+	local here = hrp and Config.wingAt(hrp.Position) or "FoodCourt"
 	local list = Config.wingList()
 	table.sort(list, function(a, b)
 		return (a.Id == here and 0 or a.Order) < (b.Id == here and 0 or b.Order)
@@ -1522,6 +1522,13 @@ local function frame()
 		end
 	elseif profile then
 		local tracks = profile.tracks
+		local nextWing = nil
+		for _, w in Config.wingList() do
+			if not profile.wings[w.Id] then
+				nextWing = w
+				break
+			end
+		end
 		if (player:GetAttribute("PagesClaimable") or 0) > 0 then
 			msg, color = "An Index page is complete! Claim your reward in the Index", C.Lilac
 		elseif (player:GetAttribute("QuestsClaimable") or 0) > 0 then
@@ -1534,8 +1541,8 @@ local function frame()
 			msg, color = "You can afford Sneakers! Open the Shop to run faster", C.Peach
 		elseif not profile.upgrades.PaddedShoes and profile.coins >= T.Shop.PaddedShoes.Price then
 			msg, color = "Padded Shoes are in the Shop: quieter running while carrying", C.Peach
-		elseif not profile.wings.Arcade and profile.coins >= Config.Wings.Arcade.Price then
-			msg, color = "The ARCADE can be unlocked! Go to the gate in the east wall", C.Lilac
+		elseif nextWing and profile.coins >= nextWing.Price then
+			msg, color = string.format("The %s can be unlocked! %s", string.upper(nextWing.Name), nextWing.Where or ""), C.Lilac
 		elseif profile.collection.CrabRangoon and not profile.buddy and rescues < 8 then
 			msg, color = "Open the Index and make Crab Rangoon your buddy (it opens vents)", C.Mint
 		end

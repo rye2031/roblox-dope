@@ -37,6 +37,7 @@ type Sleeper = {
 	routes: { [string]: boolean }, -- route tags passed while carried (Vent, BallPit, Cozy)
 	maxWake: number, -- highest wake meter during this carry (quests: "before they twitch")
 	regrabbed: boolean, -- caught again after waking up (quests: "catch a woken creature")
+	lastSurface: string?,
 	lastPos: Vector3?,
 	lastWakeSent: number,
 	path: { Vector3 }?,
@@ -540,6 +541,12 @@ local function updateCarried(s: Sleeper, dt: number)
 	if route then
 		s.routes[route] = true
 	end
+	if surface == "Squeak" and s.lastSurface ~= "Squeak" then
+		-- stepped on a squeaky toy
+		setWake(s, s.wake + T.Noise.SqueakSpike * wakeMult(s))
+		remotes.Fx:FireAllClients("Squeak", pos)
+	end
+	s.lastSurface = surface
 	if (pos - Map.Points.Station).Magnitude <= T.BankRadius then
 		bank(s, player)
 		return

@@ -42,6 +42,15 @@ local ROW_Z0, ROW_Z1, ROW_H = 92, 100, 12
 local DANCE_X0, DANCE_X1 = 124, 150
 local PIT_X0 = 186
 
+-- Toy Barn wing (west of the hall), through a gate in the hall's west wall
+local TX0, TX1 = -210, -HALL_X - 2 -- -210..-62
+local TZ0, TZ1 = 36, 224
+local T_WALL_H = 22
+local TGATE_Z0, TGATE_Z1 = 128, 152
+local SHELF_X0, SHELF_X1, SHELF_H = -134, -126, 14 -- the long toy-shelf divider
+local AISLE_X0, AISLE_X1 = -156, -104 -- squeaky aisle runs across the divider at the gate's Z
+local PLUSH_Z1 = 62 -- Plush Mountain fills the divider's south end (TZ0..PLUSH_Z1)
+
 Map.Points = {
 	Station = Vector3.new(0, 0, -4),
 	Spawn = Vector3.new(-9, 0, 1),
@@ -57,6 +66,7 @@ Map.Points = {
 	RareStages = {
 		FoodCourt = Vector3.new(20, 0, 146),
 		Arcade = Vector3.new(100, 0, 134),
+		ToyBarn = Vector3.new(-190, 0, 206),
 	},
 	-- Common sleeper spots. The first one is in sight of the hideout.
 	Spawns = {
@@ -71,6 +81,12 @@ Map.Points = {
 		{ pos = Vector3.new(108, 0, 72), wing = "Arcade" },
 		{ pos = Vector3.new(80, 0, 124), wing = "Arcade" }, -- north: dance floor or ball pit home
 		{ pos = Vector3.new(176, 0, 130), wing = "Arcade" },
+		{ pos = Vector3.new(-95, 0, 72), wing = "ToyBarn" },
+		{ pos = Vector3.new(-92, 0, 204), wing = "ToyBarn" },
+		{ pos = Vector3.new(-166, 0, 96), wing = "ToyBarn" }, -- west: squeaky aisle or Plush Mountain home
+		{ pos = Vector3.new(-192, 0, 140), wing = "ToyBarn" },
+		{ pos = Vector3.new(-156, 0, 186), wing = "ToyBarn" },
+		{ pos = Vector3.new(-194, 0, 58), wing = "ToyBarn" },
 	},
 }
 
@@ -112,6 +128,18 @@ Map.Nav = {
 		Vector3.new(80, 0, 118), -- 32 north-west
 		Vector3.new(88, 0, -18), -- 33 south-west corner
 		Vector3.new(100, 0, 68), -- 34 south of cabinet row, west
+		-- Toy Barn
+		Vector3.new(-52, 0, 140), -- 35 hall side of the west gate
+		Vector3.new(-72, 0, 140), -- 36 barn side of the gate
+		Vector3.new(-100, 0, 140), -- 37 east mouth of the squeaky aisle
+		Vector3.new(-130, 0, 140), -- 38 squeaky aisle
+		Vector3.new(-160, 0, 140), -- 39 west mouth of the squeaky aisle
+		Vector3.new(-95, 0, 72), -- 40 east, south
+		Vector3.new(-130, 0, 49), -- 41 Plush Mountain
+		Vector3.new(-166, 0, 60), -- 42 west, south
+		Vector3.new(-170, 0, 100), -- 43 west, middle
+		Vector3.new(-170, 0, 186), -- 44 west, north
+		Vector3.new(-95, 0, 196), -- 45 east, north
 	},
 	links = {
 		{ 1, 2 }, { 2, 3 }, { 2, 8 }, { 2, 10 }, { 3, 4 }, { 3, 5 }, { 4, 19 }, { 4, 10 },
@@ -121,6 +149,8 @@ Map.Nav = {
 		{ 8, 21 }, { 21, 22 }, { 22, 23 }, { 22, 33 }, { 33, 23 }, { 23, 24 }, { 24, 25 },
 		{ 25, 26 }, { 24, 27 }, { 23, 34 }, { 34, 27 }, { 26, 27 }, { 26, 30 }, { 27, 28 },
 		{ 28, 29 }, { 29, 32 }, { 29, 31 }, { 30, 31 }, { 31, 32 },
+		{ 18, 35 }, { 7, 35 }, { 35, 36 }, { 36, 37 }, { 37, 38 }, { 38, 39 }, { 37, 40 }, { 40, 41 },
+		{ 41, 42 }, { 42, 43 }, { 43, 39 }, { 39, 44 }, { 36, 45 }, { 37, 45 },
 	},
 }
 
@@ -378,7 +408,9 @@ local function buildShell()
 		end
 	end
 	-- outer walls (the east wall has the Arcade gate in it)
-	box("WallW", -HALL_X - 2, 0, HALL_Z0, -HALL_X, WALL_H, HALL_Z1, C.Wall)
+	box("WallW_S", -HALL_X - 2, 0, HALL_Z0, -HALL_X, WALL_H, TGATE_Z0, C.Wall)
+	box("WallW_N", -HALL_X - 2, 0, TGATE_Z1, -HALL_X, WALL_H, HALL_Z1, C.Wall)
+	box("WallW_Lintel", -HALL_X - 2, GATE_H, TGATE_Z0, -HALL_X, WALL_H, TGATE_Z1, C.Wall)
 	box("WallE_S", HALL_X, 0, HALL_Z0, HALL_X + 2, WALL_H, GATE_Z0, C.Wall)
 	box("WallE_N", HALL_X, 0, GATE_Z1, HALL_X + 2, WALL_H, HALL_Z1, C.Wall)
 	box("WallE_Lintel", HALL_X, GATE_H, GATE_Z0, HALL_X + 2, WALL_H, GATE_Z1, C.Wall)
@@ -608,11 +640,6 @@ local function buildPlaza()
 		box("StoreE" .. i, HALL_X - 1, 0, z - 9, HALL_X, 14, z + 9, Theme.tint(col, 0.5), nil, root.Decor).CanCollide = false
 		sign("StoreSignE" .. i, CFrame.new(HALL_X - 1.4, 11, z) * CFrame.Angles(0, math.rad(90), 0), Vector2.new(16, 3), s[2], col, nil, { Solid = true }).Parent = root.Decor
 	end
-	-- the next wing, shuttered: a visible goal for later
-	local tz = 140
-	box("ToyBarnFront", -HALL_X, 0, tz - 10, -HALL_X + 1, 16, tz + 10, Color3.fromRGB(255, 226, 170), nil, root.Decor).CanCollide = false
-	decor(box("ToyBarnShutter", -HALL_X + 1, 0.2, tz - 8, -HALL_X + 1.3, 12, tz + 8, Color3.fromRGB(228, 230, 238), Enum.Material.DiamondPlate, root.Decor))
-	float("ToyBarn", Vector3.new(-HALL_X + 6, 17, tz), "TOY BARN", TC.Mute, 11, { Icon = "🧸", Sub = "coming soon", Height = 3 })
 	-- planters
 	for _, p in { Vector3.new(-10, 0, 14), Vector3.new(10, 0, 14), Vector3.new(-44, 0, 64), Vector3.new(52, 0, 96), Vector3.new(-8, 0, 96) } do
 		box("Planter", p.X - 2, 0, p.Z - 2, p.X + 2, 2.5, p.Z + 2, Color3.fromRGB(255, 255, 255), nil, root.Decor)
@@ -832,6 +859,144 @@ local function clawMachine(x: number, z: number, color: Color3, parent: Instance
 	end
 end
 
+-- Glass gate into a paid wing: only players who unlocked it pass (collision groups).
+local function wingGate(wing: string, x: number, z0: number, z1: number, labelPos: Vector3, accent: Color3, parent: Instance)
+	local w = Config.Wings[wing]
+	local gate = box(wing .. "Gate", x - 0.8, 0, z0, x + 0.8, GATE_H, z1, Theme.tint(accent, 0.5), Enum.Material.Glass, parent)
+	gate.Transparency = 0.45
+	gate.CollisionGroup = "Gate_" .. wing
+	gate:SetAttribute("Gate", wing)
+	Map.Gates[wing] = gate
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "GatePrompt"
+	prompt.ActionText = "Unlock for 💰 " .. w.Price
+	prompt.ObjectText = w.Name
+	prompt.HoldDuration = 0.3
+	prompt.MaxActivationDistance = 14
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = gate
+	for _, zz in { z0 - 0.5, z1 + 0.5 } do
+		decor(box("GatePost", x - 1.5, 0, zz - 0.5, x + 1.5, GATE_H + 1, zz + 0.5, accent, Enum.Material.Neon, parent))
+	end
+	float(wing .. "Gate", labelPos, string.upper(w.Name), accent, 12, { Icon = w.Icon, Sub = "unlock for 💰 " .. w.Price, Height = 3.4 })
+	return gate
+end
+
+local function toyBlock(x: number, z: number, size: number, y: number, color: Color3, parent: Instance)
+	local b = box("ToyBlock", x - size / 2, y, z - size / 2, x + size / 2, y + size, z + size / 2, color, nil, parent)
+	for _, o in { Vector2.new(-0.25, -0.25), Vector2.new(0.25, -0.25), Vector2.new(-0.25, 0.25), Vector2.new(0.25, 0.25) } do
+		decor(part({
+			Name = "Stud",
+			Shape = Enum.PartType.Cylinder,
+			Size = Vector3.new(size * 0.12, size * 0.28, size * 0.28),
+			CFrame = CFrame.new(x + o.X * size, y + size + size * 0.06, z + o.Y * size) * CFrame.Angles(0, 0, math.rad(90)),
+			Color = color,
+		}, parent))
+	end
+	return b
+end
+
+local function buildToyBarn()
+	local f = Instance.new("Folder")
+	f.Name = "ToyBarn"
+	f.Parent = root
+	local d = Instance.new("Folder")
+	d.Name = "ToyDecor"
+	d.Parent = f
+	local floorCol, tileCol = Color3.fromRGB(255, 244, 232), Color3.fromRGB(255, 224, 206)
+	local floor = box("ToyFloor", TX0 - 2, -2, TZ0, TX1 + 2, 0, TZ1, floorCol, nil, f) -- reaches under the gate
+	floor:SetAttribute("Surface", "Quiet")
+	for z = TZ0 + 6, TZ1 - 6, 12 do
+		for x = TX0 + 6, TX1 - 6, 12 do
+			if ((x - TX0 + z) / 12) % 2 == 0 then
+				decor(box("Tile", x - 6, 0, z - 6, x + 6, 0.02, z + 6, tileCol, nil, d))
+			end
+		end
+	end
+	box("ToyWallS", TX0 - 2, 0, TZ0 - 2, TX1 + 2, T_WALL_H, TZ0, C.Wall, nil, f)
+	box("ToyWallN", TX0 - 2, 0, TZ1, TX1 + 2, T_WALL_H, TZ1 + 2, C.Wall, nil, f)
+	box("ToyWallW", TX0 - 2, 0, TZ0, TX0, T_WALL_H, TZ1, C.Wall, nil, f)
+	box("ToyWallE_N", TX1, 0, HALL_Z1 + 2, TX1 + 2, T_WALL_H, TZ1, C.Wall, nil, f) -- north of the hall
+	roof(TX0 - 2, TX1 + 2, TZ0 - 2, TZ1 + 2, T_WALL_H)
+	for _, w in { { TX0, TZ0, TX0 + 0.3, TZ1 }, { TX0, TZ1 - 0.3, TX1, TZ1 }, { TX0, TZ0, TX1, TZ0 + 0.3 } } do
+		decor(box("Stripe", w[1], 8, w[2], w[3], 9, w[4], TC.Peach, Enum.Material.Neon, d))
+		decor(box("Stripe2", w[1], 10, w[2], w[3], 10.6, w[4], TC.Sun, Enum.Material.Neon, d))
+	end
+
+	wingGate("ToyBarn", -HALL_X - 1, TGATE_Z0, TGATE_Z1, Vector3.new(-HALL_X + 7, 19, (TGATE_Z0 + TGATE_Z1) / 2), TC.Peach, f)
+	float("ToyBarn", Vector3.new(-100, 18, 108), "TOY BARN", TC.Peach, 22, { Icon = "🧸", Height = 4.4 })
+
+	-- the long toy shelf: crossed at the squeaky aisle or round Plush Mountain
+	local shelfCol = Color3.fromRGB(255, 214, 190)
+	box("ToyShelf_S", SHELF_X0, 0, PLUSH_Z1, SHELF_X1, SHELF_H, TGATE_Z0, shelfCol, nil, f)
+	box("ToyShelf_N", SHELF_X0, 0, TGATE_Z1, SHELF_X1, SHELF_H, TZ1, shelfCol, nil, f)
+	local pal = { TC.Rose, TC.Sky, TC.Mint, TC.Sun, TC.Lilac, TC.Peach }
+	local k = 0
+	for _, seg in { { PLUSH_Z1, TGATE_Z0 }, { TGATE_Z1, TZ1 } } do
+		for z = seg[1] + 4, seg[2] - 4, 7 do
+			for _, y in { 3.5, 8.5 } do
+				for _, side in { -1, 1 } do
+					k += 1
+					local x = side < 0 and SHELF_X0 - 1.1 or SHELF_X1 + 1.1
+					decor(box("ShelfToy", x - 1, y, z - 1.4, x + 1, y + 2.6, z + 1.4, pal[k % #pal + 1], nil, d))
+				end
+			end
+		end
+	end
+
+	-- Squeaky aisle: squeaky toys in a checker; stepping on one squeaks (Squeak zones)
+	local aisle = Instance.new("Folder")
+	aisle.Name = "SqueakyAisle"
+	aisle.Parent = f
+	decor(box("AisleRug", AISLE_X0, 0, TGATE_Z0, AISLE_X1, 0.05, TGATE_Z1, Color3.fromRGB(255, 236, 214), nil, aisle))
+	local i = 0
+	for zi, z in { TGATE_Z0 + 3, TGATE_Z0 + 9, TGATE_Z0 + 15, TGATE_Z0 + 21 } do
+		for x = AISLE_X0 + 3, AISLE_X1 - 3, 6 do
+			if ((x - AISLE_X0 - 3) / 6 + zi) % 2 == 0 then
+				i += 1
+				local col = pal[i % #pal + 1]
+				local toy = decor(part({
+					Name = "SqueakToy",
+					Shape = Enum.PartType.Ball,
+					Size = Vector3.new(3.4, 1.6, 3.4),
+					Position = Vector3.new(x, 0.5, z),
+					Color = col,
+				}, aisle))
+				toy:SetAttribute("SqueakToy", true)
+				decor(part({ Name = "Squeaker", Shape = Enum.PartType.Ball, Size = Vector3.new(1, 0.6, 1), Position = Vector3.new(x, 1.3, z), Color = Color3.new(1, 1, 1) }, aisle))
+				zone("Squeak", x - 1.8, z - 1.8, x + 1.8, z + 1.8, -1, 8)
+			end
+		end
+	end
+	float("Squeaky", Vector3.new((AISLE_X0 + AISLE_X1) / 2, 17, 140), "SQUEAKY AISLE", TC.Coral, 12, { Icon = "🦆", Sub = "loud shortcut · don't step on the toys", Height = 3.2 })
+
+	-- Plush Mountain: soft, sheltered, the long way round (and the Squeakicorn evolution route)
+	local plush = Instance.new("Folder")
+	plush.Name = "PlushMountain"
+	plush.Parent = f
+	local px0, px1 = SHELF_X0 - 18, SHELF_X1 + 18
+	decor(box("PlushRug", px0, 0, TZ0, px1, 0.08, PLUSH_Z1 + 4, Color3.fromRGB(255, 220, 236), nil, plush))
+	for n = 1, 26 do
+		local side = n % 2 == 0 and 1 or -1
+		local s2 = 4 + math.random() * 5
+		local x = px0 + math.random() * (px1 - px0)
+		local z = side > 0 and (TZ0 + 1 + math.random() * 4) or (PLUSH_Z1 + 1 + math.random() * 3)
+		decor(part({ Name = "Plush", Shape = Enum.PartType.Ball, Size = Vector3.new(s2, s2, s2), Position = Vector3.new(x, s2 * 0.35, z), Color = Theme.tint(pal[n % #pal + 1], 0.35) }, plush))
+	end
+	decor(box("PlushCanopy", px0, 11, TZ0, px1, 11.6, PLUSH_Z1 + 2, Theme.tint(TC.Rose, 0.55), nil, plush))
+	local pz = zone("Shelter", px0, TZ0, px1, PLUSH_Z1 + 2)
+	pz:SetAttribute("Route", "PlushPile")
+	sound(pz, "rbxasset://sounds/action_swim.mp3", 0.12, 0.4, 30)
+	float("Plush", Vector3.new((px0 + px1) / 2, 16, 50), "PLUSH MOUNTAIN", TC.Sky, 12, { Icon = "💤", Sub = "quiet way · calms sleepers", Height = 3.2 })
+
+	-- big toy blocks to weave between
+	for _, b in { { -90, 100, 6, TC.Sky }, { -84, 106, 4, TC.Sun }, { -110, 176, 6, TC.Mint }, { -176, 120, 6, TC.Rose }, { -150, 214, 5, TC.Lilac }, { -200, 176, 6, TC.Peach }, { -184, 86, 5, TC.Mint } } do
+		toyBlock(b[1], b[2], b[3], 0, b[4], d)
+	end
+	toyBlock(-90, 100, 4, 6, TC.Rose, d)
+	rareStage("ToyBarn", Map.Points.RareStages.ToyBarn, "TOY STAGE")
+end
+
 local function buildArcade()
 	local f = Instance.new("Folder")
 	f.Name = "Arcade"
@@ -1009,6 +1174,7 @@ function Map.build(): Folder
 	buildLoudRoute()
 	buildNorth()
 	buildArcade()
+	buildToyBarn()
 
 	Map.beam = Map.beams.FoodCourt
 	root.Parent = workspace
@@ -1017,7 +1183,7 @@ end
 
 -- Point-in-zone test against the Zones folder. Returns the most specific surface kind, and the
 -- route tag of the zone (e.g. "Vent", "BallPit") if any.
-local PRIORITY = { Shelter = 5, Vent = 4, Dance = 3, Loud = 2, Hideout = 1 }
+local PRIORITY = { Shelter = 6, Vent = 5, Squeak = 4, Dance = 3, Loud = 2, Hideout = 1 }
 function Map.surfaceAt(pos: Vector3): (string, string?)
 	local best, bestP, route = "Quiet", 0, nil
 	for _, z in zones:GetChildren() do
@@ -1039,7 +1205,7 @@ function Map.surfaceAt(pos: Vector3): (string, string?)
 end
 
 function Map.wingAt(pos: Vector3): string
-	return pos.X > HALL_X + 1 and "Arcade" or "FoodCourt"
+	return Config.wingAt(pos)
 end
 
 -- Bright morning before opening: sunlight through the glass roofs, soft and airy.

@@ -8,6 +8,7 @@ local Noise = require(Shared.Noise)
 local MeshLoader = require(Shared.MeshLoader)
 local Creatures = require(Shared.Creatures)
 local Theme = require(Shared.Theme)
+local Config = require(Shared.Config)
 local CreatureView = require(script.Parent.CreatureView)
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -227,8 +228,9 @@ local function updateEscalators()
 	end
 	-- wing gates: see-through and labelled "open" once you've unlocked them
 	local pass = player:GetAttribute("PassWing")
+	local passOrder = pass and Config.Wings[pass] and Config.Wings[pass].Order or 0
 	for _, g in gateParts do
-		local open = pass ~= nil -- one gated wing so far
+		local open = passOrder >= (Config.Wings[g.wing] and Config.Wings[g.wing].Order or 99)
 		g.part.LocalTransparencyModifier = open and 0.85 or 0
 		if g.sub then
 			g.sub.Text = open and "open · walk through" or g.locked
@@ -315,6 +317,9 @@ function WorldFx.onFx(kind: string, pos: Vector3, a, b, c)
 	elseif kind == "Collect" then
 		local p = burst(pos + Vector3.new(0, 4, 0), Theme.C.Sun, math.clamp(math.floor((a or 10) / 4), 10, 60), 14)
 		CreatureView.playAt(p, "rbxasset://sounds/electronicpingshort.wav", 0.5, 1.4)
+	elseif kind == "Squeak" then
+		local p = burst(pos + Vector3.new(0, 2, 0), Theme.C.Rose, 8, 6)
+		CreatureView.playAt(p, "rbxasset://sounds/electronicpingshort.wav", 0.7, 2.6)
 	elseif kind == "Unlock" then
 		local p = burst(pos + Vector3.new(0, 4, 0), Theme.C.Lilac, 60, 22)
 		burst(pos + Vector3.new(0, 4, 0), Theme.C.Sun, 30, 16)
@@ -333,7 +338,7 @@ function WorldFx.start()
 		while true do
 			local char = player.Character
 			local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
-			local inFood = not hrp or hrp.Position.X < 64
+			local inFood = not hrp or Config.wingAt(hrp.Position) == "FoodCourt"
 			if inFood ~= last then
 				last = inFood
 				placeProps(map, inFood)
@@ -357,12 +362,41 @@ function WorldFx.start()
 			local wing = d:GetAttribute("Gate")
 			local label = map:FindFirstChild("Labels") and map.Labels:FindFirstChild("Label_" .. wing .. "Gate")
 			local sub = label and label:FindFirstChild("Sub", true) :: TextLabel?
-			table.insert(gateParts, { part = d, sub = sub, locked = sub and sub.Text, prompt = d:FindFirstChild("GatePrompt") })
+			table.insert(gateParts, { part = d, wing = wing, sub = sub, locked = sub and sub.Text, prompt = d:FindFirstChild("GatePrompt") })
 		elseif d:IsA("BasePart") and d:GetAttribute("ArcadeScreen") then
 			table.insert(screens, d)
 		end
 	end
 	RunService.RenderStepped:Connect(updateEscalators)
+	-- squeaky toys squeak under anyone's feet (local feedback; carried creatures also hear it server-side)
+	local toys = {}
+	for _, d in map:GetDescendants() do
+		if d:IsA("BasePart") and d:GetAttribute("SqueakToy") then
+			table.insert(toys, d)
+		end
+	end
+	local onToy = nil
+	RunService.Heartbeat:Connect(function()
+		local char = player.Character
+		local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if not hrp or hrp.Position.X > -100 or hrp.Position.X < -160 then
+			onToy = nil
+			return
+		end
+		local hit = nil
+		for _, t in toys do
+			local dx, dz = t.Position.X - hrp.Position.X, t.Position.Z - hrp.Position.Z
+			if math.abs(dx) < 1.8 and math.abs(dz) < 1.8 then
+				hit = t
+				break
+			end
+		end
+		if hit and hit ~= onToy and not player:GetAttribute("Carrying") then
+			CreatureView.playAt(hit, "rbxasset://sounds/electronicpingshort.wav", 0.5, 2.6)
+			TweenService:Create(hit, TweenInfo.new(0.12, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, true), { Size = hit.Size * Vector3.new(1.15, 0.6, 1.15) }):Play()
+		end
+		onToy = hit
+	end)
 	-- arcade screens drift through pastel colours
 	task.spawn(function()
 		while true do

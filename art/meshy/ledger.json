@@ -180,5 +180,81 @@
       "art/meshy/models/jackpot_ticketoad/model.glb",
       "art/meshy/models/jackpot_ticketoad/thumb.png"
     ]
+  },
+  {
+    "name": "squeakicorn",
+    "kind": "text-to-image",
+    "task_id": "01a2191e-b3f3-7488-a966-a4fd240690dd",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/squeakicorn.png"
+    ]
+  },
+  {
+    "name": "yoyoctopus",
+    "kind": "text-to-image",
+    "task_id": "01a2191e-b8d7-7768-a7df-0b94c9f406a4",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/yoyoctopus.png"
+    ]
+  },
+  {
+    "name": "blockodile",
+    "kind": "text-to-image",
+    "task_id": "01a2191e-bdb3-716a-8eaa-aebfa08d8528",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/blockodile.png"
+    ]
+  },
+  {
+    "name": "squeakicorn_royale",
+    "kind": "image-to-image",
+    "task_id": "01a2191f-283e-71fa-b2a2-24a072e36976",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/squeakicorn_royale.png"
+    ]
+  },
+  {
+    "name": "squeakicorn",
+    "kind": "image-to-3d",
+    "task_id": "01a2191f-3353-72fa-923b-4c94af809fe4",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/squeakicorn/model.glb",
+      "art/meshy/models/squeakicorn/thumb.png"
+    ]
+  },
+  {
+    "name": "yoyoctopus",
+    "kind": "image-to-3d",
+    "task_id": "01a2191f-3c24-72b7-9fad-a580eae2be37",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/yoyoctopus/model.glb",
+      "art/meshy/models/yoyoctopus/thumb.png"
+    ]
+  },
+  {
+    "name": "blockodile",
+    "kind": "image-to-3d",
+    "task_id": "01a2191f-3f7e-704f-96cc-cd16dae61329",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/blockodile/model.glb",
+      "art/meshy/models/blockodile/thumb.png"
+    ]
+  },
+  {
+    "name": "squeakicorn_royale",
+    "kind": "image-to-3d",
+    "task_id": "01a21920-30f8-7423-b9d4-d71c13c9a7ec",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/squeakicorn_royale/model.glb",
+      "art/meshy/models/squeakicorn_royale/thumb.png"
+    ]
   }
 ]

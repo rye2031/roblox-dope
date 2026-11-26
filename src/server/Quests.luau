@@ -105,10 +105,10 @@ end
 -- Everything one banked rescue can count for.
 function Quests.onBank(player: Player, info)
 	Quests.progress(player, "Rescue")
-	if info.wing == "Arcade" then
-		Quests.progress(player, "Arcade")
+	if info.wing ~= "FoodCourt" and Config.questDef(info.wing) then
+		Quests.progress(player, info.wing)
 	end
-	if info.routes.Cozy or info.routes.Vent or info.routes.BallPit then
+	if info.routes.Cozy or info.routes.Vent or info.routes.BallPit or info.routes.PlushPile then
 		Quests.progress(player, "Quiet")
 	end
 	if info.maxWake < Config.Tuning.WakeStages.Twitch then

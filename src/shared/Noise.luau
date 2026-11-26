@@ -37,7 +37,7 @@ end
 
 export type Sample = {
 	speed: number, -- horizontal studs/s measured by the server
-	surface: string, -- "Quiet" | "Loud" | "Dance" | "Shelter" | "Vent"
+	surface: string, -- "Quiet" | "Loud" | "Dance" | "Squeak" | "Shelter" | "Vent"
 	t: number, -- server time
 	rarity: string, -- "Common" | "Rare"
 	paddedShoes: boolean,
@@ -63,6 +63,8 @@ function Noise.rate(s: Sample): number
 	if not moving then
 		rate = -n.IdleDrain
 		return rate
+	elseif s.surface == "Squeak" then
+		rate = sprinting and n.SprintLoud or n.WalkLoud -- squeaky toys never go quiet
 	elseif s.surface == "Loud" or s.surface == "Dance" then
 		local scale = Noise.loudNow(s.surface, s.t) and 1 or n.RattleCalmScale
 		rate = (sprinting and n.SprintLoud or n.WalkLoud) * scale

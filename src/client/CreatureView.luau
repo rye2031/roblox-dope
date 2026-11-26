@@ -527,9 +527,7 @@ function CreatureView.start()
 		known[p] = nil
 		removeSleeper(p)
 	end)
-	local function wingAt(pos: Vector3): string
-		return pos.X > 61 and "Arcade" or "FoodCourt"
-	end
+	local wingAt = require(Shared.Config).wingAt
 	task.spawn(function()
 		while true do
 			local cam = workspace.CurrentCamera

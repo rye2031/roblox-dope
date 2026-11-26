@@ -103,6 +103,56 @@ Creatures.Species = {
 		Order = 8,
 		Wing = "Arcade",
 	},
+	-- Toy Barn wing
+	Squeakicorn = {
+		Id = "Squeakicorn",
+		Name = "Squeakicorn",
+		Family = "Squeaky",
+		Color = Color3.fromRGB(255, 170, 210),
+		Accent = Color3.fromRGB(255, 220, 110),
+		Height = 3.2,
+		Mesh = "Squeakicorn",
+		Blurb = "Squeaks when it dreams. Loves Plush Mountain.",
+		Order = 9,
+		Wing = "ToyBarn",
+	},
+	Yoyoctopus = {
+		Id = "Yoyoctopus",
+		Name = "Yo-Yoctopus",
+		Family = "Yoyo",
+		Color = Color3.fromRGB(190, 160, 255),
+		Accent = Color3.fromRGB(255, 200, 110),
+		Height = 3.0,
+		Mesh = "Yoyoctopus",
+		Blurb = "Walks the dog. With eight yo-yos.",
+		Order = 10,
+		Wing = "ToyBarn",
+	},
+	Blockodile = {
+		Id = "Blockodile",
+		Name = "Blockodile",
+		Family = "Block",
+		Color = Color3.fromRGB(140, 220, 180),
+		Accent = Color3.fromRGB(255, 180, 140),
+		Height = 2.8,
+		Mesh = "Blockodile",
+		Blurb = "Falls apart if startled. Rebuilds itself, grumpily.",
+		Order = 11,
+		Wing = "ToyBarn",
+	},
+	SqueakicornRoyale = {
+		Id = "SqueakicornRoyale",
+		Name = "Squeakicorn Royale",
+		Family = "Squeaky",
+		Color = Color3.fromRGB(255, 190, 220),
+		Accent = Color3.fromRGB(255, 215, 90),
+		Height = 4.0,
+		Mesh = "SqueakicornRoyale",
+		Blurb = "A crown, a rainbow mane, and one very loud squeak. Evolves from Squeakicorn.",
+		EvolvesFrom = "Squeakicorn",
+		Order = 12,
+		Wing = "ToyBarn",
+	},
 }
 
 for _, sp in Creatures.Species do
@@ -116,6 +166,9 @@ Creatures.Families = {
 	Ticket = { Name = "Ticket", Color = Color3.fromRGB(150, 210, 100), Common = { "Ticketoad" } },
 	Joystick = { Name = "Joystick", Color = Color3.fromRGB(110, 170, 255), Common = { "Joystingray" } },
 	Plush = { Name = "Plush", Color = Color3.fromRGB(255, 120, 110), Common = { "Clawmato" } },
+	Squeaky = { Name = "Squeaky", Color = Color3.fromRGB(255, 150, 200), Common = { "Squeakicorn" } },
+	Yoyo = { Name = "Yo-yo", Color = Color3.fromRGB(170, 140, 255), Common = { "Yoyoctopus" } },
+	Block = { Name = "Block", Color = Color3.fromRGB(110, 200, 160), Common = { "Blockodile" } },
 }
 
 -- What a rare sleeper can turn out to be in each wing (weights).
@@ -131,6 +184,12 @@ Creatures.RarePools = {
 		{ Species = "Ticketoad", Weight = 20 },
 		{ Species = "Joystingray", Weight = 20 },
 		{ Species = "Clawmato", Weight = 20 },
+	},
+	ToyBarn = {
+		{ Species = "SqueakicornRoyale", Weight = 40 },
+		{ Species = "Squeakicorn", Weight = 20 },
+		{ Species = "Yoyoctopus", Weight = 20 },
+		{ Species = "Blockodile", Weight = 20 },
 	},
 }
 

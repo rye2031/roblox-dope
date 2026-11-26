@@ -39,7 +39,7 @@ Config.Tuning = {
 		SprintQuiet = 9, -- sprinting on quiet floor
 		WalkLoud = 9, -- walking carefully on a loud floor
 		SprintLoud = 38, -- sprinting on a loud floor
-		ShelterDrain = 28, -- standing or walking somewhere cosy (Cozy Corner, ball pit)
+		ShelterDrain = 28, -- standing or walking somewhere cosy (Cozy Corner, ball pit, Plush Mountain)
 		VentRate = 0, -- the vent duct is muffled
 		LandSpike = 10, -- landing a jump
 		-- Loud floors pulse in a cycle. During the calm part their rates are scaled down,
@@ -49,6 +49,8 @@ Config.Tuning = {
 		DanceCycle = 3.0, -- arcade dance floor: faster beat, longer loud part
 		DanceLoudPortion = 0.6,
 		RattleCalmScale = 0.1,
+		-- Toy Barn squeaky toys: stepping onto one squeaks (a spike), standing on one is loud.
+		SqueakSpike = 9,
 		-- Padded Shoes multiply sprint noise while carrying.
 		PaddedShoesSprintScale = 0.45,
 		-- Speed above (the player's carry walk speed + this) counts as sprinting.
@@ -98,6 +100,7 @@ Config.Tuning = {
 	Evolutions = {
 		{ From = "CrabRangoon", To = "KingRangoon", Route = "Vent", RouteName = "the vent", Needed = 3 },
 		{ From = "Ticketoad", To = "JackpotTicketoad", Route = "BallPit", RouteName = "the ball pit", Needed = 3 },
+		{ From = "Squeakicorn", To = "SqueakicornRoyale", Route = "PlushPile", RouteName = "Plush Mountain", Needed = 3 },
 	},
 
 	-- Hideout shelves: displayed creatures earn coins into the tip jar, also while offline.
@@ -115,11 +118,12 @@ Config.Tuning = {
 	Quests = {
 		Rewards = { 40, 80, 150 }, -- easy, medium, hard
 		AllBonus = 100, -- finishing all three
-		ArcadeScale = 1.6, -- rewards once the Arcade is open (its coins are worth more)
+
 		Pool = {
 			{ Id = "Rescue", Icon = "🛏", Text = "Rescue %d creatures", Targets = { 6, 10, 15 } },
 			{ Id = "Arcade", Icon = "🕹", Text = "Rescue %d Arcade creatures", Targets = { 3, 5, 8 }, NeedsWing = "Arcade" },
-			{ Id = "Quiet", Icon = "💤", Text = "Bring %d home the quiet way (Cozy Corner, vent or ball pit)", Targets = { 2, 3, 5 } },
+			{ Id = "ToyBarn", Icon = "🧸", Text = "Rescue %d Toy Barn creatures", Targets = { 3, 5, 8 }, NeedsWing = "ToyBarn" },
+			{ Id = "Quiet", Icon = "💤", Text = "Bring %d home the quiet way (Cozy Corner, vent, ball pit or Plush Mountain)", Targets = { 2, 3, 5 } },
 			{ Id = "Perfect", Icon = "✨", Text = "Bring %d home before they even twitch", Targets = { 3, 5, 8 } },
 			{ Id = "Bolter", Icon = "🏃", Text = "Catch a creature that woke up and still bring it home", TextN = "Catch %d woken creatures and still bring them home", Targets = { 1, 1, 2 }, MinRescues = 5 },
 			{ Id = "Fancy", Icon = "🍩", Text = "Rescue %d Glazed or Jumbo creatures", Text1 = "Rescue a Glazed or Jumbo creature", Targets = { 1, 2, 3 } },
@@ -141,6 +145,11 @@ Config.Tuning = {
 			{ Tier = "Glazed", Coins = 2000 },
 			{ Tier = "Jumbo", Coins = 5000, Trail = "Prism" },
 		},
+		ToyBarn = {
+			{ Tier = "Found", Coins = 2500, Trail = "Bubble" },
+			{ Tier = "Glazed", Coins = 5000 },
+			{ Tier = "Jumbo", Coins = 12000, Trail = "Confetti" },
+		},
 	},
 	-- Cosmetic trails (unlocked by Index pages). Colours run head to tail.
 	Trails = {
@@ -148,11 +157,13 @@ Config.Tuning = {
 		Arcade = { Name = "Arcade", Order = 2, Colors = { Color3.fromRGB(170, 140, 255), Color3.fromRGB(110, 200, 255) } },
 		Golden = { Name = "Golden", Order = 3, Colors = { Color3.fromRGB(255, 215, 80), Color3.fromRGB(255, 245, 200) } },
 		Prism = { Name = "Prism", Order = 4, Colors = { Color3.fromRGB(255, 120, 160), Color3.fromRGB(255, 220, 110), Color3.fromRGB(110, 220, 170), Color3.fromRGB(120, 170, 255) } },
+		Bubble = { Name = "Bubble", Order = 5, Colors = { Color3.fromRGB(255, 170, 210), Color3.fromRGB(200, 230, 255) } },
+		Confetti = { Name = "Confetti", Order = 6, Colors = { Color3.fromRGB(255, 140, 110), Color3.fromRGB(170, 140, 255), Color3.fromRGB(255, 215, 90), Color3.fromRGB(110, 210, 200) } },
 	},
 
 	VentOpenTime = 8, -- seconds the vent door stays open
 	-- Evolved buddies add a coin bonus to every rescue.
-	BuddyCoinBonus = { KingRangoon = 0.1, JackpotTicketoad = 0.15 },
+	BuddyCoinBonus = { KingRangoon = 0.1, JackpotTicketoad = 0.15, SqueakicornRoyale = 0.2 },
 }
 
 -- Wings of the mall. Each has its own sleepers, rare stage and (except the first) a paid gate.
@@ -166,6 +177,8 @@ Config.Wings = {
 		WakeMult = 1,
 		Families = { "Dumpling", "Clog", "Candy" },
 		RareStageName = "the north stage",
+		QuestScale = 1,
+		Icon = "🍜",
 	},
 	Arcade = {
 		Id = "Arcade",
@@ -176,8 +189,37 @@ Config.Wings = {
 		WakeMult = 1.2,
 		Families = { "Ticket", "Joystick", "Plush" },
 		RareStageName = "the Prize Stage",
+		QuestScale = 1.6,
+		Icon = "🕹",
+		Where = "Opens the gate in the east wall.",
+		Bounds = { 61, 212, -32, 152 }, -- x0, x1, z0, z1
+	},
+	ToyBarn = {
+		Id = "ToyBarn",
+		Name = "Toy Barn",
+		Order = 3,
+		Price = 2500,
+		CoinMult = 4,
+		WakeMult = 1.35,
+		Families = { "Squeaky", "Yoyo", "Block" },
+		RareStageName = "the Toy Stage",
+		QuestScale = 2.5,
+		Icon = "🧸",
+		Where = "Opens the gate in the west wall, by the Cozy Corner.",
+		Bounds = { -212, -61, 34, 226 },
 	},
 }
+
+-- Which wing a world position is in (anything outside a wing's bounds is the Food Court).
+function Config.wingAt(pos: Vector3): string
+	for id, w in Config.Wings do
+		local b = w.Bounds
+		if b and pos.X >= b[1] and pos.X <= b[2] and pos.Z >= b[3] and pos.Z <= b[4] then
+			return id
+		end
+	end
+	return "FoodCourt"
+end
 
 function Config.wingList()
 	local list = {}
@@ -249,15 +291,24 @@ local function round5(n: number): number
 	return math.floor(n / 5 + 0.5) * 5
 end
 
+-- Quest rewards grow with the deepest wing the player has opened.
+local function questScale(p: any): number
+	local best = 1
+	for id, w in Config.Wings do
+		if p.wings[id] and (w.QuestScale or 1) > best then
+			best = w.QuestScale
+		end
+	end
+	return best
+end
+
 -- Coins for a quest of this tier (1..3) / for finishing all three, for this profile.
 function Config.questReward(p: any, tier: number): number
-	local Q = Config.Tuning.Quests
-	return round5(Q.Rewards[tier] * (p.wings.Arcade and Q.ArcadeScale or 1))
+	return round5(Config.Tuning.Quests.Rewards[tier] * questScale(p))
 end
 
 function Config.questBonus(p: any): number
-	local Q = Config.Tuning.Quests
-	return round5(Q.AllBonus * (p.wings.Arcade and Q.ArcadeScale or 1))
+	return round5(Config.Tuning.Quests.AllBonus * questScale(p))
 end
 
 -- Login streak: the day you'd get by claiming today, and whether it's claimable.
