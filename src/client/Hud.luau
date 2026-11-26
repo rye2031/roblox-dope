@@ -81,7 +81,7 @@ local top = new("Frame", {
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, 8),
-	Size = UDim2.fromOffset(px(440), px(40)),
+	Size = UDim2.fromOffset(px(660), px(40)),
 	Parent = gui,
 }, {
 	new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
@@ -104,7 +104,8 @@ local function pill(name: string, order: number, width: number, color: Color3, g
 	return holder, v, d
 end
 local coinsPill, coinsText = pill("Coins", 1, 128, C.Sun, "$")
-local rarePill, rareText, rareDot = pill("Rare", 2, 270, C.Lilac, "★")
+local rarePill, rareText, rareDot = pill("Rare", 2, 240, C.Lilac, "★")
+local eventPill, eventText, eventDot = pill("Event", 3, 250, C.Peach, "🍩")
 
 local saveLabel = text({
 	Name = "SaveStatus",
@@ -1082,6 +1083,11 @@ function Hud.reveal(data)
 	TweenService:Create(revealBurst, TweenInfo.new(0.5), { BackgroundColor3 = Theme.tint(data.form == "Normal" and C.Mint or C.Sun, 0.8) }):Play()
 	revealName.Text = (data.form ~= "Normal" and (data.form .. " ") or "") .. sp.Name
 	local sub = "+ " .. fmt(data.coins) .. " coins"
+	if data.wanted then
+		sub ..= "  ·  WANTED x" .. T.Events.WantedMult .. "!"
+	elseif data.rush then
+		sub ..= "  ·  Snack Rush"
+	end
 	if data.evo and not data.evo.evolved then
 		sub ..= string.format("  ·  evolution %d/%d", data.evo.count, data.evo.needed)
 	end
@@ -1426,6 +1432,21 @@ local function updateRare(now: number)
 	end
 end
 
+local function updateEvent(now: number)
+	local wing = workspace:GetAttribute("RushWing")
+	local untilT = workspace:GetAttribute("RushUntil") or 0
+	if wing and now < untilT then
+		local w = Config.Wings[wing]
+		local left = untilT - now
+		eventText.Text = string.format("Snack Rush · %s %d:%02d", w and w.Name or wing, left // 60, left % 60)
+		eventDot.BackgroundColor3 = C.Coral
+	else
+		local left = math.max(0, (workspace:GetAttribute("RushNextAt") or now) - now)
+		eventText.Text = string.format("Snack Rush in %d:%02d", left // 60, left % 60)
+		eventDot.BackgroundColor3 = C.Peach
+	end
+end
+
 local function setHint(msg: string?, color: Color3?)
 	hint.Visible = msg ~= nil
 	if msg then
@@ -1453,6 +1474,7 @@ local function frame()
 	shelvesBadge.Visible = (player:GetAttribute("Jar") or 0) >= 10 or ((player:GetAttribute("IncomeRate") or 0) <= 0 and profile ~= nil and next(profile.collection) ~= nil)
 	updateSaveStatus(now)
 	updateRare(now)
+	updateEvent(now)
 	local part = carriedPart()
 	meter.Visible = part ~= nil
 	local char = player.Character

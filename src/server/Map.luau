@@ -571,6 +571,17 @@ local function buildHideout()
 		box("Box", p.X - s / 2, p.Y, p.Z - s / 2, p.X + s / 2, p.Y + s, p.Z + s / 2, C.Cardboard, Enum.Material.Cardboard, f)
 	end
 	buildShelves(f)
+	-- Wanted poster on the fort's outer wall, facing the plaza (clients draw the current poster)
+	local posterPos = Vector3.new(16.5, 4.8, 8.2)
+	local poster = part({
+		Name = "WantedPoster",
+		Size = Vector3.new(6.4, 7.4, 0.2),
+		CFrame = CFrame.lookAt(posterPos, posterPos + Vector3.new(0, 0, 1)),
+		Color = Color3.fromRGB(255, 248, 230),
+		CanCollide = false,
+	}, f)
+	poster:SetAttribute("WantedPoster", true)
+	float("Wanted", Vector3.new(16.5, 13.5, 9.5), "WANTED", TC.Coral, 8, { Icon = "!", Sub = "pays 3x coins this hour", Height = 2.4 })
 	zone("Hideout", -22, HALL_Z0, 22, 6)
 end
 

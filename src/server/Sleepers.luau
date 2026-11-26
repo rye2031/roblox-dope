@@ -14,6 +14,7 @@ local Noise = require(Shared.Noise)
 local Map = require(script.Parent.Map)
 local PlayerData = require(script.Parent.PlayerData)
 local Quests = require(script.Parent.Quests)
+local Events = require(script.Parent.Events)
 
 local T = Config.Tuning
 
@@ -38,6 +39,7 @@ type Sleeper = {
 	maxWake: number, -- highest wake meter during this carry (quests: "before they twitch")
 	regrabbed: boolean, -- caught again after waking up (quests: "catch a woken creature")
 	lastSurface: string?,
+	rush: boolean, -- grabbed during a Snack Rush in its wing: banks as Glazed or better
 	lastPos: Vector3?,
 	lastWakeSent: number,
 	path: { Vector3 }?,
@@ -175,7 +177,8 @@ local function scheduleRespawn(s: Sleeper)
 		workspace:SetAttribute("RareActive_" .. s.wing, false)
 	elseif s.spawnIndex then
 		local idx = s.spawnIndex
-		task.delay(T.Spawns.CommonRespawn, function()
+		local delay = Events.rushActive(s.wing) and T.Events.RushRespawn or T.Spawns.CommonRespawn
+		task.delay(delay, function()
 			spawnSleeper("Common", idx)
 		end)
 	end
@@ -281,6 +284,7 @@ spawnSleeper = function(rarity: string, spawnIndex: number?, rareWing: string?):
 		routes = {},
 		maxWake = 0,
 		regrabbed = false,
+		rush = false,
 		lastPos = nil,
 		lastWakeSent = 0,
 		path = nil,
@@ -348,6 +352,7 @@ function Sleepers.tryGrab(player: Player, id: number): (boolean, string?)
 	end
 	s.regrabbed = regrab
 	s.maxWake = regrab and T.Bolt.RegrabWake or 0
+	s.rush = (regrab and s.rush) or Events.rushActive(s.wing)
 	setWake(s, regrab and T.Bolt.RegrabWake or 0, true)
 	s.lastPos = hrp.Position
 	s.speed = 0
@@ -476,9 +481,14 @@ local function bank(s: Sleeper, player: Player)
 	destroySleeper(s)
 	scheduleRespawn(s)
 
-	local formsKey = rarity == "Rare" and "RareWeight" or "Weight"
+	local formsKey = rarity == "Rare" and "RareWeight" or (s.rush and "RushWeight" or "Weight")
 	local form = weighted(T.Forms, formsKey)
 	local coins = T.Rarity[rarity].BaseCoins * Config.Wings[wing].CoinMult * form.CoinMult
+	local ws, wf = Events.wanted(wing)
+	local wanted = Config.isWanted(ws, wf, species, form.Id)
+	if wanted then
+		coins *= T.Events.WantedMult
+	end
 	local bonus = p.buddy and T.BuddyCoinBonus[p.buddy]
 	if bonus then
 		coins *= 1 + bonus
@@ -513,6 +523,8 @@ local function bank(s: Sleeper, player: Player)
 		rarity = rarity,
 		wing = wing,
 		evo = evoInfo,
+		wanted = wanted,
+		rush = s.rush,
 	})
 	remotes.Fx:FireAllClients("Bank", Map.Points.Station, species, player.UserId, form.Id)
 	task.spawn(Quests.onBank, player, { wing = wing, routes = routes, maxWake = maxWake, regrabbed = regrabbed, form = form.Id, rarity = rarity })

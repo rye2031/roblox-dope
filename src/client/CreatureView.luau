@@ -217,6 +217,7 @@ type View = {
 	nextBeat: number,
 	highlight: Highlight?,
 	bag: any?,
+	rushFx: ParticleEmitter?,
 }
 
 local views: { [BasePart]: View } = {}
@@ -416,6 +417,23 @@ local function updateSleeper(v: View, dt: number, t: number)
 		v.snore.Volume = want and (part:GetAttribute("Rarity") == "Rare" and 0.35 or 0.18) or 0
 	end
 	v.trail.Enabled = state == "Bolting"
+	-- Snack Rush: sleepers in the rushing wing glitter (they bank as Glazed or better)
+	local rushing = workspace:GetAttribute("RushWing") == part:GetAttribute("Wing") and serverNow() < (workspace:GetAttribute("RushUntil") or 0)
+	if rushing and not v.rushFx then
+		local e = Instance.new("ParticleEmitter")
+		e.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		e.Color = ColorSequence.new(Color3.fromRGB(255, 225, 120), Color3.fromRGB(255, 160, 200))
+		e.Rate = 10
+		e.Lifetime = NumberRange.new(0.7, 1.2)
+		e.Speed = NumberRange.new(1, 3)
+		e.SpreadAngle = Vector2.new(180, 180)
+		e.Size = NumberSequence.new(0.45, 0)
+		e.Parent = c.body
+		v.rushFx = e
+	end
+	if v.rushFx then
+		v.rushFx.Enabled = rushing
+	end
 
 	-- billboard text
 	local bb = v.bb

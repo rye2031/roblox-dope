@@ -9,6 +9,7 @@ local MeshLoader = require(Shared.MeshLoader)
 local Creatures = require(Shared.Creatures)
 local Theme = require(Shared.Theme)
 local Config = require(Shared.Config)
+local Portraits = require(Shared.Portraits)
 local CreatureView = require(script.Parent.CreatureView)
 local Players = game:GetService("Players")
 local player = Players.LocalPlayer
@@ -331,8 +332,63 @@ function WorldFx.onFx(kind: string, pos: Vector3, a, b, c)
 	end
 end
 
+-- Wanted poster on the hideout wall: this hour's creature, condition and countdown.
+local function setupPoster(map: Instance)
+	local poster = map:WaitForChild("Hideout"):WaitForChild("WantedPoster") :: BasePart
+	local C = Theme.C
+	local gui = Instance.new("SurfaceGui")
+	gui.Face = Enum.NormalId.Front
+	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+	gui.PixelsPerStud = 50
+	gui.LightInfluence = 0
+	gui.Parent = poster
+	local bg = Theme.new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(255, 250, 238), Parent = gui }, {
+		Theme.new("UIStroke", { Thickness = 10, Color = C.Coral, ApplyStrokeMode = Enum.ApplyStrokeMode.Border }),
+	})
+	Theme.text({ Size = UDim2.new(1, -30, 0.12, 0), Position = UDim2.new(0, 15, 0.03, 0), Text = "WANTED", TextColor3 = C.Coral, Parent = bg }, "Title")
+	local img = Theme.new("ImageLabel", { Size = UDim2.new(1, -40, 0.44, 0), Position = UDim2.new(0, 20, 0.16, 0), BackgroundTransparency = 1, ScaleType = Enum.ScaleType.Fit, Parent = bg })
+	local name = Theme.text({ Size = UDim2.new(1, -30, 0.09, 0), Position = UDim2.new(0, 15, 0.61, 0), Text = "", Parent = bg }, "Title")
+	local cond = Theme.text({ Size = UDim2.new(1, -30, 0.065, 0), Position = UDim2.new(0, 15, 0.71, 0), Text = "", TextColor3 = C.Sub, Parent = bg }, "Bold")
+	local Hud = nil
+	local function deepestWing(): string
+		Hud = Hud or require(script.Parent.Hud)
+		local p = Hud.getProfile()
+		local best = "FoodCourt"
+		if p then
+			for _, w in Config.wingList() do
+				if p.wings[w.Id] then
+					best = w.Id
+				end
+			end
+		end
+		return best
+	end
+	Theme.text({ Size = UDim2.new(1, -30, 0.08, 0), Position = UDim2.new(0, 15, 0.79, 0), Text = "pays " .. Config.Tuning.Events.WantedMult .. "x coins", TextColor3 = Color3.fromRGB(40, 160, 110), Parent = bg }, "Title")
+	local timer = Theme.text({ Size = UDim2.new(1, -30, 0.06, 0), Position = UDim2.new(0, 15, 0.9, 0), Text = "", TextColor3 = C.Sub, Parent = bg }, "Bold")
+	local shown = nil
+	task.spawn(function()
+		while true do
+			local wing = deepestWing()
+			local sp = workspace:GetAttribute("WantedSpecies_" .. wing)
+			local form = workspace:GetAttribute("WantedForm_" .. wing)
+			local key = tostring(sp) .. tostring(form)
+			if sp and key ~= shown then
+				shown = key
+				local def = Creatures.Species[sp]
+				Portraits.apply(img, sp)
+				name.Text = def and def.Name or sp
+				cond.Text = (form == "Fancy" and "Glazed or Jumbo" or "any form") .. " · " .. Config.Wings[wing].Name
+			end
+			local left = math.max(0, (workspace:GetAttribute("WantedUntil") or 0) - workspace:GetServerTimeNow())
+			timer.Text = string.format("new poster in %d:%02d", left // 60, left % 60)
+			task.wait(0.5)
+		end
+	end)
+end
+
 function WorldFx.start()
 	local map = workspace:WaitForChild("Map")
+	task.spawn(setupPoster, map)
 	task.spawn(function()
 		local last = nil
 		while true do

@@ -9,6 +9,7 @@ local Map = require(script.Parent.Map)
 local PlayerData = require(script.Parent.PlayerData)
 local Sleepers = require(script.Parent.Sleepers)
 local Quests = require(script.Parent.Quests)
+local Events = require(script.Parent.Events)
 
 local T = Config.Tuning
 
@@ -75,8 +76,9 @@ remotes.Collect.OnServerInvoke = function(player)
 	return ok, msg
 end
 
--- Daily quests + login streak
+-- Daily quests + login streak, Snack Rush + Wanted poster
 Quests.init(remotes)
+Events.init(remotes, PlayerData)
 remotes.ClaimQuest.OnServerInvoke = function(player, index)
 	return Quests.claim(player, index)
 end
@@ -454,6 +456,14 @@ if game:GetService("RunService"):IsStudio() then
 			return tostring(Quests.claim(plr(a), b))
 		elseif cmd == "claimstreak" then
 			return tostring(Quests.claimStreak(plr(a)))
+		elseif cmd == "rush" then
+			-- force a Snack Rush in wing a for b seconds (a = nil ends it)
+			Events.forceRush(a, b)
+			return string.format("RushWing=%s until %.0f", tostring(workspace:GetAttribute("RushWing")), (workspace:GetAttribute("RushUntil") or 0) - workspace:GetServerTimeNow())
+		elseif cmd == "wanted" then
+			Events.forceWanted(a, b)
+			local w = a and Creatures.Species[a].Wing or "FoodCourt"
+			return string.format("Wanted[%s]=%s %s", w, tostring(workspace:GetAttribute("WantedSpecies_" .. w)), tostring(workspace:GetAttribute("WantedForm_" .. w)))
 		elseif cmd == "giveform" then
 			-- give player a species b in form c (index page tests)
 			local pd = PlayerData.get(plr(a))

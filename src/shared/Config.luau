@@ -87,9 +87,9 @@ Config.Tuning = {
 
 	Forms = {
 		-- Exact form is only revealed after banking.
-		{ Id = "Normal", Weight = 75, CoinMult = 1, RareWeight = 30 },
-		{ Id = "Glazed", Weight = 20, CoinMult = 2, RareWeight = 45 },
-		{ Id = "Jumbo", Weight = 5, CoinMult = 3, RareWeight = 25 },
+		{ Id = "Normal", Weight = 75, CoinMult = 1, RareWeight = 30, RushWeight = 0 },
+		{ Id = "Glazed", Weight = 20, CoinMult = 2, RareWeight = 45, RushWeight = 75 },
+		{ Id = "Jumbo", Weight = 5, CoinMult = 3, RareWeight = 25, RushWeight = 25 },
 	},
 
 	Shop = {
@@ -159,6 +159,15 @@ Config.Tuning = {
 		Prism = { Name = "Prism", Order = 4, Colors = { Color3.fromRGB(255, 120, 160), Color3.fromRGB(255, 220, 110), Color3.fromRGB(110, 220, 170), Color3.fromRGB(120, 170, 255) } },
 		Bubble = { Name = "Bubble", Order = 5, Colors = { Color3.fromRGB(255, 170, 210), Color3.fromRGB(200, 230, 255) } },
 		Confetti = { Name = "Confetti", Order = 6, Colors = { Color3.fromRGB(255, 140, 110), Color3.fromRGB(170, 140, 255), Color3.fromRGB(255, 215, 90), Color3.fromRGB(110, 210, 200) } },
+	},
+
+	-- Timed events. Times are aligned to the UTC clock so every server agrees.
+	Events = {
+		RushEvery = 900, -- a Snack Rush starts every 15 minutes...
+		RushLength = 120, -- ...and lasts 2 minutes in one wing
+		RushRespawn = 2, -- seconds before a rescued sleeper is replaced during a rush
+		WantedMult = 3, -- coins for this hour's Wanted creature
+		WantedFancyChance = 0.4, -- how often the poster asks for "Glazed or better"
 	},
 
 	VentOpenTime = 8, -- seconds the vent door stays open
@@ -325,6 +334,14 @@ end
 function Config.streakReward(day: number): number
 	local list = Config.Tuning.Quests.Streak
 	return list[(day - 1) % #list + 1]
+end
+
+-- Does a banked creature match the Wanted poster? form is a Forms Id.
+function Config.isWanted(wantedSpecies: string?, wantedForm: string?, species: string, form: string): boolean
+	if not wantedSpecies or wantedSpecies ~= species then
+		return false
+	end
+	return wantedForm ~= "Fancy" or form ~= "Normal"
 end
 
 -- UTC day number; quests and the login streak roll over at 00:00 UTC.
