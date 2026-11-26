@@ -256,5 +256,161 @@
       "art/meshy/models/squeakicorn_royale/model.glb",
       "art/meshy/models/squeakicorn_royale/thumb.png"
     ]
+  },
+  {
+    "name": "blockodile",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "95997855464414",
+    "roblox_mesh": "rbxassetid://117296570704608",
+    "roblox_texture": "rbxassetid://120213880362978",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/blockodile/model.glb"
+    ]
+  },
+  {
+    "name": "clawmato",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "126827354319095",
+    "roblox_mesh": "rbxassetid://88738111157245",
+    "roblox_texture": "rbxassetid://71146344514529",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/clawmato/model.glb"
+    ]
+  },
+  {
+    "name": "crab_rangoon",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "112199469574701",
+    "roblox_mesh": "rbxassetid://80119024032549",
+    "roblox_texture": "rbxassetid://123825616600275",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/crab_rangoon/model.glb"
+    ]
+  },
+  {
+    "name": "crocsquatch",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "112237056589648",
+    "roblox_mesh": "rbxassetid://111657711636896",
+    "roblox_texture": "rbxassetid://97914366378870",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/crocsquatch/model.glb"
+    ]
+  },
+  {
+    "name": "jackpot_ticketoad",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "117734880849199",
+    "roblox_mesh": "rbxassetid://134921487292513",
+    "roblox_texture": "rbxassetid://106025595189848",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/jackpot_ticketoad/model.glb"
+    ]
+  },
+  {
+    "name": "joystingray",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "101623439872786",
+    "roblox_mesh": "rbxassetid://113756706508513",
+    "roblox_texture": "rbxassetid://87979877337421",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/joystingray/model.glb"
+    ]
+  },
+  {
+    "name": "king_rangoon",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "94833803827189",
+    "roblox_mesh": "rbxassetid://131533913349380",
+    "roblox_texture": "rbxassetid://85808863689024",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/king_rangoon/model.glb"
+    ]
+  },
+  {
+    "name": "mall_gobstopper",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "94207375656236",
+    "roblox_mesh": "rbxassetid://137988585837491",
+    "roblox_texture": "rbxassetid://98969184357175",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/mall_gobstopper/model.glb"
+    ]
+  },
+  {
+    "name": "squeakicorn",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "134727356045364",
+    "roblox_mesh": "rbxassetid://70679766360732",
+    "roblox_texture": "rbxassetid://100807336729180",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/squeakicorn/model.glb"
+    ]
+  },
+  {
+    "name": "squeakicorn_royale",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "85144663649417",
+    "roblox_mesh": "rbxassetid://97384846310350",
+    "roblox_texture": "rbxassetid://112034422571114",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/squeakicorn_royale/model.glb"
+    ]
+  },
+  {
+    "name": "ticketoad",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "72372038132558",
+    "roblox_mesh": "rbxassetid://139129963153673",
+    "roblox_texture": "rbxassetid://113570492645554",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/ticketoad/model.glb"
+    ]
+  },
+  {
+    "name": "yoyoctopus",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "129891373489009",
+    "roblox_mesh": "rbxassetid://82177724215387",
+    "roblox_texture": "rbxassetid://135936843027712",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/yoyoctopus/model.glb"
+    ]
   }
 ]

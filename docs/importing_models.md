@@ -1,5 +1,7 @@
 # Importing Meshy models into Roblox
 
+> **Update 2026-11-26:** Claude now uploads creature models itself, through Studio's MCP Open Cloud permissions: `asset:read`/`asset:write`, with `art/meshy/models` approved under MCP Permissions → Open Cloud upload directories. You approve each batch. The manual steps below remain as a fallback. The first 12 creatures are uploaded and listed in `src/shared/CreatureAssets.luau` and `art/meshy/ledger.json`.
+
 Why: the game currently rebuilds creatures at runtime from baked data, and a Roblox client can only hold about 8 of those. Uploaded mesh assets have no such limit, which the monster game needs (3 followers per player, other players' teams, wild packs).
 
 Uploading puts the files on **your** Roblox account. That's why you do this part: Claude doesn't upload anything to Roblox for this project.

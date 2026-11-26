@@ -4,7 +4,7 @@ Roblox game written as Luau files and synced into Roblox Studio with Rojo.
 
 ## Design reference
 
-**Current direction (2026-11-26): `docs/monster_design.md`** (working title Wildbound; owner decisions are at its top). Model import steps for the owner: `docs/importing_models.md`. Imported models go in `ReplicatedStorage/CreatureModels` (outside Rojo's `Shared`). It pivots to an open-world monster-taming RPG: real-time mob combat with a team of 3 followers, 1–5★ species in 5 elements, levels plus Awakening, scrolls, turn-based PvP later. The mall stealth game below (`docs/roadmap.md`) is superseded; reuse its systems as the design doc's §12 lists.
+**Current direction (2026-11-26): `docs/monster_design.md`** (working title Wildbound; owner decisions are at its top). Model import steps for the owner: `docs/importing_models.md`. Imported models go in `ReplicatedStorage/CreatureModels` (outside Rojo's `Shared`). Upload flow (Claude): `open_cloud_invoke` POST `/assets/v1/assets` (Model, the GLB), poll the operation, `insert_asset` the new ID, then anchor each model, stand it upright facing −Z at the origin, set `AssetId` and `SourceHeight` attributes, and move it into `CreatureModels`. IDs go in `src/shared/CreatureAssets.luau` and `art/meshy/ledger.json`. The models arrive as packages, about 3.5× small (the code scales them), and Meshy GLBs face −Z like the runtime meshes. It pivots to an open-world monster-taming RPG: real-time mob combat with a team of 3 followers, 1–5★ species in 5 elements, levels plus Awakening, scrolls, turn-based PvP later. The mall stealth game below (`docs/roadmap.md`) is superseded; reuse its systems as the design doc's §12 lists.
 
 `docs/whitepaper.md` is the owner's design white paper. Build the five loops it describes (core, progression, collection, excitement, retention) into an original game: do not copy the analysed game's name, creatures, art or map.
 
@@ -29,7 +29,7 @@ Roblox game written as Luau files and synced into Roblox Studio with Rojo.
 - `scripts/studio_mcp.py` talks to StudioMCP over stdio (`list`, `call <tool> '<json>'`, `luau execute_luau <file> Edit|Server|Client`).
 - `scripts/sync_to_studio.py [--only Name]` pushes src/ into the open place via execute_luau (fallback when Rojo isn't connected). Studio caps Script.Source at ~200k chars, hence chunked MeshData.
 - `scripts/playtest.py <scenario.py>` drives real input (character_navigation, keyboard, mouse) plus the Studio-only debug bridges `ServerStorage.BrainrotDebug` / `ReplicatedStorage.BrainrotClientDebug`.
-- Don't use StudioMCP's generate_*/upload_*/insert_asset/open_cloud_invoke tools: they publish to Roblox.
+- Uploads (owner OK 2026-11-26): Claude may upload **creature/monster models and their textures from `art/meshy/models/`** to the owner's account through StudioMCP's `open_cloud_invoke` (following its `rbx-import-asset` skill), insert them into `ReplicatedStorage/CreatureModels`, and log every asset ID in `art/meshy/ledger.json`. Ask the owner to approve each batch first (uploads are permanent). Everything else stays off: no `generate_*` tools, no `insert_asset` except for asset IDs we uploaded ourselves (never Toolbox/free models), no other uploads.
 - `scripts/mcp_bridge.sh "<allowed tools>" "<prompt>"` runs a headless Claude here so a session that started elsewhere can still call Meshy.
 
 ## Art pipeline
