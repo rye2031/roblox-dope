@@ -62,6 +62,12 @@ Arena.init()
 Combat.init(remotes)
 Dungeons.init(remotes, Combat)
 require(script.Parent.Landmarks).init(remotes)
+require(script.Parent.Landmarks).onFound = function(player)
+	Story.check(player)
+end
+Dungeons.onClear = function(player)
+	task.defer(Story.check, player)
+end
 Regions.init(remotes, Combat)
 Leaderboard.init()
 

@@ -18,6 +18,8 @@
 --   titan                   help defeat the world titan
 --   multi                   open 10 scrolls at once
 --   arena                   win an Arena fight
+--   discover id             find that hidden discovery (Shared/Discoveries)
+--   dungeon  id?            clear a dungeon (that one, any mode)
 -- Waypoints are world positions (Y is ignored: the marker sits on the ground).
 local StoryData = {}
 
@@ -27,6 +29,7 @@ StoryData.Npcs = {
 	Cinder = { Name = "Cinder", Title = "Canyon Scout", Icon = "🔥", Color = Color3.fromRGB(240, 130, 90), Pos = Vector3.new(298, 0, 345) },
 	Marlo = { Name = "Marlo", Title = "Coast Scout", Icon = "💧", Color = Color3.fromRGB(90, 160, 240), Pos = Vector3.new(-298, 0, 345) },
 	Aeris = { Name = "Aeris", Title = "Windkeeper", Icon = "🍃", Color = Color3.fromRGB(110, 200, 180), Pos = Vector3.new(30, 0, -146) },
+	Selene = { Name = "Selene", Title = "Twilight Seer", Icon = "🌗", Color = Color3.fromRGB(176, 140, 240), Pos = Vector3.new(300, 0, -236) },
 }
 
 local P = {
@@ -49,6 +52,13 @@ local P = {
 	GaleCamps = Vector3.new(0, 0, -300),
 	GaleFire = Vector3.new(20, 0, -140),
 	GaleBoss = Vector3.new(0, 0, -520),
+	ValeGate = Vector3.new(226, 0, -200),
+	ValeFire = Vector3.new(290, 0, -222),
+	Dawnfield = Vector3.new(450, 0, -230),
+	Gloamwood = Vector3.new(430, 0, -440),
+	Temple = Vector3.new(620, 0, -332),
+	ValeBoss = Vector3.new(600, 0, -500),
+	DungeonGate = Vector3.new(-24, 0, 58),
 }
 StoryData.Points = P
 
@@ -130,7 +140,27 @@ StoryData.Chapters = {
 				hint = "Bring awakened monsters. Fire hits Wind hardest." },
 		},
 	},
+	{
+		Title = "Twilight Vale",
+		Steps = {
+			{ id = "to_vale", kind = "visit", region = "TwilightVale", text = "Take the east portal in Gale Highlands to Twilight Vale", at = P.ValeGate, reward = { coins = 600 },
+				hint = "It opens once the Sky Sovereign falls, or when a monster reaches Lv 38." },
+			{ id = "selene", kind = "talk", npc = "Selene", text = "Talk to Selene by the Vale campfire", at = StoryData.Npcs.Selene.Pos, reward = { coins = 400 },
+				lines = { "Ah, a Tamer who walks between day and night. I am Selene.", "North of the arches it is always morning: Light monsters gather there. South, in the Gloamwood, it is always dusk, and Dark ones prowl.", "Light and Dark are strong against each other. Bring both if you can." } },
+			{ id = "vale_fire", kind = "campfire", region = "TwilightVale", text = "Light the Vale campfire", at = P.ValeFire, reward = { coins = 300 } },
+			{ id = "vale_hunt", kind = "defeat", n = 25, region = "TwilightVale", text = "Defeat wild monsters in Twilight Vale", at = P.Dawnfield, reward = { coins = 800, scrolls = 3 } },
+			{ id = "temple", kind = "discover", target = "temple", text = "Find the Temple of Sun and Moon", at = P.Temple, reward = { coins = 500 },
+				hint = "It stands on the seam where day meets night." },
+			{ id = "sanctum", kind = "dungeon", target = "Sanctum", text = "Clear the Eclipse Sanctum dungeon", at = P.DungeonGate, reward = { coins = 1000, scrolls = 2 },
+				hint = "The Dungeon Gate is in Haven. Friends can join as a party." },
+			{ id = "warden", kind = "boss", region = "TwilightVale", text = "Defeat the Eclipse Warden", at = P.ValeBoss, reward = { coins = 2500, legendary = 2 },
+				hint = "It's Light by day and Dark by night. Pick the team that beats it." },
+		},
+	},
 }
+-- The one Eclipse Scroll comes with finishing this step (the end of the original journey);
+-- chapters after it are extra (2026-11-27).
+StoryData.EclipseAfter = "sovereign"
 
 -- Flattened list: StoryData.Steps[i] = step with .chapter (index) and .chapterTitle.
 StoryData.Steps = {}

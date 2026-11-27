@@ -62,6 +62,15 @@ local function stateDone(player: Player, p, s): boolean
 		return p.campfires[s.region] == true
 	elseif k == "summon" then
 		return p.story.n >= s.n
+	elseif k == "discover" then
+		return p.found ~= nil and p.found[s.target] == true
+	elseif k == "dungeon" then
+		for key, n in (p.dungeon and p.dungeon.clears) or {} do
+			if n > 0 and (s.target == nil or key:sub(1, #s.target + 1) == s.target .. ":") then
+				return true
+			end
+		end
+		return false
 	end
 	return false
 end
@@ -78,7 +87,13 @@ end
 -- Finishing the whole story grants the one Eclipse Scroll (never again, even if more
 -- chapters are added later).
 local function finishCheck(player: Player, p)
-	if StoryData.Steps[p.story.i] == nil and not p.tutorial.eclipseScroll then
+	local gate = #StoryData.Steps
+	for i, st in StoryData.Steps do
+		if st.id == StoryData.EclipseAfter then
+			gate = i
+		end
+	end
+	if p.story.i > gate and not p.tutorial.eclipseScroll then
 		p.tutorial.eclipseScroll = true
 		p.scrolls.Eclipse = 1
 		remote:FireClient(player, { kind = "eclipse" })
