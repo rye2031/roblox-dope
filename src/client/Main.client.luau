@@ -118,7 +118,10 @@ if game:GetService("RunService"):IsStudio() then
 			require(script.Parent.SummonReveal).hide()
 			return "ok"
 		elseif cmd == "dungeonui" then
-			if a == "open" then
+			if a == "party" then
+				DungeonUi.debugParty()
+				Ui.open("Dungeons")
+			elseif a == "open" then
 				Ui.open("Dungeons")
 			end
 			return DungeonUi.debugState()

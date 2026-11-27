@@ -69,10 +69,83 @@ local info: any = nil
 
 local render: () -> ()
 
+local playMode = "solo" -- solo | party (Normal/Hard then opens a party instead of starting)
+
 local function start(id: string, mode: string)
+	if playMode == "party" then
+		if Ui.call("Dungeon", "host", id, mode) then
+			DungeonUi.refresh()
+		end
+		return
+	end
 	local ok = Ui.call("Dungeon", "start", id, mode)
 	if ok then
 		Ui.open(nil)
+	end
+end
+
+-- Party controls: Solo/Party switch, your party (Start / Leave / remove), parties to join.
+local function partySection(order: number)
+	local parties = info.parties or {}
+	local mine
+	for _, pt in parties do
+		if pt.mine then
+			mine = pt
+		end
+	end
+	local bar = new("Frame", { Name = "PlayMode", LayoutOrder = order, Size = UDim2.new(1, 0, 0, px(36)), BackgroundTransparency = 1, ZIndex = 12, Parent = body }, {
+		new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder, VerticalAlignment = Enum.VerticalAlignment.Center }),
+	})
+	for i, opt in { { "solo", "🧍 Solo" }, { "party", "👥 Party (up to " .. (info.partyMax or 3) .. ")" } } do
+		local on = playMode == opt[1]
+		local b = pill(bar, { Name = opt[1], LayoutOrder = i, Size = UDim2.fromOffset(px(i == 1 and 110 or 190), px(34)), Text = opt[2], TextColor3 = on and Color3.new(1, 1, 1) or C.Ink }, on and C.Lilac or C.Soft)
+		b.Activated:Connect(function()
+			playMode = opt[1]
+			render()
+		end)
+	end
+	label(bar, { LayoutOrder = 3, Size = UDim2.new(1, -px(330), 1, 0), Text = playMode == "party" and "Pick a dungeon below to open a party; friends at the gate join it." or "Pick a dungeon below to start alone.", TextColor3 = C.Sub, TextSize = px(13) }, "Bold")
+	local function row(o: number, color: Color3, text: string)
+		local r = new("Frame", { LayoutOrder = o, Size = UDim2.new(1, 0, 0, px(48)), BackgroundColor3 = Ui.Theme.tint(color, 0.85), ZIndex = 12, Parent = body }, { corner(14) })
+		label(r, { Position = UDim2.fromOffset(px(14), 0), Size = UDim2.new(1, -px(320), 1, 0), Text = text, TextSize = px(15), TextTruncate = Enum.TextTruncate.AtEnd }, "Title")
+		local btns = new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.fromOffset(px(300), px(34)), BackgroundTransparency = 1, ZIndex = 12, Parent = r }, {
+			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
+		})
+		return r, btns
+	end
+	if mine then
+		local d = DD.List[mine.id]
+		local _, btns = row(order + 1, C.Mint, string.format("👥 %s · %s · %s (%d/%d)", d.Name, mine.mode, table.concat(mine.names, ", "), mine.n, info.partyMax or 3))
+		if mine.lead then
+			local go = pill(btns, { Name = "StartParty", LayoutOrder = 1, Size = UDim2.fromOffset(px(110), px(34)), Text = "▶ Start" }, C.Mint)
+			go.Activated:Connect(function()
+				if Ui.call("Dungeon", "start") then
+					Ui.open(nil)
+				end
+			end)
+		else
+			label(btns, { LayoutOrder = 1, Size = UDim2.fromOffset(px(170), px(34)), Text = "Waiting for " .. mine.leaderName .. "…", TextColor3 = C.Sub, TextSize = px(13), TextXAlignment = Enum.TextXAlignment.Right }, "Bold")
+		end
+		local lv = pill(btns, { Name = "LeaveParty", LayoutOrder = 2, Size = UDim2.fromOffset(px(110), px(34)), Text = mine.lead and "Close" or "Leave", TextColor3 = C.Ink }, C.Card)
+		lv.Activated:Connect(function()
+			Ui.call("Dungeon", "leave")
+			DungeonUi.refresh()
+		end)
+	end
+	local n = 0
+	for _, pt in parties do
+		if not pt.mine then
+			n += 1
+			local d = DD.List[pt.id]
+			local _, btns = row(order + 1 + n, C.Sky, string.format("%s %s's party · %s · %s (%d/%d)", d.Icon, pt.leaderName, d.Name, pt.mode, pt.n, info.partyMax or 3))
+			local full = pt.n >= (info.partyMax or 3)
+			local j = pill(btns, { Name = "Join", LayoutOrder = 1, Size = UDim2.fromOffset(px(110), px(34)), Text = full and "Full" or "Join" }, full and C.Line or C.Sky)
+			j.Activated:Connect(function()
+				if not full and Ui.call("Dungeon", "join", pt.leader) then
+					DungeonUi.refresh()
+				end
+			end)
+		end
 	end
 end
 
@@ -102,10 +175,11 @@ render = function()
 			paintKeys()
 		end
 	end)
+	partySection(2)
 	for i, row in info.list do
 		local d = DD.List[row.id]
 		local set = Runes.Sets[row.id]
-		local card = new("Frame", { Name = row.id, LayoutOrder = 1 + i, Size = UDim2.new(1, 0, 0, px(112)), BackgroundColor3 = C.Soft, ZIndex = 12, Parent = body }, { corner(16) })
+		local card = new("Frame", { Name = row.id, LayoutOrder = 10 + i, Size = UDim2.new(1, 0, 0, px(112)), BackgroundColor3 = C.Soft, ZIndex = 12, Parent = body }, { corner(16) })
 		Ui.stroke(Ui.Theme.tint(d.Color, 0.35), 2).Parent = card
 		Ui.dot(card, d.Color, d.Icon, px(54), UDim2.new(0, 14, 0, px(14)), Vector2.new(0, 0)).ZIndex = 13
 		local x = px(80)
@@ -130,7 +204,7 @@ render = function()
 			end)
 		end
 	end
-	label(body, { LayoutOrder = 20, Size = UDim2.new(1, 0, 0, px(34)), Text = string.format("Normal: 1 rune (Rare 60%% · Epic 32%% · Legendary 8%%). Hard: 2 runes (Rare 25%% · Epic 50%% · Legendary 25%%). First clear: 2 Regular scrolls on Normal, a Legendary scroll on Hard. %d minutes per run.", DD.TimeLimit // 60), TextColor3 = C.Sub, TextSize = px(12), TextWrapped = true }, "Bold")
+	label(body, { LayoutOrder = 30, Size = UDim2.new(1, 0, 0, px(50)), Text = string.format("Parties: up to 3 at the gate; more monsters and HP for each extra player; everyone with a key gets their own chest (no key: coins and Essence as a helper). Normal: 1 rune (Rare 60%% · Epic 32%% · Legendary 8%%). Hard: 2 runes (Rare 25%% · Epic 50%% · Legendary 25%%). First clear: 2 Regular scrolls on Normal, a Legendary scroll on Hard. %d minutes per run.", DD.TimeLimit // 60), TextColor3 = C.Sub, TextSize = px(12), TextWrapped = true }, "Bold")
 end
 
 function DungeonUi.refresh()
@@ -165,7 +239,7 @@ local function paintHud()
 	local d = DD.List[run.id]
 	local stage = run.boss and "⚔ BOSS" or run.wave and string.format("Wave %d/%d", run.wave, run.waves) or "Get ready…"
 	local left = run.left and run.left > 0 and string.format(" · %d left", run.left) or ""
-	hudText.Text = string.format("%s %s · %s   %s%s   ⏱ %s", d.Icon, d.Name, run.mode, stage, left, fmt(run.endsAt - workspace:GetServerTimeNow()))
+	hudText.Text = string.format("%s %s · %s%s   %s%s   ⏱ %s", d.Icon, d.Name, run.mode, (run.n or 1) > 1 and ("  👥" .. run.n) or "", stage, left, fmt(run.endsAt - workspace:GetServerTimeNow()))
 	hudText.TextColor3 = run.boss and C.Coral:Lerp(Color3.new(0, 0, 0), 0.2) or C.Ink
 end
 
@@ -192,6 +266,11 @@ local function showResults(msg)
 		line ..= (r.firstLegendary and ("   +%d 🌟 first clear"):format(r.firstLegendary) or r.firstScrolls and ("   +%d 📜 first clear"):format(r.firstScrolls) or "")
 	end
 	label(resBody, { LayoutOrder = 3, Size = UDim2.new(1, 0, 0, px(22)), Text = line, TextSize = px(16), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 42 }, "Title")
+	if r.helper then
+		label(resBody, { LayoutOrder = 4, Size = UDim2.new(1, 0, 0, px(18)), Text = "🤝 Helper reward: thanks for helping! (no key, so no runes this time)", TextColor3 = C.Sub, TextSize = px(13), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 42 }, "Bold")
+	elseif (r.party or 1) > 1 then
+		label(resBody, { LayoutOrder = 4, Size = UDim2.new(1, 0, 0, px(18)), Text = "👥 Cleared with a party of " .. r.party, TextColor3 = C.Sub, TextSize = px(13), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 42 }, "Bold")
+	end
 	for i, rune in r.runes do
 		local rar = Runes.Rarities[rune.r]
 		local _, perfect = Runes.quality(rune)
@@ -207,7 +286,7 @@ local function showResults(msg)
 	ok.Activated:Connect(function()
 		results.Visible = false
 	end)
-	results.Size = UDim2.fromOffset(px(440), px(170) + #r.runes * px(60) + (r.bagFull and px(24) or 0))
+	results.Size = UDim2.fromOffset(px(440), px(170) + #r.runes * px(60) + (r.bagFull and px(24) or 0) + ((r.helper or (r.party or 1) > 1) and px(24) or 0))
 	results.Visible = true
 	local sc = new("UIScale", { Scale = 0.6, Parent = results })
 	TweenService:Create(sc, TweenInfo.new(0.4, Enum.EasingStyle.Back), { Scale = 1 }):Play()
@@ -227,13 +306,17 @@ function DungeonUi.start()
 			return
 		end
 		if msg.kind == "start" then
-			run = { id = msg.id, mode = msg.mode, endsAt = msg.endsAt, waves = msg.waves }
+			run = { id = msg.id, mode = msg.mode, endsAt = msg.endsAt, waves = msg.waves, n = msg.names and #msg.names or 1 }
 			results.Visible = false
-			Ui.toast(DD.List[msg.id].Icon .. " " .. DD.List[msg.id].Name .. ": defeat 3 waves and the boss!", "info")
+			Ui.toast(DD.List[msg.id].Icon .. " " .. DD.List[msg.id].Name .. ": defeat 3 waves and the boss!" .. (run.n > 1 and (" Party: " .. table.concat(msg.names, ", ")) or ""), "info")
+			if msg.helper then
+				Ui.toast("No key (or a full rune bag): you're helping this run for coins and Essence", "info")
+			end
 			Sfx.play("region")
 		elseif msg.kind == "wave" and run then
 			local newWave = run.wave ~= msg.wave
 			run.wave, run.left, run.boss = msg.wave, msg.left, msg.boss
+			run.n = msg.n or run.n
 			if newWave then
 				if msg.boss then
 					Ui.toast("⚔ The dungeon boss appears!", "alert")
@@ -248,6 +331,18 @@ function DungeonUi.start()
 			if run then
 				run.left = 0
 			end
+		elseif msg.kind == "lobby" then
+			if msg.note then
+				Ui.toast("👥 " .. msg.note, "info")
+			end
+			if panel.Visible then
+				DungeonUi.refresh()
+			end
+		elseif msg.kind == "party" then
+			if run then
+				run.n = msg.n or run.n
+			end
+			Ui.toast("👥 " .. (msg.note or ""), "info")
 		elseif msg.kind == "fail" then
 			Ui.toast(msg.why or "The run ended", "warn")
 		elseif msg.kind == "end" then
@@ -263,6 +358,9 @@ function DungeonUi.start()
 	end)
 end
 
+DungeonUi.debugParty = function()
+	playMode = "party"
+end
 DungeonUi.debugState = function()
 	return string.format("panel %s hud %s results %s run %s", tostring(panel.Visible), tostring(hud.Visible), tostring(results.Visible), run and (run.id .. " " .. tostring(run.wave)) or "none")
 end

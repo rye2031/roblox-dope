@@ -452,6 +452,15 @@ if game:GetService("RunService"):IsStudio() then
 				return tostring(ok) .. " " .. tostring(msg)
 			elseif a == "skip" then
 				return Dungeons.debugSkip(player)
+			elseif a == "host" then
+				local ok, msg = Dungeons.host(player, b, c or "Normal")
+				return tostring(ok) .. " " .. tostring(msg)
+			elseif a == "partystart" then
+				local ok, msg = Dungeons.start(player)
+				return tostring(ok) .. " " .. tostring(msg)
+			elseif a == "scale" then
+				local sc = Dungeons.scale(b or 1)
+				return string.format("count x%.2f hp x%.2f boss x%.2f", sc.count, sc.hp, sc.boss)
 			elseif a == "leave" then
 				return tostring((Dungeons.leave(player)))
 			elseif a == "keys" then
