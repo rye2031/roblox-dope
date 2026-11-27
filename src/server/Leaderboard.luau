@@ -81,7 +81,7 @@ function Leaderboard.refresh()
 	if not stores.Index then
 		return
 	end
-	local out = { updated = os.time(), Index = {}, Defeated = {} }
+	local out = { updated = os.time(), Index = {}, Defeated = {}, Arena = {} }
 	local ids = {}
 	local raw = {}
 	for board, store in stores do
@@ -117,7 +117,8 @@ function Leaderboard.init()
 	if not Persistence.available then
 		return -- no DataStores (e.g. Studio without API access): the board stays empty
 	end
-	for _, board in { "Index", "Defeated" } do
+	-- Arena ratings are written by Arena.luau; this module only reads that board
+	for _, board in { "Index", "Defeated", "Arena" } do
 		local ok, store = pcall(function()
 			return DataStoreService:GetOrderedDataStore("Wildbound_" .. board .. SUFFIX)
 		end)

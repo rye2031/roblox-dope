@@ -15,6 +15,7 @@ local Config = require(ReplicatedStorage.Shared.Config)
 local Monsters = require(ReplicatedStorage.Shared.Monsters)
 local Theme = require(ReplicatedStorage.Shared.Theme)
 local PlayerData = require(script.Parent.PlayerData)
+local Story = require(script.Parent.Story)
 
 local TC = Theme.C
 local Regions = {}
@@ -340,7 +341,11 @@ end
 
 local function onBossDefeated(player: Player, u)
 	local p = PlayerData.get(player)
-	if not p or u.camp == worldCamp then
+	if not p then
+		return
+	end
+	if u.camp == worldCamp then
+		Story.event(player, "titan")
 		return
 	end
 	local region = u.camp and u.camp.region

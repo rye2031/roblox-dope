@@ -67,16 +67,18 @@ end)
 ----------------------------------------------------------------------------------------------
 -- Menu rail (left)
 
-local rail = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 10, 0.45, 0), Size = UDim2.fromOffset(px(64), px(64) * 5 + 40), BackgroundTransparency = 1, Parent = gui }, { new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
+local rail = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 10, 0.45, 0), Size = UDim2.fromOffset(px(64), px(64) * 6 + 48), BackgroundTransparency = 1, Parent = gui }, { new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
 local RAIL = {
 	{ "Monsters", "🐾", C.Lilac },
 	{ "Shrine", "📜", C.Sun },
 	{ "Index", "📖", C.Mint },
 	{ "Quests", "✓", C.Sky },
 	{ "Weapons", "⚔", C.Peach },
+	{ "Expeditions", "🧭", C.Sun },
 }
 local questDot: Frame
 local monDot: Frame -- overflow waiting
+local expDot: Frame -- an expedition is back
 for i, r in RAIL do
 	local b = button({ LayoutOrder = i, Size = UDim2.fromOffset(px(64), px(64)), BackgroundColor3 = C.Card, Text = "", ZIndex = 2, Parent = rail, Radius = 18 })
 	Ui.stroke(Ui.Theme.tint(r[3], 0.4), 2).Parent = b
@@ -89,6 +91,9 @@ for i, r in RAIL do
 			Ui.open(r[1])
 		end
 	end)
+	if r[1] == "Expeditions" then
+		expDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(px(16), px(16)), BackgroundColor3 = C.Mint, Visible = false, ZIndex = 4, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	end
 	if r[1] == "Monsters" then
 		monDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(px(16), px(16)), BackgroundColor3 = C.Peach, Visible = false, ZIndex = 4, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 	end
@@ -249,7 +254,7 @@ end)
 ----------------------------------------------------------------------------------------------
 -- Pads: stepping on one opens its menu
 
-local PAD_PANEL = { Storage = "Monsters", Shrine = "Shrine", Smith = "Weapons", Quests = "Quests" }
+local PAD_PANEL = { Storage = "Monsters", Shrine = "Shrine", Smith = "Weapons", Quests = "Quests", Expeditions = "Expeditions", Arena = "Arena" }
 local pads: { BasePart } = {}
 local onPad: string? = nil
 
@@ -318,9 +323,10 @@ local function drawBoard(json: string)
 	end
 	sg = new("SurfaceGui", { Name = "BoardGui", Face = Enum.NormalId.Front, CanvasSize = Vector2.new(700, 400), LightInfluence = 0, Parent = board }) :: SurfaceGui
 	new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(250, 248, 255), Parent = sg })
-	for col, key in { "Index", "Defeated" } do
-		local f = new("Frame", { Position = UDim2.new((col - 1) * 0.5, 14, 0, 14), Size = UDim2.new(0.5, -28, 1, -28), BackgroundColor3 = C.Card, Parent = sg }, { corner(16) })
-		text({ Size = UDim2.new(1, 0, 0, 40), Text = key == "Index" and "📖 Most found" or "⚔ Most defeated", TextColor3 = C.Ink, Parent = f }, "Title")
+	local TITLES = { Index = "📖 Most found", Defeated = "⚔ Most defeated", Arena = "🏟 Arena rating" }
+	for col, key in { "Index", "Defeated", "Arena" } do
+		local f = new("Frame", { Position = UDim2.new((col - 1) / 3, 10, 0, 14), Size = UDim2.new(1 / 3, -20, 1, -28), BackgroundColor3 = C.Card, Parent = sg }, { corner(16) })
+		text({ Size = UDim2.new(1, 0, 0, 40), Text = TITLES[key], TextColor3 = C.Ink, Parent = f }, "Title")
 		for i, e in (data[key] or {}) do
 			if i > 8 then
 				break
@@ -350,6 +356,14 @@ function Hud.setProfile(p)
 	local _, ready = Config.streakPreview(p, Config.today())
 	questDot.Visible = claimable or ready
 	monDot.Visible = next(p.overflow or {}) ~= nil
+	local back = false
+	for _, x in p.expeditions or {} do
+		local d = Config.Loops.Expeditions.Durations[x.dur]
+		if d and os.time() >= x.start + d.Minutes * 60 then
+			back = true
+		end
+	end
+	expDot.Visible = back
 	if not p.tutorial.intro and not Hud.introShown then
 		Hud.introShown = true
 		howTo.Visible = true

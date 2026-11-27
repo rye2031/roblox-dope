@@ -12,12 +12,22 @@ local Hud = require(script.Parent.Hud)
 local Panels = require(script.Parent.Panels)
 local ServerFeed = require(script.Parent.ServerFeed)
 local Sfx = require(script.Parent.Sfx)
+local Journey = require(script.Parent.Journey)
+local LoopsUi = require(script.Parent.LoopsUi)
+local ArenaUi = require(script.Parent.ArenaUi)
+local PropView = require(script.Parent.PropView)
+local AmbientFx = require(script.Parent.AmbientFx)
 
 Sfx.start(Ui)
 UnitView.start()
 Controls.start()
 Hud.start()
 ServerFeed.start()
+Journey.start()
+LoopsUi.start()
+ArenaUi.start()
+PropView.start()
+AmbientFx.start()
 
 Remotes:WaitForChild("Combat").OnClientEvent:Connect(function(events)
 	UnitView.onEvents(events)
@@ -77,6 +87,14 @@ if game:GetService("RunService"):IsStudio() then
 		elseif cmd == "reveal" then
 			Panels.reveal(a)
 			return "ok"
+		elseif cmd == "props" then
+			return PropView.stats()
+		elseif cmd == "arena" then
+			return ArenaUi.debugState()
+		elseif cmd == "arenafight" then
+			return tostring(ArenaUi.debugFight(a))
+		elseif cmd == "arenaact" then
+			return tostring(ArenaUi.debugAct(a, b))
 		elseif cmd == "feedhover" then
 			return tostring(ServerFeed.debugHover())
 		elseif cmd == "feed5" then

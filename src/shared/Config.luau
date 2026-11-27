@@ -156,6 +156,101 @@ Config.Tuning = {
 	},
 }
 
+----------------------------------------------------------------------------------------------
+-- M6 loops: Element Surges, Expeditions, Index rewards
+
+Config.Loops = {
+	Surge = {
+		Cycle = { "Fire", "Water", "Wind" }, -- one per UTC hour
+		RareEvery = 6, -- every 6th hour is a Light or Dark surge instead
+		SpawnMult = 3, -- surge element's spawn weight (triangle); Light/Dark weight becomes RareWeight
+		RareWeight = 4,
+		EssenceMult = 2,
+		CoinMult = 1.25,
+	},
+	Expeditions = {
+		Slots = 3,
+		SlotBoss = { nil, "SproutMeadow", "EmberCanyon" }, -- boss to beat before the slot opens
+		MaxMonsters = 3,
+		Durations = {
+			{ Name = "Quick", Minutes = 15 },
+			{ Name = "Short", Minutes = 60 },
+			{ Name = "Long", Minutes = 240 },
+			{ Name = "Overnight", Minutes = 480 },
+		},
+		Places = {
+			SproutMeadow = { Name = "Sprout Meadow", Mult = 1, Essence = nil, Icon = "🌱" },
+			EmberCanyon = { Name = "Ember Canyon", Mult = 1.5, Essence = "Fire", Icon = "🔥" },
+			TideCoast = { Name = "Tide Coast", Mult = 2, Essence = "Water", Icon = "💧" },
+		},
+	},
+	IndexMilestones = {
+		{ n = 5, coins = 300 },
+		{ n = 10, coins = 600, scrolls = 1 },
+		{ n = 20, coins = 800, scrolls = 2 },
+		{ n = 30, legendary = 1 },
+		{ n = 45, coins = 2000, scrolls = 3 },
+		{ n = 60, legendary = 1, scrolls = 2 },
+		{ n = 80, scrolls = 5, coins = 3000 },
+		{ n = 100, legendary = 2 },
+		{ n = 125, legendary = 2, scrolls = 5 },
+		{ n = 150, legendary = 5 },
+	},
+	SpeciesComplete = { legendary = 1 }, -- all 5 elements of one species
+}
+
+-- M7 Arena: async turn-based 3v3 PvP
+Config.Arena = {
+	UnlockBoss = "SproutMeadow",
+	StartRating = 1000,
+	MatchRange = 200,
+	RefreshSeconds = 300,
+	DailyAttacks = 10,
+	K = 32,
+	WinTokens = 10,
+	LossTokens = 3,
+	WinCoins = 150,
+	Shop = {
+		regular = { name = "a Regular scroll", cost = 40, scrolls = 1, order = 1 },
+		essence = { name = "10 Essence", cost = 25, essence = 10, order = 2 },
+		legendary = { name = "a Legendary scroll", cost = 300, legendary = 1, order = 3 },
+	},
+}
+
+-- The surge for a moment (os.time): element and the os.time it ends.
+function Config.surgeAt(t: number): (string, number)
+	local S = Config.Loops.Surge
+	local hour = t // 3600
+	local el
+	if hour % S.RareEvery == S.RareEvery - 1 then
+		el = (hour // S.RareEvery) % 2 == 0 and "Light" or "Dark"
+	else
+		el = S.Cycle[hour % #S.Cycle + 1]
+	end
+	return el, (hour + 1) * 3600
+end
+
+-- What an expedition brings back. monsters = list of { sp, lv, aw }.
+function Config.expeditionReward(monsters, place: string, minutes: number)
+	local E = Config.Loops.Expeditions
+	local pl = E.Places[place]
+	local power = 0
+	for _, m in monsters do
+		local stars = (require(script.Parent.Monsters).Species[m.sp] or { Stars = 1 }).Stars
+		power += stars ^ 1.5 * (1 + m.lv / 15) * (m.aw and 1.25 or 1)
+	end
+	local mult = pl and pl.Mult or 1
+	local refLevel = place == "TideCoast" and 20 or place == "EmberCanyon" and 13 or 6
+	return {
+		coins = math.floor(power * minutes * 0.5 * mult),
+		essence = math.max(1, math.floor(power * minutes / 80 * mult)),
+		element = pl and pl.Essence, -- nil: random triangle element when claimed
+		scrolls = math.floor(minutes / 240),
+		scrollChance = (minutes % 240) / 240 * 0.6,
+		xp = math.floor(Config.Tuning.KillXp(refLevel, 2) * minutes / 6),
+	}
+end
+
 -- Coins for selling a monster (server pays this; the HUD previews it).
 function Config.sellValue(stars: number, level: number): number
 	return math.floor(20 * stars ^ 2 * (1 + level / 10))

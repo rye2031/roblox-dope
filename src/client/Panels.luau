@@ -133,6 +133,15 @@ local function previewLevel(m, xp: number): number
 	return lv
 end
 
+local function isAway(p, uid: string): boolean
+	for _, x in p.expeditions or {} do
+		if table.find(x.uids, uid) then
+			return true
+		end
+	end
+	return false
+end
+
 local function monsterCard(parent: Instance, p, uid: string, order: number, onClick: () -> ())
 	local m = p.monsters[uid]
 	local sp = Monsters.Species[m.sp]
@@ -155,6 +164,10 @@ local function monsterCard(parent: Instance, p, uid: string, order: number, onCl
 	if m.lock then
 		label(card, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -4, 0, 4), Size = UDim2.fromOffset(px(22), px(22)), Text = "🔒", TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 15 }, "Title")
 	end
+	if isAway(p, uid) then
+		card.BackgroundTransparency = 0.4
+		label(card, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 4), Size = UDim2.fromOffset(px(70), px(18)), Text = "🧭 Away", TextSize = px(12), TextColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0, BackgroundColor3 = C.Sun, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 15 }, "Title")
+	end
 	card.Activated:Connect(onClick)
 	return card
 end
@@ -164,7 +177,7 @@ local renderDetail: (string) -> ()
 
 local function eligibleFood(p, uid: string): boolean
 	local m = p.monsters[uid]
-	return m and not m.lock and not inTeam(p, uid) and uid ~= feedTarget
+	return m and not m.lock and not inTeam(p, uid) and uid ~= feedTarget and not isAway(p, uid)
 end
 
 renderMonsters = function()
@@ -636,6 +649,38 @@ Ui.onOpen.Index = function()
 		found += 1
 	end
 	indexSub.Text = string.format("Found %d of %d (%d species × 5 elements)", found, #list * 5, #list)
+	-- collection rewards
+	local claims = p.indexClaims or { m = {}, s = {} }
+	Ui.section(indexBody, -3, "COLLECTION REWARDS")
+	local strip = new("ScrollingFrame", { LayoutOrder = -2, Size = UDim2.new(1, 0, 0, px(92)), BackgroundTransparency = 1, CanvasSize = UDim2.new(), AutomaticCanvasSize = Enum.AutomaticSize.X, ScrollingDirection = Enum.ScrollingDirection.X, ScrollBarThickness = 4, BorderSizePixel = 0, ZIndex = 12, Parent = indexBody }, {
+		new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	for mi, m in Config.Loops.IndexMilestones do
+		local claimed = claims.m[tostring(mi)]
+		local ready = not claimed and found >= m.n
+		local parts = {}
+		if m.coins then
+			table.insert(parts, "💰" .. Ui.fmt(m.coins))
+		end
+		if m.scrolls then
+			table.insert(parts, "📜" .. m.scrolls)
+		end
+		if m.legendary then
+			table.insert(parts, "🌟" .. m.legendary)
+		end
+		local cell = new("TextButton", { LayoutOrder = mi, Size = UDim2.fromOffset(px(120), px(80)), Text = "", AutoButtonColor = ready, BackgroundColor3 = claimed and Ui.Theme.tint(C.Mint, 0.7) or ready and C.Sun or C.Soft, ZIndex = 12, Parent = strip }, { corner(14) })
+		label(cell, { Position = UDim2.fromOffset(0, px(8)), Size = UDim2.new(1, 0, 0, px(22)), Text = claimed and ("✓ " .. m.n) or (m.n .. " found"), TextSize = px(17), TextColor3 = ready and Color3.new(1, 1, 1) or C.Ink, TextXAlignment = Enum.TextXAlignment.Center }, "Title")
+		label(cell, { Position = UDim2.fromOffset(0, px(32)), Size = UDim2.new(1, 0, 0, px(18)), Text = table.concat(parts, " "), TextSize = px(13), TextColor3 = ready and Color3.new(1, 1, 1) or C.Sub, TextXAlignment = Enum.TextXAlignment.Center }, "Bold")
+		label(cell, { Position = UDim2.fromOffset(0, px(54)), Size = UDim2.new(1, 0, 0, px(18)), Text = claimed and "Claimed" or ready and "Claim!" or string.format("%d / %d", math.min(found, m.n), m.n), TextSize = px(13), TextColor3 = ready and Color3.new(1, 1, 1) or C.Sub, TextXAlignment = Enum.TextXAlignment.Center }, "Title")
+		cell.Activated:Connect(function()
+			if ready then
+				if Ui.call("IndexReward", "milestone", mi) then
+					Ui.onOpen.Index()
+				end
+			end
+		end)
+	end
+	label(indexBody, { LayoutOrder = -1, Size = UDim2.new(1, 0, 0, px(20)), Text = "Find all 5 elements of a species for a 🌟 Legendary scroll.", TextColor3 = C.Sub, TextSize = px(13) }, "Bold")
 	local lastStars = 0
 	for i, sp in list do
 		if sp.Stars ~= lastStars then
@@ -643,11 +688,24 @@ Ui.onOpen.Index = function()
 			Ui.section(indexBody, i * 2 - 1, stars(sp.Stars) .. (sp.Stars <= 2 and "  (great food for leveling)" or ""))
 		end
 		local r = new("Frame", { LayoutOrder = i * 2, Size = UDim2.new(1, 0, 0, px(64)), BackgroundColor3 = C.Soft, ZIndex = 12, Parent = indexBody }, { corner(14) })
-		local any = false
+		local any, all = false, true
 		for _, el in Config.Elements do
 			if p.index[sp.Id .. ":" .. el] then
 				any = true
+			else
+				all = false
 			end
+		end
+		if all and not claims.s[sp.Id] then
+			r.BackgroundColor3 = Ui.Theme.tint(C.Sun, 0.7)
+			local claim = pill(r, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -(px(40) * 5 + 44), 0.5, 0), Size = UDim2.fromOffset(px(110), px(36)), Text = "Claim 🌟", ZIndex = 15 }, C.Sun)
+			claim.Activated:Connect(function()
+				if Ui.call("IndexReward", "species", sp.Id) then
+					Ui.onOpen.Index()
+				end
+			end)
+		elseif all then
+			r.BackgroundColor3 = Ui.Theme.tint(C.Mint, 0.8)
 		end
 		local _, img = Ui.portrait(r, sp.Id, nil, UDim2.fromOffset(px(52), px(52)), UDim2.fromOffset(6, 6), 13)
 		if not any then

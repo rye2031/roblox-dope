@@ -191,7 +191,9 @@ function MeshLoader.get(name: string, height: number, opts: { optional: boolean?
 		if not makeRoom(optional) then
 			return nil
 		end
-		local ok, part, em = pcall(build, name)
+		local ok, part, em = pcall(Budget.run, function()
+			return build(name)
+		end)
 		if not ok then
 			warn(`[MeshLoader] {name} failed: {part}`)
 			return nil

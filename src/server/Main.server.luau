@@ -10,6 +10,9 @@ local World = require(script.Parent.World)
 local PlayerData = require(script.Parent.PlayerData)
 local Inventory = require(script.Parent.Inventory)
 local Summon = require(script.Parent.Summon)
+local Story = require(script.Parent.Story)
+local Loops = require(script.Parent.Loops)
+local Arena = require(script.Parent.Arena)
 local Quests = require(script.Parent.Quests)
 local Combat = require(script.Parent.Combat)
 local Leaderboard = require(script.Parent.Leaderboard)
@@ -28,13 +31,13 @@ end
 local remoteFolder = Instance.new("Folder")
 remoteFolder.Name = "Remotes"
 local remotes = {}
-for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce" } do
+for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce", "Story" } do
 	local r = Instance.new("RemoteEvent")
 	r.Name = n
 	r.Parent = remoteFolder
 	remotes[n] = r
 end
-for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow" } do
+for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow", "Travel", "Expedition", "IndexReward", "Arena" } do
 	local r = Instance.new("RemoteFunction")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -46,15 +49,20 @@ remoteFolder.Parent = ReplicatedStorage
 World.setupLighting()
 Regions.register(World)
 local worldFolder = World.build()
+task.spawn(World.settle)
 PlayerData.init(remotes.Profile)
 Quests.init(remotes)
 Summon.init(remotes)
+Story.init(remotes)
+Loops.init(remotes)
+Arena.init()
 Combat.init(remotes)
 Regions.init(remotes, Combat)
 Leaderboard.init()
 
 PlayerData.onPush = function(player: Player)
 	task.defer(Combat.syncTeam, player)
+	task.defer(Story.check, player)
 	Regions.applyPass(player)
 end
 
@@ -64,6 +72,15 @@ remotes.GetProfile.OnServerInvoke = function(player)
 end
 remotes.Summon.OnServerInvoke = function(player, kind, count)
 	return Summon.openMany(player, kind, count)
+end
+remotes.Arena.OnServerInvoke = function(player, action, a, b)
+	return Arena.handle(player, action, a, b)
+end
+remotes.Expedition.OnServerInvoke = function(player, action, slot, place, dur, uids)
+	return Loops.expedition(player, action, slot, place, dur, uids)
+end
+remotes.IndexReward.OnServerInvoke = function(player, kind, key)
+	return Loops.indexReward(player, kind, key)
 end
 remotes.Overflow.OnServerInvoke = function(player, action, key, uid)
 	return Inventory.overflow(player, action, key, uid)
@@ -150,14 +167,66 @@ for _, c in World.Campfires do
 		lastCamp[key] = os.clock()
 		if player.RespawnLocation ~= c.part then
 			player.RespawnLocation = c.part
-			remotes.Toast:FireClient(player, "Campfire lit: you'll respawn here", "info")
+			local p = PlayerData.get(player)
+			local first = p and not p.campfires[c.region]
+			remotes.Toast:FireClient(player, first and "Campfire lit: you'll respawn here, and you can travel back to it" or "Campfire: you'll respawn here", "info")
 		end
+		Story.event(player, "campfire", { region = c.region })
 		Combat.healTeam(player)
 		local hum = char:FindFirstChildOfClass("Humanoid")
 		if hum then
 			hum.Health = hum.MaxHealth
 		end
 	end)
+end
+
+-- Story guides
+for id, prompt in World.Guides do
+	prompt.Triggered:Connect(function(player)
+		Story.talk(player, id)
+	end)
+end
+
+-- Fast travel between lit campfires (from next to any campfire, out of combat).
+local lastTravel: { [Player]: number } = {}
+remotes.Travel.OnServerInvoke = function(player, region)
+	local p = PlayerData.get(player)
+	local char = player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not p or not hrp or typeof(region) ~= "string" then
+		return false, "Can't travel right now"
+	end
+	if not p.campfires[region] then
+		return false, "Light that campfire first"
+	end
+	if Combat.inCombat(player) then
+		return false, "You can't travel during a fight"
+	end
+	if os.clock() - (lastTravel[player] or 0) < 6 then
+		return false, "Catch your breath first"
+	end
+	local near, dest = false, nil
+	for _, c in World.Campfires do
+		if (c.pos - hrp.Position).Magnitude < 16 then
+			near = true
+		end
+		if c.region == region then
+			dest = c
+		end
+	end
+	if not near then
+		return false, "Stand next to a campfire to travel"
+	end
+	if not dest then
+		return false, "Unknown campfire"
+	end
+	lastTravel[player] = os.clock()
+	local to = dest.pos + Vector3.new(0, 4, -6)
+	char:PivotTo(CFrame.lookAt(to, dest.pos + Vector3.new(0, 4, 0)))
+	player.RespawnLocation = dest.part
+	Combat.warpTeam(player, dest.pos + Vector3.new(0, 0, -6))
+	Combat.healTeam(player)
+	return true, "Travelled to the " .. (World.Regions[region] and World.Regions[region].Name or region) .. " campfire"
 end
 
 local function onCharacter(player: Player, char: Model)
@@ -243,6 +312,21 @@ if game:GetService("RunService"):IsStudio() then
 			end
 			PlayerData.push(player)
 			return uid
+		elseif cmd == "expfast" then
+			for _, x in p.expeditions do
+				x.start -= 12 * 3600
+			end
+			PlayerData.push(player)
+			return HttpService:JSONEncode(p.expeditions)
+		elseif cmd == "talk" then
+			Story.talk(player, a)
+			return HttpService:JSONEncode(p.story)
+		elseif cmd == "story" then
+			if a then
+				p.story = { i = a, n = 0 }
+				PlayerData.push(player)
+			end
+			return HttpService:JSONEncode({ story = p.story, campfires = p.campfires })
 		elseif cmd == "storagecap" then
 			p.storageCap = a
 			PlayerData.push(player)

@@ -17,6 +17,8 @@ local Monsters = require(Shared.Monsters)
 local PlayerData = require(script.Parent.PlayerData)
 local Inventory = require(script.Parent.Inventory)
 local Quests = require(script.Parent.Quests)
+local Story = require(script.Parent.Story)
+local Loops = require(script.Parent.Loops)
 local World = require(script.Parent.World)
 
 local T = Config.Tuning
@@ -322,12 +324,13 @@ local function rewardKill(u)
 						end
 					end
 				end
-				local coins = R.CoinsPerKill(u.lv) * mult
+				local surge = u.el == Loops.surge()
+				local coins = math.floor(R.CoinsPerKill(u.lv) * mult * (surge and Config.Loops.Surge.CoinMult or 1))
 				p.coins += coins
 				p.kills += 1
 				local drops = { coins = coins, xp = xp, el = u.el, pos = u.pos }
 				if rng:NextNumber() < (u.boss and 1 or u.elite and 0.8 or R.EssenceChance) then
-					local n = u.boss and 8 or u.elite and 3 or 1
+					local n = (u.boss and 8 or u.elite and 3 or 1) * (surge and Config.Loops.Surge.EssenceMult or 1)
 					p.essence[u.el] = (p.essence[u.el] or 0) + n
 					drops.essence = n
 				end
@@ -344,6 +347,7 @@ local function rewardKill(u)
 					drops.scroll = "Regular"
 				end
 				Quests.onKill(player, u.el, u.elite)
+				Story.event(player, "defeat", { region = u.camp and u.camp.region })
 				if levels > 0 then
 					Quests.progress(player, "LevelUp", levels)
 				end
@@ -889,7 +893,7 @@ function Combat.spawnWild(camp)
 		local r = rng:NextNumber() * camp.radius
 		local pos = camp.pos + Vector3.new(math.cos(a) * r, 0, math.sin(a) * r)
 		local sp = camp.species or pickWildSpecies(region)
-		local el = camp.element or Config.pickWeighted(region.Elements, rng:NextNumber())
+		local el = camp.element or Config.pickWeighted(Loops.surgeWeights(region.Elements), rng:NextNumber())
 		local lv = rng:NextInteger(camp.lv[1], camp.lv[2])
 		local elite = camp.elite or (not camp.boss and rng:NextNumber() < (region.EliteChance or 0))
 		makeUnit("wild", sp, el, lv, false, { 1, 1, 1 }, { pos = pos, camp = camp, elite = elite, boss = camp.boss, hpMult = camp.hpMult })
@@ -971,6 +975,22 @@ function Combat.clearTeam(player: Player)
 		removeUnit(u)
 	end
 	teams[player] = nil
+end
+
+-- Move the team next to a point at once (fast travel).
+function Combat.warpTeam(player: Player, pos: Vector3)
+	for slot, u in teams[player] or {} do
+		local a = slot / 3 * math.pi * 2
+		u.pos = pos + Vector3.new(math.cos(a) * 5, 0, math.sin(a) * 5)
+		u.target = nil
+		placePart(u)
+	end
+end
+
+-- True while the player has fought in the last few seconds.
+function Combat.inCombat(player: Player): boolean
+	local t = tamers[player]
+	return t ~= nil and now() - (t.lastCombat or 0) < 6
 end
 
 -- Full heal for the player's team (campfires, respawn).
@@ -1150,6 +1170,7 @@ function Combat.teamSkill(player: Player, slot: any)
 	if cast(u, 3, true) then
 		u.part:SetAttribute("CdB", workspace:GetServerTimeNow() + (u.cd[3] - now()))
 		Quests.progress(player, "TeamSkill", 1)
+		Story.event(player, "ult")
 		return true
 	end
 	return false

@@ -1,0 +1,16 @@
+{
+  "prop_fountain": {"task_id": "01a21dcc-c5b0-7623-8cd2-3b9f8ed88afd", "credits": 30},
+  "prop_market_stall": {"task_id": "01a21dcc-ca1a-75e1-b184-c218c277c4bd", "credits": 30},
+  "prop_street_lamp": {"task_id": "01a21dcc-cf3d-71c6-9aae-19de99cb86e1", "credits": 30},
+  "prop_cart": {"task_id": "01a21dcc-d3f2-717c-b506-35b819454ad9", "credits": 30},
+  "prop_mushrooms": {"task_id": "01a21dcc-d8c7-75fc-b604-75eb0452e91c", "credits": 30},
+  "prop_stone_arch": {"task_id": "01a21dcc-dd82-7123-9314-b7c64d4cb6df", "credits": 30},
+  "prop_well": {"task_id": "01a21dcc-e23d-751a-ac65-f20cea79d655", "credits": 30},
+  "prop_magma_crystals": {"task_id": "01a21dcc-e8bc-7307-9887-80326ff813f0", "credits": 30},
+  "prop_dragon_skull": {"task_id": "01a21dcc-ec92-7691-9922-e078b8ab30fe", "credits": 30},
+  "prop_fire_brazier": {"task_id": "01a21dcc-f0b8-734a-96a8-ffbf8fb60175", "credits": 30},
+  "prop_seashell": {"task_id": "01a21dcc-f5b8-7044-915c-11b7d75d4058", "credits": 30},
+  "prop_lighthouse": {"task_id": "01a21dcc-fa4b-7292-934c-941d2925da6c", "credits": 30},
+  "prop_coral": {"task_id": "01a21dcc-fee5-72ef-b8c9-aa7ebb2c7f5c", "credits": 30},
+  "prop_titan_head": {"task_id": "01a21dcd-0561-7773-8142-8f1330306c91", "credits": 30}
+}

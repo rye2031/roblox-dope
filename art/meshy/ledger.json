@@ -1000,5 +1000,271 @@
       "art/audio/sfx_bank.wav"
     ],
     "note": "44 synthesized sound effects (scripts/make_sfx.py); slices in src/shared/SfxBank.luau"
+  },
+  {
+    "name": "prop_fountain",
+    "kind": "text-to-image",
+    "task_id": "01a21dc9-80a5-73ac-916b-a321be1a9115",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_fountain.png"
+    ]
+  },
+  {
+    "name": "prop_market_stall",
+    "kind": "text-to-image",
+    "task_id": "01a21dc9-84d1-757f-b25c-821dc3e6471f",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_market_stall.png"
+    ]
+  },
+  {
+    "name": "prop_street_lamp",
+    "kind": "text-to-image",
+    "task_id": "01a21dc9-8911-7637-8bef-4ad3b63a8637",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_street_lamp.png"
+    ]
+  },
+  {
+    "name": "prop_cart",
+    "kind": "text-to-image",
+    "task_id": "01a21dc9-8cc5-77e8-a1b4-915d0d8d2246",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_cart.png"
+    ]
+  },
+  {
+    "name": "prop_mushrooms",
+    "kind": "text-to-image",
+    "task_id": "01a21dc9-90ae-7786-b2dd-187cfa336e16",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_mushrooms.png"
+    ]
+  },
+  {
+    "name": "prop_stone_arch",
+    "kind": "text-to-image",
+    "task_id": "01a21dc9-94b3-73ec-8de2-8b9e5d559425",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_stone_arch.png"
+    ]
+  },
+  {
+    "name": "prop_well",
+    "kind": "text-to-image",
+    "task_id": "01a21dc9-98a3-7670-8478-82f6a2f5f9c5",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_well.png"
+    ]
+  },
+  {
+    "name": "prop_magma_crystals",
+    "kind": "text-to-image",
+    "task_id": "01a21dc9-9cab-7116-a5cd-b49eff131826",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_magma_crystals.png"
+    ]
+  },
+  {
+    "name": "prop_dragon_skull",
+    "kind": "text-to-image",
+    "task_id": "01a21dc9-a0ac-76bf-9321-1c11bfded3e0",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_dragon_skull.png"
+    ]
+  },
+  {
+    "name": "prop_fire_brazier",
+    "kind": "text-to-image",
+    "task_id": "01a21dc9-a4ba-7718-ba57-01316e716930",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_fire_brazier.png"
+    ]
+  },
+  {
+    "name": "prop_seashell",
+    "kind": "text-to-image",
+    "task_id": "01a21dc9-a88a-7195-a9f4-783436e780f2",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_seashell.png"
+    ]
+  },
+  {
+    "name": "prop_lighthouse",
+    "kind": "text-to-image",
+    "task_id": "01a21dc9-ac96-741e-b63d-144d3a52dc9f",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_lighthouse.png"
+    ]
+  },
+  {
+    "name": "prop_coral",
+    "kind": "text-to-image",
+    "task_id": "01a21dc9-b06d-77d7-a691-725c33a8af49",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_coral.png"
+    ]
+  },
+  {
+    "name": "prop_titan_head",
+    "kind": "text-to-image",
+    "task_id": "01a21dc9-b3fa-720e-b7ae-244560958595",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_titan_head.png"
+    ]
+  },
+  {
+    "name": "prop_fountain",
+    "kind": "image-to-3d",
+    "task_id": "01a21dcc-c5b0-7623-8cd2-3b9f8ed88afd",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_fountain/model.glb",
+      "art/meshy/props/models/prop_fountain/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_market_stall",
+    "kind": "image-to-3d",
+    "task_id": "01a21dcc-ca1a-75e1-b184-c218c277c4bd",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_market_stall/model.glb",
+      "art/meshy/props/models/prop_market_stall/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_street_lamp",
+    "kind": "image-to-3d",
+    "task_id": "01a21dcc-cf3d-71c6-9aae-19de99cb86e1",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_street_lamp/model.glb",
+      "art/meshy/props/models/prop_street_lamp/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_cart",
+    "kind": "image-to-3d",
+    "task_id": "01a21dcc-d3f2-717c-b506-35b819454ad9",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_cart/model.glb",
+      "art/meshy/props/models/prop_cart/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_mushrooms",
+    "kind": "image-to-3d",
+    "task_id": "01a21dcc-d8c7-75fc-b604-75eb0452e91c",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_mushrooms/model.glb",
+      "art/meshy/props/models/prop_mushrooms/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_stone_arch",
+    "kind": "image-to-3d",
+    "task_id": "01a21dcc-dd82-7123-9314-b7c64d4cb6df",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_stone_arch/model.glb",
+      "art/meshy/props/models/prop_stone_arch/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_well",
+    "kind": "image-to-3d",
+    "task_id": "01a21dcc-e23d-751a-ac65-f20cea79d655",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_well/model.glb",
+      "art/meshy/props/models/prop_well/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_magma_crystals",
+    "kind": "image-to-3d",
+    "task_id": "01a21dcc-e8bc-7307-9887-80326ff813f0",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_magma_crystals/model.glb",
+      "art/meshy/props/models/prop_magma_crystals/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_dragon_skull",
+    "kind": "image-to-3d",
+    "task_id": "01a21dcc-ec92-7691-9922-e078b8ab30fe",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_dragon_skull/model.glb",
+      "art/meshy/props/models/prop_dragon_skull/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_fire_brazier",
+    "kind": "image-to-3d",
+    "task_id": "01a21dcc-f0b8-734a-96a8-ffbf8fb60175",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_fire_brazier/model.glb",
+      "art/meshy/props/models/prop_fire_brazier/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_seashell",
+    "kind": "image-to-3d",
+    "task_id": "01a21dcc-f5b8-7044-915c-11b7d75d4058",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_seashell/model.glb",
+      "art/meshy/props/models/prop_seashell/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_lighthouse",
+    "kind": "image-to-3d",
+    "task_id": "01a21dcc-fa4b-7292-934c-941d2925da6c",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_lighthouse/model.glb",
+      "art/meshy/props/models/prop_lighthouse/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_coral",
+    "kind": "image-to-3d",
+    "task_id": "01a21dcc-fee5-72ef-b8c9-aa7ebb2c7f5c",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_coral/model.glb",
+      "art/meshy/props/models/prop_coral/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_titan_head",
+    "kind": "image-to-3d",
+    "task_id": "01a21dcd-0561-7773-8142-8f1330306c91",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_titan_head/model.glb",
+      "art/meshy/props/models/prop_titan_head/thumb.png"
+    ]
   }
 ]

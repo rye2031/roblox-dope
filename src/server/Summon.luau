@@ -12,6 +12,7 @@ local Monsters = require(Shared.Monsters)
 local PlayerData = require(script.Parent.PlayerData)
 local Inventory = require(script.Parent.Inventory)
 local Quests = require(script.Parent.Quests)
+local Story = require(script.Parent.Story)
 
 local T = Config.Tuning
 local SC = T.Scrolls
@@ -85,6 +86,10 @@ function Summon.openMany(player: Player, kind: any, count: any)
 		table.insert(results, rollOne(p, kind))
 	end
 	Quests.progress(player, "Summon", n)
+	Story.event(player, "summon", { n = n })
+	if n == SC.MultiOpen then
+		Story.event(player, "multi")
+	end
 	PlayerData.push(player)
 	PlayerData.saveSoon(player)
 	for _, r in results do

@@ -27,7 +27,7 @@ local MAX = 4
 
 local feed = new("Frame", {
 	Name = "ServerFeed",
-	Position = UDim2.fromOffset(px(84), px(108)),
+	Position = UDim2.fromOffset(px(84), px(148)),
 	Size = UDim2.fromOffset(px(420), px(240)),
 	BackgroundTransparency = 1,
 	ZIndex = 5,

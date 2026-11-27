@@ -7,6 +7,7 @@ local Config = require(Shared.Config)
 local Monsters = require(Shared.Monsters)
 local PlayerData = require(script.Parent.PlayerData)
 local Quests = require(script.Parent.Quests)
+local Story = require(script.Parent.Story)
 
 local T = Config.Tuning
 local Inventory = {}
@@ -82,6 +83,9 @@ function Inventory.setTeam(player: Player, slot: any, uid: any): (boolean, strin
 	if typeof(uid) ~= "string" or not p.monsters[uid] then
 		return false, "You don't have that monster"
 	end
+	if Inventory.awaySet(p)[uid] then
+		return false, "That monster is away on an expedition"
+	end
 	local other = inTeam(p, uid)
 	if other then
 		p.team[other] = p.team[slot] -- swap
@@ -103,10 +107,24 @@ function Inventory.setLock(player: Player, uid: any, on: any): (boolean, string)
 	return true, m.lock and "Locked: it won't be fed or sold" or "Unlocked"
 end
 
+-- Monster uids that are away on an expedition (uid -> slot).
+function Inventory.awaySet(p): { [string]: string }
+	local set = {}
+	for slot, x in p.expeditions or {} do
+		for _, uid in x.uids do
+			set[uid] = slot
+		end
+	end
+	return set
+end
+
 local function canConsume(p, uid: string, target: string?): (boolean, string?)
 	local m = p.monsters[uid]
 	if not m then
 		return false, "missing"
+	end
+	if Inventory.awaySet(p)[uid] then
+		return false, "it's away on an expedition"
 	end
 	if uid == target then
 		return false, "can't feed a monster to itself"
@@ -257,6 +275,7 @@ function Inventory.feed(player: Player, target: any, foods: any): (boolean, stri
 	end
 	local levels = Inventory.grantXp(p, target, xp)
 	Quests.progress(player, "Feed", #foods)
+	Story.event(player, "feed")
 	if levels > 0 then
 		Quests.progress(player, "LevelUp", levels)
 	end

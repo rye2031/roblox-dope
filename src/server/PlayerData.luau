@@ -32,6 +32,11 @@ export type Profile = {
 	daily: { day: number, quests: { any }, bonus: boolean },
 	streak: { last: number, count: number },
 	tutorial: { [string]: boolean },
+	story: { i: number, n: number }, -- Tamer's Journey step index + progress
+	campfires: { [string]: boolean }, -- lit campfires (fast travel)
+	expeditions: { [string]: any }, -- slot "1".."3" -> { place, dur, start, uids, reward }
+	indexClaims: { m: { [string]: boolean }, s: { [string]: boolean } }, -- Index milestones / complete species claimed
+	arena: { tokens: number, day: number, attacks: number }, -- Arena tokens and today's fights (rating lives in the Arena store)
 	lastSeen: number,
 }
 
@@ -66,6 +71,11 @@ local function defaults(): Profile
 		daily = { day = 0, quests = {}, bonus = false },
 		streak = { last = 0, count = 0 },
 		tutorial = {},
+		story = { i = 1, n = 0 },
+		campfires = { Haven = true },
+		expeditions = {},
+		indexClaims = { m = {}, s = {} },
+		arena = { tokens = 0, day = 0, attacks = 0 },
 		lastSeen = 0,
 	}
 end
@@ -166,7 +176,47 @@ function PlayerData.sanitize(raw: any): Profile
 	end
 	p.kills = int(raw.kills, 0)
 	p.opened = int(raw.opened, 0)
-	for _, key in { "regions", "bosses", "tutorial" } do
+	if typeof(raw.expeditions) == "table" then
+		local E = Config.Loops.Expeditions
+		local used = {}
+		for slot, x in raw.expeditions do
+			local n = tonumber(slot)
+			if n and n >= 1 and n <= E.Slots and typeof(x) == "table" and E.Places[x.place] and E.Durations[x.dur] and typeof(x.uids) == "table" and typeof(x.reward) == "table" then
+				local uids = {}
+				for _, u in x.uids do
+					if typeof(u) == "string" and p.monsters[u] and not used[u] and #uids < E.MaxMonsters then
+						used[u] = true
+						table.insert(uids, u)
+					end
+				end
+				if #uids > 0 then
+					local r = x.reward
+					p.expeditions[tostring(n)] = { place = x.place, dur = x.dur, start = int(x.start, 0), uids = uids, reward = {
+						coins = int(r.coins, 0), essence = int(r.essence, 0), element = validElement(r.element) and r.element or nil,
+						scrolls = int(r.scrolls, 0), scrollChance = typeof(r.scrollChance) == "number" and math.clamp(r.scrollChance, 0, 1) or 0, xp = int(r.xp, 0),
+					} }
+				end
+			end
+		end
+	end
+	if typeof(raw.arena) == "table" then
+		p.arena = { tokens = int(raw.arena.tokens, 0), day = int(raw.arena.day, 0), attacks = int(raw.arena.attacks, 0) }
+	end
+	if typeof(raw.indexClaims) == "table" then
+		for _, k in { "m", "s" } do
+			if typeof(raw.indexClaims[k]) == "table" then
+				for key, v in raw.indexClaims[k] do
+					if typeof(key) == "string" and v == true then
+						p.indexClaims[k][key] = true
+					end
+				end
+			end
+		end
+	end
+	if typeof(raw.story) == "table" then
+		p.story = { i = math.max(1, int(raw.story.i, 1)), n = int(raw.story.n, 0) }
+	end
+	for _, key in { "regions", "bosses", "tutorial", "campfires" } do
 		if typeof(raw[key]) == "table" then
 			for k, v in raw[key] do
 				if typeof(k) == "string" and v == true then

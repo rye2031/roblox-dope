@@ -121,10 +121,44 @@ local function pad(name: string, pos: Vector3, accent: Color3, parent: Instance)
 	return p
 end
 
+-- Terrain written during World.build can't be raycast until the engine has processed it, so
+-- groundY returns 0 there. Things that must stand exactly on the surface register here and
+-- World.settle() lifts them onto the real ground afterwards (campfires were 1.6 studs under
+-- the grass before this, so nobody could touch them).
+local snaps: { { model: Model, x: number, z: number, y: number, after: ((number) -> ())? } } = {}
+function World.snapLater(model: Model, x: number, z: number, y: number, after: ((number) -> ())?)
+	table.insert(snaps, { model = model, x = x, z = z, y = y, after = after })
+end
+
+function World.settle()
+	local probe = Vector3.new(0, 200, -16)
+	for _ = 1, 60 do
+		if workspace:Raycast(probe, Vector3.new(0, -400, 0), rayParams) then
+			break
+		end
+		task.wait(0.05)
+	end
+	for _, s in snaps do
+		local y = World.groundY(s.x, s.z)
+		local dy = y - s.y
+		if math.abs(dy) > 0.05 and s.model.Parent then
+			s.model:PivotTo(s.model:GetPivot() + Vector3.new(0, dy, 0))
+			s.y = y
+			if s.after then
+				s.after(dy)
+			end
+		end
+	end
+end
+
 -- A campfire checkpoint: a spawn location that heals and becomes your respawn point.
 local function campfire(region: string, pos: Vector3, parent: Instance)
 	local y = World.groundY(pos.X, pos.Z)
 	local p = Vector3.new(pos.X, y, pos.Z)
+	local group = Instance.new("Model")
+	group.Name = "Campfire_" .. region
+	group.Parent = parent
+	parent = group
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "Campfire_" .. region
 	spawn.Anchored = true
@@ -152,7 +186,12 @@ local function campfire(region: string, pos: Vector3, parent: Instance)
 	fire.Size = 3
 	fire.Parent = flame
 	spawn:SetAttribute("Campfire", region)
-	table.insert(World.Campfires, { region = region, pos = p, part = spawn })
+	group.PrimaryPart = spawn
+	local entry = { region = region, pos = p, part = spawn }
+	table.insert(World.Campfires, entry)
+	World.snapLater(group, p.X, p.Z, y, function(dy)
+		entry.pos += Vector3.new(0, dy, 0)
+	end)
 	float("Camp_" .. region, p + Vector3.new(0, 9, 0), "CAMPFIRE", TC.Peach, 7, { Icon = "🔥", Sub = "heals your team · respawn here", Height = 2.2 })
 	return spawn
 end
@@ -263,8 +302,63 @@ local function buildHaven()
 	box("ArchTop", -10, 14, 92, 10, 16, 94, TC.Mint, f)
 	float("ToMeadow", Vector3.new(0, 20, 93), "SPROUT MEADOW", TC.Mint, 11, { Icon = "🌱", Sub = "levels 1-9 · wild monsters", Height = 3 })
 
+	-- festive bunting strung across the plaza between posts
+	local FLAG = { TC.Coral, TC.Sun, TC.Mint, TC.Sky, TC.Lilac }
+	local function bunting(a: Vector3, b: Vector3)
+		for _, q in { a, b } do
+			box("BuntingPost", q.X - 0.4, 0, q.Z - 0.4, q.X + 0.4, 11, q.Z + 0.4, Color3.fromRGB(170, 130, 100), f)
+		end
+		local n = math.floor((b - a).Magnitude / 3)
+		for i = 1, n - 1 do
+			local k = i / n
+			local sag = math.sin(k * math.pi) * 2.2
+			local p = a:Lerp(b, k) + Vector3.new(0, 10.5 - sag, 0)
+			local dir = (b - a).Unit
+			decor(part({ ClassName = "WedgePart", Name = "Flag", Size = Vector3.new(0.15, 1.6, 1.4), CFrame = CFrame.lookAt(p, p + dir) * CFrame.Angles(math.rad(180), math.rad(90), 0), Color = FLAG[i % #FLAG + 1] }, f))
+		end
+	end
+	bunting(Vector3.new(-40, 0, 38), Vector3.new(40, 0, 38))
+	bunting(Vector3.new(-44, 0, -30), Vector3.new(-44, 0, 30))
+	bunting(Vector3.new(44, 0, -30), Vector3.new(44, 0, 30))
+	-- benches and flower planters around the fountain corner
+	for _, bpos in { Vector3.new(-12, 0, -30), Vector3.new(-32, 0, -32), Vector3.new(-12, 0, -12) } do
+		box("BenchSeat", bpos.X - 3, 1.4, bpos.Z - 0.8, bpos.X + 3, 1.8, bpos.Z + 0.8, Color3.fromRGB(176, 128, 92), f)
+		box("BenchBack", bpos.X - 3, 1.8, bpos.Z + 0.6, bpos.X + 3, 3.4, bpos.Z + 0.9, Color3.fromRGB(176, 128, 92), f)
+		for _, lx in { -2.4, 2.4 } do
+			box("BenchLeg", bpos.X + lx - 0.3, 0, bpos.Z - 0.6, bpos.X + lx + 0.3, 1.4, bpos.Z + 0.6, Color3.fromRGB(90, 80, 80), f)
+		end
+	end
+	for _, pp in { Vector3.new(-6, 0, 6), Vector3.new(6, 0, 6), Vector3.new(-6, 0, -36), Vector3.new(6, 0, -36) } do
+		box("Planter", pp.X - 2, 0, pp.Z - 2, pp.X + 2, 1.6, pp.Z + 2, Color3.fromRGB(214, 180, 150), f)
+		for k = 1, 5 do
+			decor(part({ Name = "Bloom", Shape = Enum.PartType.Ball, Size = Vector3.new(1, 1, 1), Position = pp + Vector3.new(math.random() * 2.6 - 1.3, 2, math.random() * 2.6 - 1.3), Color = FLAG[(k % #FLAG) + 1] }, f))
+		end
+	end
+
+	-- expedition post: send storage monsters on timed trips
+	local _, expDoor = building("ExpeditionPost", Vector3.new(-58, 0, 56), TC.Sun, 16, 14, 9, f)
+	World.Points.Expeditions = Vector3.new(expDoor.X, 0, expDoor.Z)
+	pad("Expeditions", World.Points.Expeditions, TC.Sun, f)
+	float("Expeditions", World.Points.Expeditions + Vector3.new(0, 14, 0), "EXPEDITIONS", TC.Sun, 9, { Icon = "🧭", Sub = "send monsters adventuring", Height = 2.4 })
+
+	-- the Arena: a ring of stands around a sandy floor, entrance facing the plaza
+	local ar = Vector3.new(62, 0, 62)
+	terrain:FillCylinder(CFrame.new(ar.X, -1, ar.Z), 2.2, 16, Enum.Material.Sand)
+	for i = 0, 11 do
+		local a = i / 12 * math.pi * 2
+		if i ~= 7 then -- gap toward the plaza
+			local pos = ar + Vector3.new(math.cos(a) * 17, 2.5, math.sin(a) * 17)
+			part({ Name = "ArenaWall", Size = Vector3.new(9.4, 5, 2), CFrame = CFrame.lookAt(pos, Vector3.new(ar.X, pos.Y, ar.Z)), Color = Color3.fromRGB(236, 220, 200) }, f)
+			decor(part({ Name = "ArenaBanner", Size = Vector3.new(2.2, 3.2, 0.2), CFrame = CFrame.lookAt(pos + Vector3.new(0, 4.4, 0), Vector3.new(ar.X, pos.Y + 4.4, ar.Z)), Color = i % 2 == 0 and TC.Coral or TC.Sun, Material = Enum.Material.Fabric }, f))
+		end
+	end
+	local gate = ar + Vector3.new(math.cos(7 / 12 * math.pi * 2) * 17, 0, math.sin(7 / 12 * math.pi * 2) * 17)
+	World.Points.Arena = ar + (gate - ar) * 0.55
+	pad("Arena", World.Points.Arena, TC.Coral, f)
+	float("Arena", ar + Vector3.new(0, 16, 0), "ARENA", TC.Coral, 9, { Icon = "🏟", Sub = "3v3 battles vs other Tamers", Height = 2.6 })
+
 	-- town dressing
-	for _, t in { { -80, -30 }, { 80, -30 }, { -86, 50 }, { 86, 50 }, { -30, 70 }, { 30, 70 }, { -70, -80 }, { 70, -80 } } do
+	for _, t in { { -80, -30 }, { 80, -30 }, { -86, 30 }, { 86, 50 }, { -30, 76 }, { 30, 70 }, { -70, -80 }, { 70, -80 } } do
 		tree(t[1], t[2], 1.1, f)
 	end
 	flowers(-90, -90, 90, 90, 140, f)
@@ -361,6 +455,55 @@ function World.regionAt(pos: Vector3): string
 	return "Haven"
 end
 
+----------------------------------------------------------------------------------------------
+-- Story guides: a simple blocky figure with a Talk prompt (Story.talk on the server).
+
+World.Guides = {} -- npc id -> ProximityPrompt
+
+local function buildGuides()
+	local StoryData = require(ReplicatedStorage.Shared.StoryData)
+	local f = Instance.new("Folder")
+	f.Name = "Guides"
+	f.Parent = root
+	for id, g in StoryData.Npcs do
+		local y = World.groundY(g.Pos.X, g.Pos.Z)
+		local base = Vector3.new(g.Pos.X, y, g.Pos.Z)
+		local m = Instance.new("Model")
+		m.Name = "Guide_" .. id
+		local face = CFrame.lookAt(base, Vector3.new(0, y, base.Z - 30)) -- roughly facing south / the path
+		local function piece(name, size, offset, color, shape)
+			local q = part({ Name = name, Size = size, CFrame = face * CFrame.new(offset), Color = color, Shape = shape }, m)
+			return q
+		end
+		piece("LegL", Vector3.new(0.9, 2, 0.9), Vector3.new(-0.55, 1, 0), Color3.fromRGB(90, 80, 110))
+		piece("LegR", Vector3.new(0.9, 2, 0.9), Vector3.new(0.55, 1, 0), Color3.fromRGB(90, 80, 110))
+		local body = piece("Body", Vector3.new(2.2, 2.4, 1.2), Vector3.new(0, 3.2, 0), g.Color)
+		piece("ArmL", Vector3.new(0.8, 2.2, 0.8), Vector3.new(-1.5, 3.1, 0), g.Color:Lerp(Color3.new(1, 1, 1), 0.2))
+		piece("ArmR", Vector3.new(0.8, 2.2, 0.8), Vector3.new(1.5, 3.1, 0), g.Color:Lerp(Color3.new(1, 1, 1), 0.2))
+		piece("Head", Vector3.new(1.7, 1.7, 1.7), Vector3.new(0, 5.25, 0), Color3.fromRGB(250, 222, 190), Enum.PartType.Ball)
+		piece("Hat", Vector3.new(2.4, 0.4, 2.4), Vector3.new(0, 6.05, 0), g.Color:Lerp(Color3.new(0, 0, 0), 0.25), Enum.PartType.Cylinder).CFrame = face * CFrame.new(0, 6.05, 0) * CFrame.Angles(0, 0, math.rad(90))
+		piece("HatTop", Vector3.new(1.4, 0.9, 1.4), Vector3.new(0, 6.5, 0), g.Color:Lerp(Color3.new(0, 0, 0), 0.25))
+		for _, eye in { -0.35, 0.35 } do
+			decor(piece("Eye", Vector3.new(0.22, 0.32, 0.1), Vector3.new(eye, 5.35, -0.82), Color3.fromRGB(40, 36, 50)))
+		end
+		m.PrimaryPart = body
+		m.Parent = f
+		World.snapLater(m, base.X, base.Z, y)
+		local prompt = Instance.new("ProximityPrompt")
+		prompt.Name = "Talk"
+		prompt.ActionText = "Talk"
+		prompt.ObjectText = g.Name .. " the " .. g.Title
+		prompt.MaxActivationDistance = 12
+		prompt.RequiresLineOfSight = false
+		prompt.KeyboardKeyCode = Enum.KeyCode.E
+		prompt.Parent = body
+		prompt:SetAttribute("Guide", id)
+		World.Guides[id] = prompt
+		body:SetAttribute("Guide", id)
+		float("Guide_" .. id, base + Vector3.new(0, 9, 0), string.upper(g.Name), g.Color, 6, { Icon = g.Icon, Sub = g.Title, Height = 1.9 })
+	end
+end
+
 function World.build(): Folder
 	root = Instance.new("Folder")
 	root.Name = "World"
@@ -374,6 +517,7 @@ function World.build(): Folder
 	if World.extraRegions then
 		World.extraRegions(World, { part = part, box = box, decor = decor, tree = tree, rock = rock, flowers = flowers, hill = hill, pathStrip = pathStrip, campfire = campfire, float = float, root = root })
 	end
+	buildGuides()
 	root.Parent = workspace
 	return root
 end
