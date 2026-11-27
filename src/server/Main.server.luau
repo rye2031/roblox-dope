@@ -151,6 +151,10 @@ remotes.Intent.OnServerEvent:Connect(function(player, kind, a)
 		Combat.teamSkill(player, a)
 	elseif kind == "focus" then
 		Combat.focus(player, a)
+	elseif kind == "auto" then
+		local p = PlayerData.get(player)
+		local allowed = p and p.bosses[Config.AutoHunt.UnlockBoss] == true
+		player:SetAttribute("AutoHunt", a == true and allowed or false)
 	end
 end)
 

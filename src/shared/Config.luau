@@ -223,6 +223,13 @@ Config.Sealed = {
 	},
 }
 
+-- Auto-Hunt: the team and Tamer fight on their own (only while you're in the game).
+Config.AutoHunt = {
+	RewardMult = 0.6, -- coins, XP and drop chances while it's on
+	IdleMinutes = 30, -- pauses after this long without real input
+	UnlockBoss = "SproutMeadow",
+}
+
 -- Day and night: a 20-minute cycle on server time (every server agrees). The last 6 minutes
 -- are night (more Dark monsters and elites, double Dark Essence); the first 2 minutes of day
 -- are dawn (more Light monsters).

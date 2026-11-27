@@ -19,6 +19,7 @@ local PropView = require(script.Parent.PropView)
 local AmbientFx = require(script.Parent.AmbientFx)
 local Ticker = require(script.Parent.Ticker)
 local DayNight = require(script.Parent.DayNight)
+local AutoHunt = require(script.Parent.AutoHunt)
 
 Sfx.start(Ui)
 UnitView.start()
@@ -32,10 +33,12 @@ PropView.start()
 AmbientFx.start()
 Ticker.start(Journey)
 DayNight.start()
+AutoHunt.start()
 
 Remotes:WaitForChild("Combat").OnClientEvent:Connect(function(events)
 	UnitView.onEvents(events)
 	Controls.onEvents(events)
+	AutoHunt.onEvents(events)
 end)
 Remotes:WaitForChild("Profile").OnClientEvent:Connect(function(p)
 	Ui.setProfile(p)
@@ -91,6 +94,11 @@ if game:GetService("RunService"):IsStudio() then
 		elseif cmd == "reveal" then
 			Panels.reveal(a)
 			return "ok"
+		elseif cmd == "auto" then
+			if a ~= nil then
+				AutoHunt.set(a == true)
+			end
+			return tostring(AutoHunt.isOn())
 		elseif cmd == "props" then
 			return PropView.stats()
 		elseif cmd == "arena" then

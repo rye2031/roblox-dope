@@ -117,7 +117,32 @@ local hpLabel = label(me, { Position = UDim2.fromOffset(12, 0), Size = UDim2.fro
 local _, hpFill = bar(me, UDim2.new(0, px(118), 0.5, -px(6)), UDim2.new(1, -px(118) - px(200), 0, px(12)), C.Mint)
 local skillB = button({ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -px(100), 0.5, 0), Size = UDim2.fromOffset(px(92), px(30)), BackgroundColor3 = C.Peach, Text = "Q", TextScaled = false, TextSize = px(14), ZIndex = 3, Parent = me, Radius = 15 })
 local dodgeB = button({ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -6, 0.5, 0), Size = UDim2.fromOffset(px(88), px(30)), BackgroundColor3 = C.Sky, Text = "Dodge", TextScaled = false, TextSize = px(14), ZIndex = 3, Parent = me, Radius = 15 })
-skillB.Activated:Connect(Controls.skill)
+skillB.Activated:Connect(function()
+	Controls.skill()
+end)
+-- Auto-Hunt toggle (above the bar, right side)
+local AutoHunt = require(script.Parent.AutoHunt)
+local autoB = button({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, 0, 0, -6), Size = UDim2.fromOffset(px(170), px(30)), BackgroundColor3 = C.Card, TextColor3 = C.Ink, Text = "🤖 Auto-Hunt [R]", TextScaled = false, TextSize = px(14), ZIndex = 3, Parent = bottom, Radius = 15 })
+Ui.stroke(C.Line, 1.5).Parent = autoB
+autoB.Activated:Connect(function()
+	AutoHunt.toggle()
+end)
+local function paintAuto(state: boolean)
+	autoB.BackgroundColor3 = state and C.Mint or C.Card
+	autoB.TextColor3 = state and Color3.new(1, 1, 1) or C.Ink
+	autoB.Text = state and "🤖 Auto-Hunt ON [R]" or ((Controls.touch and "🤖 Auto-Hunt") or "🤖 Auto-Hunt [R]")
+end
+AutoHunt.onChanged(paintAuto)
+Ui.onProfile(function(p)
+	local open = p.bosses and p.bosses[Config.AutoHunt.UnlockBoss]
+	autoB.Visible = true
+	if not open then
+		autoB.Text = "🔒 Auto-Hunt"
+		autoB.TextColor3 = C.Sub
+	elseif not AutoHunt.isOn() then
+		paintAuto(false)
+	end
+end)
 dodgeB.Activated:Connect(Controls.dodge)
 
 local teamRow = new("Frame", { Position = UDim2.fromOffset(0, px(48)), Size = UDim2.new(1, 0, 0, px(84)), BackgroundTransparency = 1, Parent = bottom }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })

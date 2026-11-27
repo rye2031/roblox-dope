@@ -138,7 +138,7 @@ local function faceToward(dir: Vector3)
 end
 
 local nextAttack = 0
-function Controls.attack()
+function Controls.attack(forced: Vector3?)
 	local now = os.clock()
 	if now < nextAttack then
 		return
@@ -147,7 +147,7 @@ function Controls.attack()
 	if not hum or hum.Health <= 0 then
 		return
 	end
-	local dir = aim()
+	local dir = forced or aim()
 	if not dir then
 		return
 	end
@@ -157,12 +157,12 @@ function Controls.attack()
 	TamerAnim.play(player, player:GetAttribute("Weapon") or "Blade", false, true)
 end
 
-function Controls.skill()
+function Controls.skill(forced: Vector3?)
 	local ready = player:GetAttribute("WeaponSkillReady") or 0
 	if workspace:GetServerTimeNow() < ready - 0.1 then
 		return
 	end
-	local dir = aim()
+	local dir = forced or aim()
 	if dir then
 		faceToward(dir)
 		Intent:FireServer("wskill", dir)

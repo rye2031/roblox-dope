@@ -314,7 +314,9 @@ local function rewardKill(u)
 				local stars = Monsters.Species[u.sp].Stars
 				local legend = u.camp and u.camp.legend
 				local mult = u.boss and 8 or legend and 6 or u.elite and 3 or 1
-				local xp = T.KillXp(u.lv, stars) * mult
+				local auto = player:GetAttribute("AutoHunt") == true
+				local am = auto and Config.AutoHunt.RewardMult or 1
+				local xp = math.floor(T.KillXp(u.lv, stars) * mult * am)
 				local levels = 0
 				local ups = {}
 				for _, tu in teams[player] or {} do
@@ -327,7 +329,7 @@ local function rewardKill(u)
 					end
 				end
 				local surge = u.el == Loops.surge()
-				local coins = math.floor(R.CoinsPerKill(u.lv) * mult * (surge and Config.Loops.Surge.CoinMult or 1))
+				local coins = math.floor(R.CoinsPerKill(u.lv) * mult * (surge and Config.Loops.Surge.CoinMult or 1) * am)
 				p.coins += coins
 				p.kills += 1
 				local drops = { coins = coins, xp = xp, el = u.el, pos = u.pos }
@@ -339,7 +341,7 @@ local function rewardKill(u)
 					p.essence[u.el] = (p.essence[u.el] or 0) + n
 					drops.essence = n
 				end
-				local scrollChance = u.elite and R.EliteScrollChance or R.RegularScrollChance
+				local scrollChance = (u.elite and R.EliteScrollChance or R.RegularScrollChance) * am
 				if u.boss then
 					p.scrolls.Regular += R.BossScrolls
 					drops.scroll = "Regular"
