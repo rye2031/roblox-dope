@@ -404,6 +404,7 @@ renderDetail = function(uid: string)
 	end
 	detailUid = uid
 	detail.Visible = true
+	require(script.Parent.Tips).show("detail")
 	clear(detailScroll)
 	local sp = Monsters.Species[m.sp]
 	local info = EI[m.el]

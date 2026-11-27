@@ -23,6 +23,7 @@ local AutoHunt = require(script.Parent.AutoHunt)
 local DungeonUi = require(script.Parent.DungeonUi)
 local PortalFx = require(script.Parent.PortalFx)
 local Pace = require(script.Parent.Pace)
+local Tips = require(script.Parent.Tips)
 
 Sfx.start(Ui)
 UnitView.start()
@@ -35,6 +36,7 @@ ArenaUi.start()
 DungeonUi.start()
 PortalFx.start()
 Pace.start()
+Tips.start()
 PropView.start()
 AmbientFx.start()
 Ticker.start(Journey)
@@ -121,6 +123,13 @@ if game:GetService("RunService"):IsStudio() then
 		elseif cmd == "hidereveal" then
 			require(script.Parent.SummonReveal).hide()
 			return "ok"
+		elseif cmd == "tip" then
+			if a == "ok" then
+				Tips.dismiss()
+			elseif a then
+				Tips.show(a, true)
+			end
+			return Tips.state()
 		elseif cmd == "gallery" then
 			return require(script.Parent.DebugGallery).show(tonumber(a) or 1)
 		elseif cmd == "dungeonui" then
