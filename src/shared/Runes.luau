@@ -46,6 +46,7 @@ Runes.Drops = {
 	boss = { chance = 1, weights = { Rare = 55, Epic = 35, Legendary = 10 } },
 	legend = { chance = 1, weights = { Epic = 60, Legendary = 40 } },
 	shop = { chance = 1, weights = { Rare = 70, Epic = 25, Legendary = 5 } },
+	champion = { chance = 0.3, weights = { Rare = 35, Epic = 48, Legendary = 17 } }, -- Champion Rifts
 }
 
 local function pick(weights: { [any]: number }, r: number): any

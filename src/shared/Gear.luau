@@ -47,6 +47,7 @@ Gear.Legendary = {
 -- Drop chances and rarity weights by source.
 Gear.Drops = {
 	elite = { chance = 0.05, weights = { Rare = 75, Epic = 22, Legendary = 3 } },
+	champion = { chance = 0.1, weights = { Rare = 35, Epic = 48, Legendary = 17 } }, -- Champion Rifts
 	boss = { chance = 0.35, weights = { Rare = 55, Epic = 37, Legendary = 8 } },
 	legend = { chance = 0.6, weights = { Rare = 30, Epic = 55, Legendary = 15 } },
 	titan = { chance = 1, weights = { Rare = 35, Epic = 50, Legendary = 15 } },

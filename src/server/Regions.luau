@@ -681,6 +681,7 @@ function Regions.register(w)
 		buildValleys()
 		buildPortals(h)
 		require(script.Parent.Landmarks).build(h)
+		require(script.Parent.Rifts).build(h, World)
 	end
 end
 

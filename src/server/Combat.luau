@@ -340,7 +340,8 @@ local function rewardKill(u)
 				local stars = Monsters.Species[u.sp].Stars
 				local legend = u.camp and u.camp.legend
 				local dungeon = u.camp and u.camp.dungeon
-				local mult = u.boss and 8 or legend and 6 or u.elite and 3 or 1
+				local champion = u.camp and u.camp.champion
+				local mult = u.boss and 8 or legend and 6 or champion and 5 or u.elite and 3 or 1
 				local auto = player:GetAttribute("AutoHunt") == true
 				local am = auto and Config.AutoHunt.RewardMult or 1
 				local xp = math.floor(T.KillXp(u.lv, stars) * mult * am)
@@ -392,20 +393,21 @@ local function rewardKill(u)
 					drops.scroll = "Regular"
 				end
 				local sealKind = legend and "legend" or u.boss and "boss" or u.elite and "elite" or "common"
+				local dropKind = champion and "champion" or sealKind
 				if not dungeon then
-					local gearSrc = (u.camp and u.camp.world) and "titan" or sealKind ~= "common" and sealKind or nil
+					local gearSrc = (u.camp and u.camp.world) and "titan" or champion and "champion" or sealKind ~= "common" and sealKind or nil
 					if gearSrc then
 						drops.gear = GearBag.rollDrop(p, gearSrc, (u.camp and u.camp.world) and "Haven" or (u.camp and u.camp.region))
 					end
 					drops.sealed = Loops.rollSealed(p, sealKind)
 					local runeMult = auto and Config.AutoHunt.RewardMult or 1
 					if math.random() < runeMult then
-						drops.rune = RuneBag.rollDrop(p, sealKind)
+						drops.rune = RuneBag.rollDrop(p, dropKind)
 					end
 				end
 				Quests.onKill(player, u.el, u.elite)
 				local Pass = require(script.Parent.Pass)
-				Pass.add(player, (u.camp and u.camp.world) and "titan" or legend and "legend" or u.boss and "boss" or u.elite and "elite" or "kill", am)
+				Pass.add(player, (u.camp and u.camp.world) and "titan" or legend and "legend" or (u.boss or champion) and "boss" or u.elite and "elite" or "kill", am)
 				Story.event(player, "defeat", { region = u.camp and u.camp.region })
 				if levels > 0 then
 					Quests.progress(player, "LevelUp", levels)
@@ -497,6 +499,15 @@ local function damage(src, dst, mult: number, element: string?): number
 	if dst.kind == "tamer" and now() < dst.invulnUntil then
 		emit({ "miss", dst.key })
 		return 0
+	end
+	-- Champion Rift monsters only take damage from Tamers who've opened the rifts
+	if dst.camp and dst.camp.champion then
+		local o = ownerOf(src)
+		local pd = o and PlayerData.get(o)
+		if not pd or not require(script.Parent.Rifts).unlocked(pd) then
+			emit({ "miss", keyOf(dst) })
+			return 0
+		end
 	end
 	local atk = src.stats.atk * (1 + effectValue(src, "atk"))
 	local def = math.max(0, (dst.stats and dst.stats.def or 0) * (1 + effectValue(dst, "def")))

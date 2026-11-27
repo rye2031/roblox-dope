@@ -63,6 +63,7 @@ Combat.init(remotes)
 Dungeons.init(remotes, Combat)
 require(script.Parent.Landmarks).init(remotes)
 require(script.Parent.Pass).init(remotes)
+require(script.Parent.Rifts).init(remotes)
 require(script.Parent.Landmarks).onFound = function(player)
 	require(script.Parent.Pass).add(player, "discovery")
 	Story.check(player)
@@ -544,6 +545,9 @@ if game:GetService("RunService"):IsStudio() then
 				PlayerData.push(player)
 			end
 			return HttpService:JSONEncode(p.pass)
+		elseif cmd == "riftlock" then
+			require(script.Parent.Rifts).debugLocked[p] = a and true or nil
+			return "ok"
 		elseif cmd == "relock" then
 			p.regions[a] = nil -- until the next push re-checks it (Studio test of locked portals)
 			return "ok"
