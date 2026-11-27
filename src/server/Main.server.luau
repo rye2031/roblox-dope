@@ -13,6 +13,7 @@ local Summon = require(script.Parent.Summon)
 local Story = require(script.Parent.Story)
 local Loops = require(script.Parent.Loops)
 local RuneBag = require(script.Parent.RuneBag)
+local GearBag = require(script.Parent.GearBag)
 local Dungeons = require(script.Parent.Dungeons)
 local Arena = require(script.Parent.Arena)
 local Quests = require(script.Parent.Quests)
@@ -39,7 +40,7 @@ for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce"
 	r.Parent = remoteFolder
 	remotes[n] = r
 end
-for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow", "Travel", "Expedition", "IndexReward", "Arena", "Sealed", "Runes", "Dungeon" } do
+for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow", "Travel", "Expedition", "IndexReward", "Arena", "Sealed", "Runes", "Dungeon", "Gear" } do
 	local r = Instance.new("RemoteFunction")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -81,6 +82,9 @@ remotes.Sealed.OnServerInvoke = function(player, action, a)
 end
 remotes.Dungeon.OnServerInvoke = function(player, action, a, b)
 	return Dungeons.handle(player, action, a, b)
+end
+remotes.Gear.OnServerInvoke = function(player, action, a)
+	return GearBag.action(player, action, a)
 end
 remotes.Runes.OnServerInvoke = function(player, action, a, b)
 	return RuneBag.action(player, action, a, b)
@@ -260,7 +264,7 @@ local function onCharacter(player: Player, char: Model)
 	local hum = char:WaitForChild("Humanoid") :: Humanoid
 	local p = PlayerData.get(player)
 	if p then
-		local max = Config.tamerStats(p.weapon.lv).hp
+		local max = Combat.tamerMaxHp(p)
 		hum.MaxHealth = max
 		hum.Health = max
 	end
@@ -493,6 +497,27 @@ if game:GetService("RunService"):IsStudio() then
 			return "ok"
 		elseif cmd == "legend" then
 			return tostring(Regions.spawnLegend(a))
+		elseif cmd == "gear" then
+			-- gear <rarity> [type] | gear list | gear drop <source> [n]
+			if a == "list" then
+				return HttpService:JSONEncode({ gear = p.gear, eq = p.weapon.eq, type = p.weapon.type })
+			elseif a == "drop" then
+				local got = {}
+				for _ = 1, c or 1 do
+					local it = GearBag.rollDrop(p, b or "boss", "EmberCanyon")
+					if it then
+						got[it.r] = (got[it.r] or 0) + 1
+					end
+				end
+				PlayerData.push(player)
+				return HttpService:JSONEncode(got)
+			end
+			local id = GearBag.give(p, require(ReplicatedStorage.Shared.Gear).make(Random.new(), a or "Epic", b, "TideCoast"))
+			PlayerData.push(player)
+			return tostring(id)
+		elseif cmd == "gearact" then
+			local ok, msg = GearBag.action(player, a, b)
+			return tostring(ok) .. " " .. tostring(msg)
 		elseif cmd == "relock" then
 			p.regions[a] = nil -- until the next push re-checks it (Studio test of locked portals)
 			return "ok"

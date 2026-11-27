@@ -379,6 +379,7 @@ function Inventory.setWeapon(player: Player, kind: any): (boolean, string)
 		return false, "Unknown weapon"
 	end
 	p.weapon.type = kind
+	p.weapon.eq = nil -- the basic weapon of that type
 	PlayerData.push(player)
 	PlayerData.saveSoon(player)
 	return true, `{T.Weapons[kind].Name} equipped`

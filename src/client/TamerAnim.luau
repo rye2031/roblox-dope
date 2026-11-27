@@ -125,7 +125,7 @@ end
 -- avatar joints (bend the parent-side Attachment0). Both rotate in the parent part's space.
 type Joint = { inst: Instance, base: CFrame, set: (CFrame, Vector3?) -> () }
 type Rig = { char: Model, rs: Joint?, ls: Joint?, waist: Joint?, root: Joint? }
-type Equip = { model: Model, weld: Motor6D, kind: string, trails: { Trail }, base: CFrame }
+type Equip = { model: Model, weld: Motor6D, kind: string, rarity: string, trails: { Trail }, base: CFrame }
 type Swing = { kind: string, skill: boolean, variant: number, t0: number, dur: number, impact: number, release: number }
 
 local function joint(inst: Instance?): Joint?
@@ -198,8 +198,9 @@ local function equip(plr: Player)
 	local char = plr.Character
 	local hand = char and (char:FindFirstChild("RightHand") or char:FindFirstChild("Right Arm")) :: BasePart?
 	local kind = plr:GetAttribute("Weapon") or "Blade"
+	local rarity = plr:GetAttribute("WeaponRarity") or "Common"
 	local cur = equipped[plr]
-	if cur and cur.kind == kind and cur.model.Parent == char then
+	if cur and cur.kind == kind and cur.rarity == rarity and cur.model.Parent == char then
 		return
 	end
 	if cur then
@@ -210,6 +211,29 @@ local function equip(plr: Player)
 		return
 	end
 	local m, trails = weaponModel(kind)
+	-- rarer weapons glow in their rarity colour (Legendary also sparkles)
+	local RARITY = { Rare = Color3.fromRGB(102, 174, 255), Epic = Color3.fromRGB(186, 112, 255), Legendary = Color3.fromRGB(255, 186, 58) }
+	local rc = RARITY[rarity]
+	if rc then
+		local hl = Instance.new("Highlight")
+		hl.FillColor = rc
+		hl.FillTransparency = 0.72
+		hl.OutlineColor = rc
+		hl.OutlineTransparency = 0.2
+		hl.DepthMode = Enum.HighlightDepthMode.Occluded
+		hl.Parent = m
+		if rarity == "Legendary" or rarity == "Epic" then
+			local e = Instance.new("ParticleEmitter")
+			e.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+			e.Color = ColorSequence.new(rc, Color3.new(1, 1, 1))
+			e.Rate = rarity == "Legendary" and 14 or 6
+			e.Lifetime = NumberRange.new(0.4, 0.8)
+			e.Speed = NumberRange.new(0.3, 1)
+			e.Size = NumberSequence.new(0.35, 0)
+			e.LightEmission = 0.8
+			e.Parent = m.PrimaryPart
+		end
+	end
 	local grip = m.PrimaryPart :: BasePart
 	local motor = Instance.new("Motor6D")
 	motor.Part0 = hand
@@ -219,7 +243,7 @@ local function equip(plr: Player)
 	motor.Parent = grip
 	m:PivotTo(hand.CFrame)
 	m.Parent = char
-	equipped[plr] = { model = m, weld = motor, kind = kind, trails = trails, base = base }
+	equipped[plr] = { model = m, weld = motor, kind = kind, rarity = rarity, trails = trails, base = base }
 end
 
 local function watchPlayer(plr: Player)
@@ -231,6 +255,9 @@ local function watchPlayer(plr: Player)
 		equip(plr)
 	end)
 	plr:GetAttributeChangedSignal("Weapon"):Connect(function()
+		equip(plr)
+	end)
+	plr:GetAttributeChangedSignal("WeaponRarity"):Connect(function()
 		equip(plr)
 	end)
 	if plr.Character then

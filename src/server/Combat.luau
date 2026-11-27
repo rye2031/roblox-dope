@@ -20,6 +20,8 @@ local Quests = require(script.Parent.Quests)
 local Story = require(script.Parent.Story)
 local Loops = require(script.Parent.Loops)
 local RuneBag = require(script.Parent.RuneBag)
+local GearBag = require(script.Parent.GearBag)
+local Gear = require(Shared.Gear)
 local Runes = require(Shared.Runes)
 local World = require(script.Parent.World)
 
@@ -61,7 +63,23 @@ local function tamerOf(player: Player)
 	end
 	local p = PlayerData.get(player)
 	t.stats = Config.tamerStats(p and p.weapon.lv or 1)
+	-- the equipped weapon item (rarity damage and perks)
+	t.gear = Gear.stats(p and GearBag.equipped(p) or nil)
+	t.stats.hp = math.floor(t.stats.hp * (1 + t.gear.vigor))
+	t.stats.crit = 0.1 + t.gear.crit
 	return t
+end
+
+-- Max HP of a player's Tamer (weapon level + the weapon's HP perk).
+function Combat.tamerMaxHp(p): number
+	return math.floor(Config.tamerStats(p.weapon.lv).hp * (1 + Gear.stats(GearBag.equipped(p)).vigor))
+end
+
+-- A team monster's stat bonus: its runes plus the Tamer weapon's team-attack perk.
+local function teamBonus(pd, uid: string)
+	local b = Runes.bonus(Runes.on(pd, uid))
+	b.atk += Gear.stats(GearBag.equipped(pd)).rally * 100
+	return b
 end
 
 -- Generic accessors so units and tamers can be treated alike.
@@ -248,7 +266,7 @@ local function makeUnit(side: string, sp: string, el: string, lv: number, aw: bo
 	if side == "team" and opts.owner and opts.uid then
 		local pd = PlayerData.get(opts.owner)
 		if pd then
-			stats = Runes.apply(stats, Runes.bonus(Runes.on(pd, opts.uid)))
+			stats = Runes.apply(stats, teamBonus(pd, opts.uid))
 		end
 	end
 	local hpMult = 1
@@ -375,6 +393,10 @@ local function rewardKill(u)
 				end
 				local sealKind = legend and "legend" or u.boss and "boss" or u.elite and "elite" or "common"
 				if not dungeon then
+					local gearSrc = (u.camp and u.camp.world) and "titan" or sealKind ~= "common" and sealKind or nil
+					if gearSrc then
+						drops.gear = GearBag.rollDrop(p, gearSrc, (u.camp and u.camp.world) and "Haven" or (u.camp and u.camp.region))
+					end
 					drops.sealed = Loops.rollSealed(p, sealKind)
 					local runeMult = auto and Config.AutoHunt.RewardMult or 1
 					if math.random() < runeMult then
@@ -1006,12 +1028,16 @@ function Combat.refreshTeamStats(player: Player)
 			for _, rn in Runes.on(p, u.uid) do
 				runeKey ..= Runes.describe(rn) .. ";"
 			end
+			local g = GearBag.equipped(p)
+			if g then
+				runeKey ..= "g" .. tostring(p.weapon.eq) .. ";"
+			end
 		end
 		if m and (m.lv ~= u.lv or m.aw ~= u.aw or m.sk[1] ~= u.sk[1] or m.sk[2] ~= u.sk[2] or m.sk[3] ~= u.sk[3] or runeKey ~= (u.runeKey or "")) then
 			local ratio = u.maxHp > 0 and u.hp / u.maxHp or 1
 			u.lv, u.aw, u.sk = m.lv, m.aw, table.clone(m.sk)
 			u.runeKey = runeKey
-			u.stats = Runes.apply(Monsters.stats(u.sp, u.lv, u.aw), Runes.bonus(Runes.on(p, u.uid)))
+			u.stats = Runes.apply(Monsters.stats(u.sp, u.lv, u.aw), teamBonus(p, u.uid))
 			u.maxHp, u.baseMaxHp = u.stats.hp, u.stats.hp
 			u.hp = u.maxHp * ratio
 			u.part:SetAttribute("Level", u.lv)
@@ -1021,7 +1047,7 @@ function Combat.refreshTeamStats(player: Player)
 	-- the Tamer's HP follows the weapon level
 	local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 	if hum and p then
-		local max = Config.tamerStats(p.weapon.lv).hp
+		local max = Combat.tamerMaxHp(p)
 		if hum.MaxHealth ~= max then
 			local r = hum.Health / hum.MaxHealth
 			hum.MaxHealth = max
@@ -1151,7 +1177,7 @@ function Combat.attack(player: Player, aim: any)
 	if now() < (t.cd.attack or 0) then
 		return
 	end
-	t.cd.attack = now() + w.Cooldown * 0.9 -- small tolerance for latency
+	t.cd.attack = now() + w.Cooldown * (1 - t.gear.haste) * 0.9 -- small tolerance for latency
 	local dir = flat(aim)
 	local origin = hrp.Position
 	local hits = {}
@@ -1175,7 +1201,7 @@ function Combat.attack(player: Player, aim: any)
 		emit({ "swing", t.key, origin, dir, p.weapon.type })
 	end
 	for _, u in hits do
-		damage(t, u, w.Mult, "None")
+		damage(t, u, w.Mult * t.gear.mult, "None")
 		if p.weapon.type == "Hammer" and rng:NextNumber() < 0.2 then
 			addEffect(u, { type = "stun", dur = 0.5 })
 		end
@@ -1198,8 +1224,9 @@ function Combat.weaponSkill(player: Player, aim: any)
 	if now() < (t.cd.skill or 0) then
 		return
 	end
-	t.cd.skill = now() + s.Cooldown * 0.95
-	player:SetAttribute("WeaponSkillReady", workspace:GetServerTimeNow() + s.Cooldown)
+	local cool = s.Cooldown * (1 - t.gear.focus)
+	t.cd.skill = now() + cool * 0.95
+	player:SetAttribute("WeaponSkillReady", workspace:GetServerTimeNow() + cool)
 	local origin = hrp.Position
 	if kind == "Staff" then
 		for _, a in teamOf(t) do
@@ -1216,7 +1243,7 @@ function Combat.weaponSkill(player: Player, aim: any)
 	emit({ "wskill", t.key, centre, kind, s.Radius })
 	local hit = enemiesNear(t, centre, s.Radius)
 	for _, u in hit do
-		damage(t, u, s.Mult, "None")
+		damage(t, u, s.Mult * t.gear.mult, "None")
 		if s.Stun then
 			addEffect(u, { type = "stun", dur = s.Stun })
 		end

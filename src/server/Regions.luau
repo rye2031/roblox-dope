@@ -53,9 +53,9 @@ local terrain = workspace.Terrain
 
 -- Region borders are mountain ranges now (closed valleys, 2026-11-27); gaps are gone because
 -- portals carry you between places. `ridgeLook` is set by each region builder.
-local ridgeLook: { material: Enum.Material?, cap: Enum.Material? } = {}
+local ridgeLook: { material: Enum.Material?, cap: Enum.Material?, height: number? } = {}
 local function ridge(h, a: Vector3, b: Vector3, _gapAt: Vector3?, _gapWidth: number?)
-	World.mountainRange(a, b, { material = ridgeLook.material, cap = ridgeLook.cap })
+	World.mountainRange(a, b, { material = ridgeLook.material, cap = ridgeLook.cap, height = ridgeLook.height })
 end
 
 local function gate(h, region: string, pos: Vector3, facing: Vector3, width: number, accent: Color3, text: string, sub: string)
@@ -431,7 +431,8 @@ end
 
 -- Haven's own valley (north toward the Meadow, east and west) and the Meadow's far end.
 local function buildValleys()
-	ridgeLook = { material = Enum.Material.Rock, cap = Enum.Material.Grass }
+	-- Haven's hills are lower so the hub feels open (still hides the regions' ground)
+	ridgeLook = { material = Enum.Material.Rock, cap = Enum.Material.Grass, height = 44 }
 	ridge(nil, Vector3.new(-250, 0, 112), Vector3.new(250, 0, 112))
 	ridge(nil, Vector3.new(-250, 0, -100), Vector3.new(-250, 0, 112))
 	ridge(nil, Vector3.new(250, 0, -100), Vector3.new(250, 0, 90))

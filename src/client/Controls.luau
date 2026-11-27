@@ -151,7 +151,7 @@ function Controls.attack(forced: Vector3?)
 	if not dir then
 		return
 	end
-	nextAttack = now + weapon().Cooldown
+	nextAttack = now + weapon().Cooldown * (1 - (player:GetAttribute("WeaponHaste") or 0))
 	faceToward(dir)
 	Intent:FireServer("attack", dir)
 	TamerAnim.play(player, player:GetAttribute("Weapon") or "Blade", false, true)

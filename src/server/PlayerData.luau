@@ -23,7 +23,9 @@ export type Profile = {
 	scrolls: { Regular: number, Legendary: number },
 	pity: { four: number, ld: number },
 	essence: { [string]: number },
-	weapon: { type: string, lv: number },
+	weapon: { type: string, lv: number, eq: string? }, -- eq = equipped weapon item id (nil = basic)
+	gear: { [string]: any }, -- weapon items (see Shared/Gear)
+	nextGear: number,
 	index: { [string]: boolean }, -- "<species>:<element>"
 	kills: number,
 	opened: number,
@@ -83,6 +85,8 @@ local function defaults(): Profile
 		sealed = { bag = {}, slots = {} },
 		runes = {},
 		nextRune = 1,
+		gear = {},
+		nextGear = 1,
 		dungeon = { keys = 5, keyAt = os.time(), clears = {}, best = {} },
 		lastSeen = 0,
 	}
@@ -209,6 +213,7 @@ function PlayerData.sanitize(raw: any): Profile
 	end
 	require(script.Parent.RuneBag).sanitize(raw, p)
 	require(script.Parent.Dungeons).sanitize(raw, p)
+	require(script.Parent.GearBag).sanitize(raw, p)
 	if typeof(raw.sealed) == "table" then
 		local S = Config.Sealed
 		if typeof(raw.sealed.bag) == "table" then
@@ -456,6 +461,15 @@ function PlayerData.push(player: Player)
 		ls.Defeated.Value = p.kills
 	end
 	player:SetAttribute("Weapon", p.weapon.type)
+	local eqItem = p.weapon.eq and p.gear and p.gear[p.weapon.eq]
+	player:SetAttribute("WeaponRarity", eqItem and eqItem.r or "Common")
+	local haste = 0
+	for _, pk in (eqItem and eqItem.perks) or {} do
+		if pk.k == "haste" then
+			haste = pk.v / 100
+		end
+	end
+	player:SetAttribute("WeaponHaste", haste)
 	player:SetAttribute("WeaponLevel", p.weapon.lv)
 	if PlayerData.onPush then
 		PlayerData.onPush(player)

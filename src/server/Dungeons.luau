@@ -362,6 +362,10 @@ local function chest(player: Player, run)
 				rewards.bagFull = true
 			end
 		end
+		local g = require(script.Parent.GearBag).rollDrop(p, run.mode == "Hard" and "dungeonHard" or "dungeon", d.Region)
+		if g then
+			rewards.gear = { n = g.n, r = g.r, t = g.t }
+		end
 		if first then
 			p.scrolls.Regular += m.first.scrolls or 0
 			p.scrolls.Legendary += m.first.legendary or 0

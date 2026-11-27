@@ -514,7 +514,7 @@ end
 function World.mountainRange(a: Vector3, b: Vector3, opts: { [string]: any }?)
 	local o = opts or {}
 	local mat = o.material or Enum.Material.Rock
-	local H = o.height or 72
+	local H = o.height or 58
 	local dir = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
 	local len = dir.Magnitude
 	if len < 1 then

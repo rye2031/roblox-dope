@@ -328,6 +328,9 @@ local function onReward(drops, ups)
 	if drops.rune then
 		require(script.Parent.RunesUi).dropped(drops.rune)
 	end
+	if typeof(drops.gear) == "table" then
+		Ui.toast(string.format("⚔ You found %s (%s %s)! Equip it at the Smithy", drops.gear.n, drops.gear.r, drops.gear.t), "good")
+	end
 	local p = Ui.profile
 	for _, uid in ups or {} do
 		local m = p and p.monsters[uid]

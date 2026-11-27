@@ -929,19 +929,47 @@ end
 ----------------------------------------------------------------------------------------------
 -- Weapons
 
-local _, weapBody, weapSub = Ui.panel("Weapons", "Smithy", "Pick your weapon. One weapon level is shared by all four.", C.Peach, "⚔")
+local _, weapBody, weapSub = Ui.panel("Weapons", "Smithy", "Your weapons. Find rarer ones on elites, bosses, Legends, Titans and in dungeons.", C.Peach, "⚔", true)
+local Gear = require(Shared.Gear)
+local weapFilter = "All"
+local weapSel: string? = nil -- "basic:<Type>" or an item id
+local confirmDestroy: string? = nil
+
+local function weaponCard(parent: Instance, order: number, key: string, item, kind: string, equippedNow: boolean)
+	local rar = item and Gear.Rarities[item.r] or Gear.Rarities.Common
+	local w = T.Weapons[kind]
+	local b = button({ Name = "Weapon_" .. key, LayoutOrder = order, BackgroundColor3 = weapSel == key and Ui.Theme.tint(rar.Color, 0.75) or C.Soft, Text = "", ZIndex = 13, Parent = parent, Radius = 14 })
+	Ui.stroke(equippedNow and C.Mint or rar.Color, equippedNow and 3 or 2).Parent = b
+	label(b, { Position = UDim2.fromOffset(px(10), px(6)), Size = UDim2.new(1, -px(16), 0, px(18)), Text = w.Icon .. " " .. (item and item.n or ("Basic " .. w.Name)) .. (item and item.lock and "  🔒" or ""), TextSize = px(14), TextTruncate = Enum.TextTruncate.AtEnd }, "Title")
+	label(b, { Position = UDim2.fromOffset(px(10), px(26)), Size = UDim2.new(1, -px(16), 0, px(16)), Text = (item and item.r or "Basic") .. " " .. w.Name .. (equippedNow and "  ·  equipped" or ""), TextColor3 = rar.Color:Lerp(Color3.new(0, 0, 0), 0.35), TextSize = px(12) }, "Title")
+	label(b, { Position = UDim2.fromOffset(px(10), px(44)), Size = UDim2.new(1, -px(16), 0, px(30)), Text = item and Gear.describe(item) or "Always yours", TextColor3 = C.Sub, TextSize = px(12), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
+	b.Activated:Connect(function()
+		weapSel = weapSel ~= key and key or nil
+		confirmDestroy = nil
+		Ui.onOpen.Weapons()
+	end)
+end
+
 Ui.onOpen.Weapons = function()
 	local p = Ui.profile
 	if not p then
 		return
 	end
 	clear(weapBody)
+	local gear = p.gear or {}
+	local eqKey = p.weapon.eq and gear[p.weapon.eq] and p.weapon.eq or ("basic:" .. p.weapon.type)
+	-- equipped summary
+	local eqItem = p.weapon.eq and gear[p.weapon.eq]
+	local w = T.Weapons[p.weapon.type]
+	local eqRow = Ui.row(weapBody, 1, eqItem and Gear.Rarities[eqItem.r].Color or C.Peach, w.Icon, (eqItem and eqItem.n or ("Basic " .. w.Name)) .. (eqItem and ("  ·  " .. eqItem.r) or ""), (eqItem and (Gear.describe(eqItem) .. ". ") or "") .. w.Blurb .. ". Q: " .. w.Skill.Name .. " (" .. w.Skill.Blurb:lower() .. ")")
+	Ui.setBuy(eqRow.buy, "Equipped", "done", C.Mint)
+	-- weapon level (applies to whatever you hold)
 	local lv = p.weapon.lv
-	local s = Config.tamerStats(lv)
+	local st = Config.tamerStats(lv)
 	local maxed = lv >= T.Tamer.MaxWeaponLevel
 	local cost = not maxed and T.Tamer.WeaponLevelCost(lv) or 0
 	local nx = Config.tamerStats(lv + 1)
-	local up = Ui.row(weapBody, 1, C.Peach, "⬆", "Weapon level " .. lv .. " / " .. T.Tamer.MaxWeaponLevel, maxed and string.format("HP %d · ATK %d · DEF %d", s.hp, s.atk, s.def) or string.format("HP %d→%d · ATK %d→%d · DEF %d→%d", s.hp, nx.hp, s.atk, nx.atk, s.def, nx.def))
+	local up = Ui.row(weapBody, 2, C.Peach, "⬆", "Weapon level " .. lv .. " / " .. T.Tamer.MaxWeaponLevel, maxed and string.format("HP %d · ATK %d · DEF %d", st.hp, st.atk, st.def) or string.format("HP %d→%d · ATK %d→%d · DEF %d→%d (works with every weapon)", st.hp, nx.hp, st.atk, nx.atk, st.def, nx.def))
 	Ui.setBuy(up.buy, maxed and "Maxed" or Ui.fmt(cost), maxed and "done" or p.coins >= cost and "afford" or "poor", C.Peach)
 	up.buy.Activated:Connect(function()
 		if not maxed then
@@ -950,21 +978,97 @@ Ui.onOpen.Weapons = function()
 			Ui.onOpen.Weapons()
 		end
 	end)
-	Ui.section(weapBody, 2, "WEAPONS")
-	for i, kind in T.WeaponOrder do
-		local w = T.Weapons[kind]
-		local r = Ui.row(weapBody, 2 + i, C.Peach, w.Icon, w.Name .. (w.Ranged and "  (ranged)" or "  (melee)"), w.Blurb .. ". Q: " .. w.Skill.Name .. " (" .. w.Skill.Blurb:lower() .. ", " .. w.Skill.Cooldown .. "s)")
-		local on = p.weapon.type == kind
-		Ui.setBuy(r.buy, on and "Equipped" or "Equip", on and "done" or "afford", C.Peach)
-		r.buy.Activated:Connect(function()
-			if not on then
-				Ui.call("SetWeapon", kind)
-				task.wait(0.2)
-				Ui.onOpen.Weapons()
-			end
+	-- filters
+	local n = 0
+	for _ in gear do
+		n += 1
+	end
+	Ui.section(weapBody, 3, string.format("YOUR WEAPONS  ·  %d / %d found", n, Gear.BagCap))
+	local bar = new("Frame", { LayoutOrder = 4, Size = UDim2.new(1, 0, 0, px(34)), BackgroundTransparency = 1, ZIndex = 12, Parent = weapBody }, {
+		new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	for i, f in { "All", "Blade", "Staff", "Hammer", "Bow" } do
+		local on = weapFilter == f
+		local pb = pill(bar, { LayoutOrder = i, Size = UDim2.fromOffset(px(92), px(32)), Text = f == "All" and "All" or (T.Weapons[f].Icon .. " " .. f), TextColor3 = on and Color3.new(1, 1, 1) or C.Ink, TextSize = px(14) }, on and C.Peach or C.Soft)
+		pb.Activated:Connect(function()
+			weapFilter = f
+			Ui.onOpen.Weapons()
 		end)
 	end
-	weapSub.Text = "All four are free to swap. Upgrades raise your HP, attack and defense."
+	-- actions for the selected weapon
+	if weapSel then
+		local selItem = weapSel:sub(1, 6) ~= "basic:" and gear[weapSel] or nil
+		if weapSel:sub(1, 6) ~= "basic:" and not selItem then
+			weapSel = nil
+		else
+			local acts = new("Frame", { LayoutOrder = 5, Size = UDim2.new(1, 0, 0, px(38)), BackgroundTransparency = 1, ZIndex = 12, Parent = weapBody }, {
+				new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+			})
+			local isEq = weapSel == eqKey
+			local eb = pill(acts, { Name = "Equip", LayoutOrder = 1, Size = UDim2.fromOffset(px(130), px(36)), Text = isEq and "Equipped" or "Equip" }, isEq and C.Line or C.Mint)
+			eb.Activated:Connect(function()
+				if not isEq and Ui.call("Gear", "equip", weapSel) then
+					task.wait(0.15)
+					Ui.onOpen.Weapons()
+				end
+			end)
+			if selItem then
+				local lb = pill(acts, { Name = "Lock", LayoutOrder = 2, Size = UDim2.fromOffset(px(110), px(36)), Text = selItem.lock and "🔒 Unlock" or "🔓 Lock", TextColor3 = C.Ink }, C.Soft)
+				lb.Activated:Connect(function()
+					Ui.call("Gear", "lock", weapSel)
+				end)
+				if not selItem.lock and not isEq then
+					local sb = pill(acts, { Name = "Sell", LayoutOrder = 3, Size = UDim2.fromOffset(px(150), px(36)), Text = "Sell · " .. Ui.fmt(Gear.Rarities[selItem.r].Sell) }, C.Sun)
+					sb.Activated:Connect(function()
+						if Ui.call("Gear", "sell", { weapSel }) then
+							weapSel = nil
+						end
+					end)
+					local db = pill(acts, { Name = "Destroy", LayoutOrder = 4, Size = UDim2.fromOffset(px(150), px(36)), Text = confirmDestroy == weapSel and "Tap again to destroy" or "Destroy" }, C.Coral)
+					db.Activated:Connect(function()
+						if confirmDestroy ~= weapSel then
+							confirmDestroy = weapSel
+							Ui.onOpen.Weapons()
+							return
+						end
+						if Ui.call("Gear", "destroy", weapSel) then
+							weapSel, confirmDestroy = nil, nil
+						end
+					end)
+				end
+			end
+		end
+	end
+	-- the grid: four basics first, then found weapons (rarest first)
+	local grid = new("Frame", { Name = "WeaponGrid", LayoutOrder = 6, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 12, Parent = weapBody }, {
+		new("UIGridLayout", { CellSize = UDim2.fromOffset(px(206), px(84)), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	local order = 0
+	for _, kind in T.WeaponOrder do
+		if weapFilter == "All" or weapFilter == kind then
+			order += 1
+			weaponCard(grid, order, "basic:" .. kind, nil, kind, eqKey == "basic:" .. kind)
+		end
+	end
+	local ids = {}
+	for id, it in gear do
+		if weapFilter == "All" or weapFilter == it.t then
+			table.insert(ids, id)
+		end
+	end
+	local RANK = { Common = 1, Rare = 2, Epic = 3, Legendary = 4 }
+	table.sort(ids, function(x, y)
+		local a2, b2 = gear[x], gear[y]
+		if RANK[a2.r] ~= RANK[b2.r] then
+			return RANK[a2.r] > RANK[b2.r]
+		end
+		return Gear.score(a2) > Gear.score(b2)
+	end)
+	for _, id in ids do
+		order += 1
+		weaponCard(grid, order, id, gear[id], gear[id].t, eqKey == id)
+	end
+	weapSub.Text = n == 0 and "Rarer weapons drop from elites, bosses, Wandering Legends, Titans and dungeon chests." or "Tap a weapon to equip, lock, sell or destroy it. Your weapon level works with all of them."
 end
 
 ----------------------------------------------------------------------------------------------

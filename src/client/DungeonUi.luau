@@ -266,6 +266,9 @@ local function showResults(msg)
 		line ..= (r.firstLegendary and ("   +%d 🌟 first clear"):format(r.firstLegendary) or r.firstScrolls and ("   +%d 📜 first clear"):format(r.firstScrolls) or "")
 	end
 	label(resBody, { LayoutOrder = 3, Size = UDim2.new(1, 0, 0, px(22)), Text = line, TextSize = px(16), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 42 }, "Title")
+	if r.gear then
+		label(resBody, { LayoutOrder = 5, Size = UDim2.new(1, 0, 0, px(20)), Text = string.format("⚔ %s (%s %s)", r.gear.n, r.gear.r, r.gear.t), TextColor3 = C.Lilac:Lerp(Color3.new(0, 0, 0), 0.3), TextSize = px(15), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 42 }, "Title")
+	end
 	if r.helper then
 		label(resBody, { LayoutOrder = 4, Size = UDim2.new(1, 0, 0, px(18)), Text = "🤝 Helper reward: thanks for helping! (no key, so no runes this time)", TextColor3 = C.Sub, TextSize = px(13), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 42 }, "Bold")
 	elseif (r.party or 1) > 1 then
@@ -286,7 +289,7 @@ local function showResults(msg)
 	ok.Activated:Connect(function()
 		results.Visible = false
 	end)
-	results.Size = UDim2.fromOffset(px(440), px(170) + #r.runes * px(60) + (r.bagFull and px(24) or 0) + ((r.helper or (r.party or 1) > 1) and px(24) or 0))
+	results.Size = UDim2.fromOffset(px(440), px(170) + #r.runes * px(60) + (r.bagFull and px(24) or 0) + ((r.helper or (r.party or 1) > 1) and px(24) or 0) + (r.gear and px(26) or 0))
 	results.Visible = true
 	local sc = new("UIScale", { Scale = 0.6, Parent = results })
 	TweenService:Create(sc, TweenInfo.new(0.4, Enum.EasingStyle.Back), { Scale = 1 }):Play()
