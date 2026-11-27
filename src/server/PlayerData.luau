@@ -25,6 +25,7 @@ export type Profile = {
 	essence: { [string]: number },
 	weapon: { type: string, lv: number, eq: string? }, -- eq = equipped weapon item id (nil = basic)
 	gear: { [string]: any }, -- weapon items (see Shared/Gear)
+	found: { [string]: boolean }, -- discoveries found
 	nextGear: number,
 	index: { [string]: boolean }, -- "<species>:<element>"
 	kills: number,
@@ -87,6 +88,7 @@ local function defaults(): Profile
 		nextRune = 1,
 		gear = {},
 		nextGear = 1,
+		found = {}, -- discoveries (Shared/Discoveries)
 		dungeon = { keys = 5, keyAt = os.time(), clears = {}, best = {} },
 		lastSeen = 0,
 	}
@@ -252,7 +254,7 @@ function PlayerData.sanitize(raw: any): Profile
 	if typeof(raw.story) == "table" then
 		p.story = { i = math.max(1, int(raw.story.i, 1)), n = int(raw.story.n, 0) }
 	end
-	for _, key in { "regions", "bosses", "tutorial", "campfires" } do
+	for _, key in { "regions", "bosses", "tutorial", "campfires", "found" } do
 		if typeof(raw[key]) == "table" then
 			for k, v in raw[key] do
 				if typeof(k) == "string" and v == true then

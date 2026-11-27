@@ -680,6 +680,7 @@ function Regions.register(w)
 		buildTitanField(h)
 		buildValleys()
 		buildPortals(h)
+		require(script.Parent.Landmarks).build(h)
 	end
 end
 

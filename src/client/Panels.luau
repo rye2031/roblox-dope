@@ -798,6 +798,22 @@ Ui.onOpen.Index = function()
 		found += 1
 	end
 	indexSub.Text = string.format("Found %d of %d (%d species × 5 elements)", found, #list * 5, #list)
+	-- discoveries (hidden spots in every region)
+	local Disc = require(Shared.Discoveries)
+	local nFound = 0
+	for _ in p.found or {} do
+		nFound += 1
+	end
+	Ui.section(indexBody, -6, string.format("DISCOVERIES  ·  %d / %d  ·  find them all for a Legendary scroll", nFound, #Disc.List))
+	local dgrid = new("Frame", { LayoutOrder = -5, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 12, Parent = indexBody }, {
+		new("UIGridLayout", { CellSize = UDim2.fromOffset(px(250), px(46)), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	for i, d in Disc.List do
+		local got = p.found and p.found[d.id]
+		local cell = new("Frame", { LayoutOrder = i, BackgroundColor3 = got and Ui.Theme.tint(C.Sun, 0.8) or C.Soft, ZIndex = 13, Parent = dgrid }, { corner(12) })
+		label(cell, { Position = UDim2.fromOffset(px(10), px(4)), Size = UDim2.new(1, -px(16), 0, px(18)), Text = (got and "🔍 " or "❔ ") .. (got and d.name or "???"), TextSize = px(14), ZIndex = 14 }, "Title")
+		label(cell, { Position = UDim2.fromOffset(px(10), px(24)), Size = UDim2.new(1, -px(16), 0, px(16)), Text = got and ("Found · " .. (d.region == "Haven" and "Haven" or d.region:gsub("(%l)(%u)", "%1 %2"))) or d.hint, TextColor3 = C.Sub, TextSize = px(11), TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 14 }, "Bold")
+	end
 	-- collection rewards
 	local claims = p.indexClaims or { m = {}, s = {} }
 	Ui.section(indexBody, -3, "COLLECTION REWARDS")

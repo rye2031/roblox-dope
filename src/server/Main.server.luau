@@ -34,7 +34,7 @@ end
 local remoteFolder = Instance.new("Folder")
 remoteFolder.Name = "Remotes"
 local remotes = {}
-for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce", "Story", "DungeonRun", "Portal" } do
+for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce", "Story", "DungeonRun", "Portal", "Discovery" } do
 	local r = Instance.new("RemoteEvent")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -61,6 +61,7 @@ Loops.init(remotes)
 Arena.init()
 Combat.init(remotes)
 Dungeons.init(remotes, Combat)
+require(script.Parent.Landmarks).init(remotes)
 Regions.init(remotes, Combat)
 Leaderboard.init()
 
@@ -332,7 +333,7 @@ if game:GetService("RunService"):IsStudio() then
 				local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
 				local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
 				out.player = { pos = hrp and vec(hrp.Position), hp = hum and math.floor(hum.Health), maxHp = hum and hum.MaxHealth }
-				out.profile = { coins = p.coins, team = p.team, scrolls = p.scrolls, pity = p.pity, essence = p.essence, weapon = p.weapon, kills = p.kills, count = Inventory.count(p), monsters = p.monsters, bosses = p.bosses, regions = p.regions, index = PlayerData.indexCount(p) }
+				out.profile = { coins = p.coins, team = p.team, scrolls = p.scrolls, pity = p.pity, found = p.found, essence = p.essence, weapon = p.weapon, kills = p.kills, count = Inventory.count(p), monsters = p.monsters, bosses = p.bosses, regions = p.regions, index = PlayerData.indexCount(p) }
 			end
 			return HttpService:JSONEncode(out)
 		elseif cmd == "give" then
