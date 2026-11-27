@@ -12,6 +12,7 @@ local Monsters = require(Shared.Monsters)
 local Ui = require(script.Parent.Ui)
 local Panels = require(script.Parent.Panels)
 local Controls = require(script.Parent.Controls)
+local Unlocks = require(script.Parent.Unlocks)
 local UnitView = require(script.Parent.UnitView)
 
 local T = Config.Tuning
@@ -86,12 +87,24 @@ local monDot: Frame -- overflow waiting
 local expDot: Frame -- an expedition is back
 local shrineDot: Frame -- a sealed scroll is ready
 local passDot: Frame -- a Tamer Pass reward is ready
+local railButtons: { [string]: TextButton } = {}
+local newBadges: { [string]: Frame } = {}
 for i, r in RAIL do
 	local b = button({ LayoutOrder = i, Size = UDim2.fromOffset(px(64), px(64)), BackgroundColor3 = C.Card, Text = "", ZIndex = 2, Parent = rail, Radius = 18 })
 	Ui.stroke(Ui.Theme.tint(r[3], 0.4), 2).Parent = b
 	label(b, { Position = UDim2.fromOffset(0, px(6)), Size = UDim2.new(1, 0, 0, px(30)), Text = r[2], TextSize = px(26), TextColor3 = r[3], TextXAlignment = Enum.TextXAlignment.Center }, "Title")
 	label(b, { Position = UDim2.new(0, 0, 1, -px(22)), Size = UDim2.new(1, 0, 0, px(16)), Text = r[1], TextSize = px(12), TextXAlignment = Enum.TextXAlignment.Center }, "Title")
+	railButtons[r[1]] = b
+	b.Visible = r[1] == "Monsters" or r[1] == "Shrine"
+	newBadges[r[1]] = new("Frame", { Name = "New", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -px(4), 0, px(6)), Size = UDim2.fromOffset(px(40), px(18)), BackgroundColor3 = C.Coral, Visible = false, ZIndex = 5, Parent = b }, {
+		new("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+		Ui.text({ Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, TextScaled = false, TextSize = px(11), TextColor3 = Color3.new(1, 1, 1), Text = "NEW!", ZIndex = 6 }, "Title"),
+	})
 	b.Activated:Connect(function()
+		if newBadges[r[1]].Visible then
+			newBadges[r[1]].Visible = false
+			task.spawn(Ui.call, "Tutorial", "unl_" .. r[1])
+		end
 		if Ui.isOpen(r[1]) then
 			Ui.open(nil)
 		else
@@ -141,8 +154,8 @@ local function paintAuto(state: boolean)
 end
 AutoHunt.onChanged(paintAuto)
 Ui.onProfile(function(p)
-	local open = p.bosses and p.bosses[Config.AutoHunt.UnlockBoss]
-	autoB.Visible = true
+	local open = p.kills >= 1 or (p.bosses and p.bosses[Config.AutoHunt.UnlockBoss])
+	autoB.Visible = Unlocks.open(p, "Auto")
 	if not open then
 		autoB.Text = "🔒 Auto-Hunt"
 		autoB.TextColor3 = C.Sub
@@ -421,6 +434,28 @@ function Hud.setProfile(p)
 		end
 	end
 	shrineDot.Visible = sealReady
+	-- menus appear as they unlock (NEW! badge until opened once)
+	for name, b in railButtons do
+		local open = Unlocks.open(p, name)
+		if open and not b.Visible then
+			b.Visible = true
+			local fresh = not (p.tutorial and p.tutorial["unl_" .. name])
+			if fresh and Unlocks.message(name) and Ui.profileLoadedOnce then
+				newBadges[name].Visible = true
+				Ui.toast("✨ New: " .. Unlocks.message(name), "good")
+				local sc = new("UIScale", { Scale = 1.4, Parent = b })
+				game:GetService("TweenService"):Create(sc, TweenInfo.new(0.5, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+				task.delay(0.6, function()
+					sc:Destroy()
+				end)
+			elseif fresh and Unlocks.message(name) then
+				newBadges[name].Visible = true
+			end
+		elseif not open then
+			b.Visible = false
+		end
+	end
+	Ui.profileLoadedOnce = true
 	passDot.Visible = require(script.Parent.PassUi).ready(p) > 0
 	if not p.tutorial.intro and not Hud.introShown then
 		Hud.introShown = true

@@ -130,6 +130,8 @@ local Journey = nil -- set in start (avoids a require loop)
 local shown: { [string]: boolean } = {}
 
 local function render(now: number)
+	local Unlocks = require(script.Parent.Unlocks)
+	card.Visible = Ui.profile ~= nil and Unlocks.open(Ui.profile, "Ticker")
 	local list = gather(now)
 	rank(list, now)
 	local seen = {}

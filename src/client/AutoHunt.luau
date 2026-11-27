@@ -29,7 +29,7 @@ local MOVE_KEYS = { [Enum.KeyCode.W] = true, [Enum.KeyCode.A] = true, [Enum.KeyC
 
 local function unlocked(): boolean
 	local p = Ui.profile
-	return p ~= nil and p.bosses ~= nil and p.bosses[A.UnlockBoss] == true
+	return p ~= nil and (p.kills >= 1 or (p.bosses ~= nil and p.bosses[A.UnlockBoss] == true))
 end
 
 function AutoHunt.isOn(): boolean
@@ -42,7 +42,7 @@ end
 
 function AutoHunt.set(state: boolean, why: string?)
 	if state and not unlocked() then
-		Ui.toast("Auto-Hunt unlocks after you beat the Meadow Guardian", "warn")
+		Ui.toast("Auto-Hunt unlocks after your first win", "warn")
 		return
 	end
 	if on == state then

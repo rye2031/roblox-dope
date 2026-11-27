@@ -368,7 +368,7 @@ function Journey.start()
 			end
 			-- travel from anywhere (owner, 2026-11-27): the button is always there outside dungeons
 			local _ = near
-			travelB.Visible = Ui.profile ~= nil and player:GetAttribute("Dungeon") == nil
+			travelB.Visible = Ui.profile ~= nil and player:GetAttribute("Dungeon") == nil and require(script.Parent.Unlocks).open(Ui.profile, "Travel")
 			local fighting = player:GetAttribute("InCombat") == true
 			travelB.BackgroundColor3 = fighting and C.Line or C.Peach
 			travelB.Text = fighting and "🔥 Travel (in a fight)" or "🔥 Travel"

@@ -58,12 +58,13 @@ function Pace.start()
 		local riding = player:GetAttribute("Riding") ~= nil
 		rideB.Text = riding and "🐾 Get off [F]" or "🐾 Ride [F]"
 		rideB.BackgroundColor3 = riding and C.Mint or (player:GetAttribute("InCombat") and C.Line or C.Lilac)
-		rideB.Visible = player:GetAttribute("Dungeon") == nil
+		rideB.Visible = player:GetAttribute("Dungeon") == nil and require(script.Parent.Unlocks).open(Ui.profile, "Ride")
 	end
 	for _, a in { "Riding", "InCombat", "Dungeon" } do
 		player:GetAttributeChangedSignal(a):Connect(paintRide)
 	end
 	paintRide()
+	Ui.onProfile(paintRide)
 	player:GetAttributeChangedSignal("Riding"):Connect(function()
 		if player:GetAttribute("Riding") then
 			Sfx.play("skill_ready", { pitch = 1.2 })

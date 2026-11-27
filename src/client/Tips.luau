@@ -31,7 +31,7 @@ local TIPS = {
 	rune = { "💠", "You found a rune!", "Open a monster and tap one of its 3 sockets to put the rune on. It makes that monster stronger." },
 	gear = { "⚔", "New weapon!", "Open Weapons (the Smithy) and tap it to equip it. Rarer ones glow." },
 	awaken = { "✨", "Level 20!", "A monster reached level 20, its cap. Evolve it on its page to raise the cap to 40 and boost its stats." },
-	auto = { "🤖", "Auto-Hunt unlocked", "Press R (or the Auto-Hunt button) and your Tamer fights nearby monsters for you, at a bit less reward." },
+	auto = { "🤖", "Auto-Hunt", "Press R (or the Auto-Hunt button) and your Tamer fights nearby monsters for you, at a bit less reward." },
 	ride = { "🐾", "Ride your monster", "Press F (or Ride) to hop on your lead monster and travel fast. A fight knocks you off." },
 	portal = { "🌀", "Portals", "Glowing portals take you between places. A locked one tells you what opens it." },
 }
@@ -163,7 +163,7 @@ function Tips.start()
 				break
 			end
 		end
-		local auto = p.bosses ~= nil and p.bosses.SproutMeadow == true
+		local auto = p.kills >= 1
 		if first then
 			first = false
 			hadL20, hadAuto = l20, auto

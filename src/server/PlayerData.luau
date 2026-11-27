@@ -487,4 +487,14 @@ function PlayerData.debugReplace(player: Player, raw: any)
 	PlayerData.push(player)
 end
 
+-- Debug: stop this session from saving (fresh-profile tests never overwrite the real save).
+function PlayerData.debugNoSave(player: Player)
+	local m = meta[player]
+	if m then
+		m.cloud = false
+		m.dirty = false
+	end
+	player:SetAttribute("SaveMode", "Session")
+end
+
 return PlayerData

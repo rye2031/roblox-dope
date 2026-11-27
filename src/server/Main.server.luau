@@ -186,7 +186,7 @@ remotes.Intent.OnServerEvent:Connect(function(player, kind, a)
 		Combat.focus(player, a)
 	elseif kind == "auto" then
 		local p = PlayerData.get(player)
-		local allowed = p and p.bosses[Config.AutoHunt.UnlockBoss] == true
+		local allowed = p and (p.kills >= 1 or p.bosses[Config.AutoHunt.UnlockBoss] == true)
 		player:SetAttribute("AutoHunt", a == true and allowed or false)
 	end
 end)
@@ -545,6 +545,12 @@ if game:GetService("RunService"):IsStudio() then
 				PlayerData.push(player)
 			end
 			return HttpService:JSONEncode(p.pass)
+		elseif cmd == "newplayer" then
+			-- Studio: wipe to a brand-new profile (keeps nothing)
+			PlayerData.debugNoSave(player)
+			PlayerData.debugReplace(player, { scrolls = { Regular = 0, Legendary = 0 } })
+			Combat.syncTeam(player)
+			return "ok"
 		elseif cmd == "riftlock" then
 			require(script.Parent.Rifts).debugLocked[p] = a and true or nil
 			return "ok"
