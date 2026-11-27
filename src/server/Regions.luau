@@ -497,6 +497,13 @@ function Regions.init(r, c)
 	setupGroups()
 	Combat.onBossDefeated = onBossDefeated
 	Combat.onBossDied = onBossDied
+	Combat.onLegendDied = function(u)
+		Regions.onLegendDied(u)
+	end
+	workspace:SetAttribute("LegendUntil", 0)
+	task.spawn(function()
+		Regions.legendLoop()
+	end)
 	workspace:SetAttribute("WorldBossAt", nextWorldBoss())
 	workspace:SetAttribute("WorldBossUntil", 0)
 
@@ -561,6 +568,100 @@ function Regions.init(r, c)
 			end
 		end
 	end)
+end
+
+----------------------------------------------------------------------------------------------
+-- Wandering Legends: every 6-14 minutes (random) a glowing rare 4-5 star appears somewhere in a
+-- region someone in the server has unlocked, for 3 minutes. The whole server is told where.
+
+local LEGEND_LASTS = 180
+local LEGEND_TITLE = { Light = "Radiant", Dark = "Shadow", Fire = "Blazing", Water = "Tidal", Wind = "Tempest" }
+local legendCamp: any = nil
+
+local function clearLegend()
+	legendCamp = nil
+	workspace:SetAttribute("LegendUntil", 0)
+end
+
+function Regions.spawnLegend(region: string?)
+	if legendCamp then
+		Combat.despawnCamp(legendCamp)
+		clearLegend()
+	end
+	-- a region somebody here can reach
+	local options = {}
+	for _, id in Regions.Order do
+		for _, pl in Players:GetPlayers() do
+			local p = PlayerData.get(pl)
+			if p and p.regions[id] then
+				table.insert(options, id)
+				break
+			end
+		end
+	end
+	region = region or options[math.random(1, math.max(1, #options))]
+	local r = region and World.Regions[region]
+	if not r then
+		return nil
+	end
+	local camps = {}
+	for _, c in World.Camps do
+		if c.region == region and not c.boss then
+			table.insert(camps, c)
+		end
+	end
+	if #camps == 0 then
+		return nil
+	end
+	local c = camps[math.random(1, #camps)]
+	local a = math.random() * math.pi * 2
+	local pos = c.pos + Vector3.new(math.cos(a) * 22, 0, math.sin(a) * 22)
+	local stars = math.random() < 0.4 and 5 or 4
+	local pool = Monsters.byStars(stars)
+	local sp = pool[math.random(1, #pool)]
+	local roll = math.random()
+	local el = roll < 0.15 and "Light" or roll < 0.3 and "Dark" or Config.pickWeighted({ Fire = r.Elements.Fire or 1, Water = r.Elements.Water or 1, Wind = r.Elements.Wind or 1 }, math.random())
+	local top = 1
+	for _, cc in camps do
+		top = math.max(top, cc.lv[2])
+	end
+	local lv = top + 3
+	legendCamp = { id = "Legend", region = region, pos = pos, radius = 2, count = 1, lv = { lv, lv }, species = sp, element = el, elite = true, hpMult = 6, legend = true }
+	Combat.spawnWild(legendCamp)
+	local name = LEGEND_TITLE[el] .. " " .. Monsters.Species[sp].Name
+	local untilT = os.time() + LEGEND_LASTS
+	workspace:SetAttribute("LegendName", name)
+	workspace:SetAttribute("LegendPos", pos)
+	workspace:SetAttribute("LegendRegion", region)
+	workspace:SetAttribute("LegendUntil", untilT)
+	remotes.Toast:FireAllClients(string.format("✨ A %s (Lv %d) appeared in %s! 3 minutes to find it", name, lv, Regions.Info[region].Name), "good")
+	local mine = legendCamp
+	task.delay(LEGEND_LASTS, function()
+		if legendCamp == mine then
+			Combat.despawnCamp(mine)
+			clearLegend()
+			remotes.Toast:FireAllClients("The " .. name .. " slipped away...", "info")
+		end
+	end)
+	return name
+end
+
+function Regions.onLegendDied(u)
+	if legendCamp and u.camp == legendCamp then
+		local name = workspace:GetAttribute("LegendName") or "Legend"
+		clearLegend()
+		remotes.Toast:FireAllClients("✨ The " .. name .. " was defeated! Everyone who helped shares the loot", "good")
+	end
+end
+
+function Regions.legendLoop()
+	task.wait(math.random(180, 360))
+	while true do
+		if #Players:GetPlayers() > 0 then
+			pcall(Regions.spawnLegend)
+		end
+		task.wait(math.random(360, 840))
+	end
 end
 
 function Regions.debugSpawnBoss(region: string?)

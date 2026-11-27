@@ -271,6 +271,7 @@ local function makeUnit(side: string, sp: string, el: string, lv: number, aw: bo
 	part:SetAttribute("Awakened", aw)
 	part:SetAttribute("Elite", opts.elite == true)
 	part:SetAttribute("Boss", opts.boss == true)
+	part:SetAttribute("Legend", opts.legend == true)
 	if opts.owner then
 		part:SetAttribute("Owner", opts.owner.UserId)
 		part:SetAttribute("Slot", opts.slot)
@@ -311,7 +312,8 @@ local function rewardKill(u)
 			local p = PlayerData.get(player)
 			if p then
 				local stars = Monsters.Species[u.sp].Stars
-				local mult = u.boss and 8 or u.elite and 3 or 1
+				local legend = u.camp and u.camp.legend
+				local mult = u.boss and 8 or legend and 6 or u.elite and 3 or 1
 				local xp = T.KillXp(u.lv, stars) * mult
 				local levels = 0
 				local ups = {}
@@ -329,8 +331,8 @@ local function rewardKill(u)
 				p.coins += coins
 				p.kills += 1
 				local drops = { coins = coins, xp = xp, el = u.el, pos = u.pos }
-				if rng:NextNumber() < (u.boss and 1 or u.elite and 0.8 or R.EssenceChance) then
-					local n = (u.boss and 8 or u.elite and 3 or 1) * (surge and Config.Loops.Surge.EssenceMult or 1)
+				if rng:NextNumber() < ((u.boss or legend) and 1 or u.elite and 0.8 or R.EssenceChance) then
+					local n = (u.boss and 8 or legend and 4 or u.elite and 3 or 1) * (surge and Config.Loops.Surge.EssenceMult or 1)
 					if u.el == "Dark" and Loops.phase() == "night" then
 						n *= Config.DayNight.DarkEssenceMult
 					end
@@ -344,6 +346,15 @@ local function rewardKill(u)
 					if rng:NextNumber() < 0.25 then
 						p.scrolls.Legendary += 1
 						drops.legendary = true
+					end
+				elseif legend then
+					-- Wandering Legend: a good shot at a Legendary scroll
+					if rng:NextNumber() < 0.35 then
+						p.scrolls.Legendary += 1
+						drops.legendary = true
+					else
+						p.scrolls.Regular += 2
+						drops.scroll = "Regular"
 					end
 				elseif rng:NextNumber() < scrollChance then
 					p.scrolls.Regular += 1
@@ -383,7 +394,11 @@ local function die(u)
 	task.delay(0.6, function()
 		removeUnit(u)
 	end)
-	if camp and not u.boss then
+	if camp and camp.legend then
+		if Combat.onLegendDied then
+			Combat.onLegendDied(u)
+		end
+	elseif camp and not u.boss then
 		task.delay(u.elite and 90 or CT.CommonRespawn, function()
 			Combat.spawnWild(camp)
 		end)
@@ -834,7 +849,7 @@ local function updateWildUnit(u, dt: number)
 			u.state = "idle"
 		end
 		if u.hp < u.maxHp and now() - u.lastCombat > 6 then
-			u.hp = math.min(u.maxHp, u.hp + u.maxHp * (u.boss and 0.015 or 0.1) * dt) -- bosses heal slowly, so a knocked-out team can come back
+			u.hp = math.min(u.maxHp, u.hp + u.maxHp * ((u.boss or (u.camp and u.camp.legend)) and 0.015 or 0.1) * dt) -- bosses heal slowly, so a knocked-out team can come back
 		end
 	end
 end
@@ -900,7 +915,7 @@ function Combat.spawnWild(camp)
 		local lv = rng:NextInteger(camp.lv[1], camp.lv[2])
 		local nightBonus = Loops.phase() == "night" and Config.DayNight.NightEliteBonus or 0
 		local elite = camp.elite or (not camp.boss and rng:NextNumber() < (region.EliteChance or 0) + nightBonus)
-		makeUnit("wild", sp, el, lv, false, { 1, 1, 1 }, { pos = pos, camp = camp, elite = elite, boss = camp.boss, hpMult = camp.hpMult })
+		makeUnit("wild", sp, el, lv, false, { 1, 1, 1 }, { pos = pos, camp = camp, elite = elite, boss = camp.boss, hpMult = camp.hpMult, legend = camp.legend })
 	end
 end
 

@@ -296,6 +296,12 @@ function Sfx.start(Ui)
 	player:GetAttributeChangedSignal("Region"):Connect(function()
 		Sfx.play("region")
 	end)
+	workspace:GetAttributeChangedSignal("LegendUntil"):Connect(function()
+		if (workspace:GetAttribute("LegendUntil") or 0) > os.time() then
+			Sfx.play("announce", { pitch = 1.1 })
+			task.delay(0.3, Sfx.play, "boss", { pitch = 1.3, vol = 0.7 })
+		end
+	end)
 	workspace:GetAttributeChangedSignal("WorldBossUntil"):Connect(function()
 		if (workspace:GetAttribute("WorldBossUntil") or 0) > os.time() then
 			Sfx.play("boss")

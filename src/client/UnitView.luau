@@ -184,7 +184,7 @@ local function addView(part: BasePart)
 	v.trailW = v.hpShown
 	-- element aura: subtle for the triangle, strong for Light/Dark, big for elites and bosses
 	local info = Config.ElementInfo[el]
-	local strong = el == "Light" or el == "Dark" or part:GetAttribute("Elite") or part:GetAttribute("Boss")
+	local strong = el == "Light" or el == "Dark" or part:GetAttribute("Elite") or part:GetAttribute("Boss") or part:GetAttribute("Legend")
 	local e = Instance.new("ParticleEmitter")
 	e.Texture = "rbxasset://textures/particles/sparkles_main.dds"
 	e.Color = ColorSequence.new(info.Color, info.Light)
@@ -201,7 +201,17 @@ local function addView(part: BasePart)
 		local hl = Instance.new("Highlight")
 		hl.FillTransparency = 0.85
 		hl.FillColor = info.Color
-		hl.OutlineColor = part:GetAttribute("Boss") and Color3.fromRGB(255, 210, 80) or info.Color
+		hl.OutlineColor = (part:GetAttribute("Boss") or part:GetAttribute("Legend")) and Color3.fromRGB(255, 210, 80) or info.Color
+		if part:GetAttribute("Legend") then
+			-- a Wandering Legend shimmers through the colours
+			hl.FillTransparency = 0.7
+			task.spawn(function()
+				while hl.Parent do
+					hl.FillColor = Color3.fromHSV((os.clock() * 0.25) % 1, 0.5, 1)
+					task.wait(0.05)
+				end
+			end)
+		end
 		hl.DepthMode = Enum.HighlightDepthMode.Occluded
 		hl.Adornee = body
 		hl.Parent = body
@@ -366,7 +376,7 @@ local function updateView(v: View, dt: number, now: number)
 	v.shield.Size = UDim2.fromScale(math.clamp((part:GetAttribute("Shield") or 0) / max, 0, 1), 1)
 	local fx = part:GetAttribute("Effects") or ""
 	v.fx.Text = fx ~= "" and fx:gsub(",", " · ") or ""
-	v.title.Text = string.format("%s%s Lv%d", part:GetAttribute("Boss") and "👑 " or part:GetAttribute("Elite") and "★ " or "", Monsters.Species[part:GetAttribute("Species")].Name, part:GetAttribute("Level") or 1)
+	v.title.Text = string.format("%s%s Lv%d", part:GetAttribute("Boss") and "👑 " or part:GetAttribute("Legend") and "✨ " or part:GetAttribute("Elite") and "★ " or "", Monsters.Species[part:GetAttribute("Species")].Name, part:GetAttribute("Level") or 1)
 
 	-- follow the server part smoothly (it moves at 10 Hz)
 	local target = part.CFrame * CFrame.new(0, (v.baseSize.Y - part.Size.Y) / 2, 0)
@@ -849,7 +859,7 @@ function UnitView.start()
 			for p in known do
 				local d = (p.Position - focus).Magnitude
 				local mine = p:GetAttribute("Owner") == player.UserId
-				local want = mine or d < (p:GetAttribute("Boss") and 260 or 170)
+				local want = mine or d < ((p:GetAttribute("Boss") or p:GetAttribute("Legend")) and 260 or 170)
 				if want and not views[p] then
 					task.spawn(addView, p)
 				elseif not want and views[p] and d > 200 then

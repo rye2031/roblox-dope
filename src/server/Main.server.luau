@@ -394,6 +394,8 @@ if game:GetService("RunService"):IsStudio() then
 			Regions.refreshRegions(player)
 			PlayerData.push(player)
 			return "ok"
+		elseif cmd == "legend" then
+			return tostring(Regions.spawnLegend(a))
 		elseif cmd == "worldboss" then
 			return tostring(Regions.debugWorldBoss())
 		end
