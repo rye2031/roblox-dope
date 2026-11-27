@@ -246,7 +246,7 @@ local tHpText = label(targetCard, { Position = UDim2.fromOffset(12, px(28)), Siz
 -- Touch buttons
 
 if Controls.touch then
-	local atk = button({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -px(130), 1, -px(150)), Size = UDim2.fromOffset(px(84), px(84)), BackgroundColor3 = C.Coral, Text = "⚔", TextScaled = false, TextSize = px(34), ZIndex = 3, Parent = gui, Radius = 42 })
+	local atk = button({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -px(120), 1, -px(150)), Size = UDim2.fromOffset(px(104), px(104)), BackgroundColor3 = C.Coral, Text = "⚔", TextScaled = false, TextSize = px(42), ZIndex = 3, Parent = gui, Radius = 52 })
 	local holding = false
 	atk.InputBegan:Connect(function(input)
 		if input.UserInputType == Enum.UserInputType.Touch then
@@ -513,7 +513,16 @@ function Hud.start()
 					local st = u:GetAttribute("State")
 					local cdLeft = (u:GetAttribute("CdB") or 0) - workspace:GetServerTimeNow()
 					local ready = cdLeft <= 0.05 and st ~= "fainted"
-					s.ult.BackgroundColor3 = st == "fainted" and C.Mute or ready and C.Lilac or Ui.Theme.tint(C.Lilac, 0.5)
+					-- a ready big move pulses so it's obvious when to press it
+					local pulse = ready and (0.5 + 0.5 * math.sin(os.clock() * 7)) or 0
+					s.ult.BackgroundColor3 = st == "fainted" and C.Mute or ready and C.Lilac:Lerp(Color3.fromRGB(255, 220, 120), pulse * 0.55) or Ui.Theme.tint(C.Lilac, 0.5)
+					local sc = s.ult:FindFirstChild("Pulse") :: UIScale?
+					if not sc then
+						sc = Instance.new("UIScale")
+						sc.Name = "Pulse"
+						sc.Parent = s.ult
+					end
+					sc.Scale = 1 + pulse * 0.06
 					if st == "fainted" then
 						s.cd.Text = "Fainted"
 					elseif not ready then

@@ -96,6 +96,16 @@ local function aim(): Vector3?
 	if not touch then
 		local m = UserInputService:GetMouseLocation()
 		tgt = unitAtScreen(m, 40)
+		-- simpler for kids: no need to aim. Holding attack keeps hitting your target, or the
+		-- nearest monster in reach, before falling back to where the cursor points.
+		if not tgt then
+			local t = Controls.target
+			if t and t.Parent and t:GetAttribute("State") ~= "dead" and (t.Position - root.Position).Magnitude < reach + 4 then
+				tgt = t
+			else
+				tgt = nearestWild(reach)
+			end
+		end
 		if not tgt then
 			local cam = workspace.CurrentCamera
 			local ray = cam:ViewportPointToRay(m.X, m.Y)
