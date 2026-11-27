@@ -1712,5 +1712,165 @@
     "files": [
       "art/meshy/models/zephyrion/model.glb"
     ]
+  },
+  {
+    "name": "lanternpup",
+    "kind": "text-to-image",
+    "task_id": "01a21e4c-0711-7729-ab61-081d3bcdcdfc",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/lanternpup.png"
+    ]
+  },
+  {
+    "name": "umbracat",
+    "kind": "text-to-image",
+    "task_id": "01a21e4c-0b60-70b0-a033-8802d2b71864",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/umbracat.png"
+    ]
+  },
+  {
+    "name": "seraphawk",
+    "kind": "text-to-image",
+    "task_id": "01a21e4c-0fb1-77d6-9ea6-5bb4b760cac7",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/seraphawk.png"
+    ]
+  },
+  {
+    "name": "solmora",
+    "kind": "text-to-image",
+    "task_id": "01a21e4c-1418-706f-935d-d850c0bb709e",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/solmora.png"
+    ]
+  },
+  {
+    "name": "prop_sun_obelisk",
+    "kind": "text-to-image",
+    "task_id": "01a21e4c-180e-765a-8029-c947e7a16153",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_sun_obelisk.png"
+    ]
+  },
+  {
+    "name": "prop_moon_lantern",
+    "kind": "text-to-image",
+    "task_id": "01a21e4c-1c29-72f5-924b-09bd4928ab5a",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_moon_lantern.png"
+    ]
+  },
+  {
+    "name": "prop_shadow_crystals",
+    "kind": "text-to-image",
+    "task_id": "01a21e4c-2011-7183-ad92-b76f30388574",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_shadow_crystals.png"
+    ]
+  },
+  {
+    "name": "prop_ruined_arch",
+    "kind": "text-to-image",
+    "task_id": "01a21e4c-2372-70b4-be9e-96e34008fffb",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/prop_ruined_arch.png"
+    ]
+  },
+  {
+    "name": "lanternpup",
+    "kind": "image-to-3d",
+    "task_id": "01a21e4c-8290-72be-9c49-c37da7333063",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/lanternpup/model.glb",
+      "art/meshy/models/lanternpup/model_base_color.png",
+      "art/meshy/models/lanternpup/thumb.png"
+    ]
+  },
+  {
+    "name": "umbracat",
+    "kind": "image-to-3d",
+    "task_id": "01a21e4c-87f1-7106-a1c3-b47d1eeb0c56",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/umbracat/model.glb",
+      "art/meshy/models/umbracat/model_base_color.png",
+      "art/meshy/models/umbracat/thumb.png"
+    ]
+  },
+  {
+    "name": "seraphawk",
+    "kind": "image-to-3d",
+    "task_id": "01a21e4c-8b81-760a-9228-582d386f9331",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/seraphawk/model.glb",
+      "art/meshy/models/seraphawk/model_base_color.png",
+      "art/meshy/models/seraphawk/thumb.png"
+    ]
+  },
+  {
+    "name": "solmora",
+    "kind": "image-to-3d",
+    "task_id": "01a21e4c-9062-7153-8c14-005d6330db00",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/solmora/model.glb",
+      "art/meshy/models/solmora/model_base_color.png",
+      "art/meshy/models/solmora/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_sun_obelisk",
+    "kind": "image-to-3d",
+    "task_id": "01a21e4c-952e-7353-892b-a39e6f277fd8",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_sun_obelisk/model.glb",
+      "art/meshy/props/models/prop_sun_obelisk/model_base_color.png",
+      "art/meshy/props/models/prop_sun_obelisk/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_moon_lantern",
+    "kind": "image-to-3d",
+    "task_id": "01a21e4c-99fc-761a-9854-48e552e426b8",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_moon_lantern/model.glb",
+      "art/meshy/props/models/prop_moon_lantern/model_base_color.png",
+      "art/meshy/props/models/prop_moon_lantern/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_shadow_crystals",
+    "kind": "image-to-3d",
+    "task_id": "01a21e4c-9ec6-7487-b4d7-bff6b08025f9",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_shadow_crystals/model.glb",
+      "art/meshy/props/models/prop_shadow_crystals/model_base_color.png",
+      "art/meshy/props/models/prop_shadow_crystals/thumb.png"
+    ]
+  },
+  {
+    "name": "prop_ruined_arch",
+    "kind": "image-to-3d",
+    "task_id": "01a21e4c-a352-7669-8320-92d7ae834ab5",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/prop_ruined_arch/model.glb",
+      "art/meshy/props/models/prop_ruined_arch/model_base_color.png",
+      "art/meshy/props/models/prop_ruined_arch/thumb.png"
+    ]
   }
 ]

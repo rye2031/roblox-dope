@@ -169,7 +169,7 @@ function Loops.expedition(player: Player, action: any, slot: any, place: any, du
 			return false, "Not back yet"
 		end
 		local r = x.reward
-		local el = r.element or ({ "Fire", "Water", "Wind" })[rng:NextInteger(1, 3)]
+		local el = r.element == "Twilight" and (rng:NextNumber() < 0.5 and "Light" or "Dark") or r.element or ({ "Fire", "Water", "Wind" })[rng:NextInteger(1, 3)]
 		local scrolls = r.scrolls + (rng:NextNumber() < r.scrollChance and 1 or 0)
 		p.coins += r.coins
 		p.essence[el] = (p.essence[el] or 0) + r.essence

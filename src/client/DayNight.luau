@@ -15,6 +15,8 @@ local LIGHTS = {
 	PropFireBrazier = { y = 0.4, color = Color3.fromRGB(255, 150, 80), range = 20, brightness = 2 },
 	PropLighthouse = { y = 0.32, color = Color3.fromRGB(255, 240, 180), range = 60, brightness = 3 },
 	PropMagmaCrystals = { y = 0.1, color = Color3.fromRGB(255, 140, 60), range = 16, brightness = 1.2 },
+	PropMoonLantern = { y = 0.8, color = Color3.fromRGB(170, 210, 255), range = 26, brightness = 2 },
+	PropShadowCrystals = { y = 0.3, color = Color3.fromRGB(180, 120, 255), range = 16, brightness = 1.4 },
 }
 
 local function smooth(x: number): number
@@ -49,23 +51,72 @@ end
 
 function DayNight.start()
 	local base = {
+		exposure = Lighting.ExposureCompensation,
 		brightness = Lighting.Brightness,
 		ambient = Lighting.Ambient,
 		outdoor = Lighting.OutdoorAmbient,
 	}
 	local NIGHT = { brightness = 0.9, ambient = Color3.fromRGB(70, 76, 120), outdoor = Color3.fromRGB(84, 92, 146) }
+	-- Twilight Vale zones: the Dawnfield is always sunlit and warm, the Gloamwood always dusky
+	local GLOAM = { ambient = Color3.fromRGB(96, 70, 140), outdoor = Color3.fromRGB(110, 86, 160) }
+	local DAWN = { ambient = Color3.fromRGB(190, 170, 130), outdoor = Color3.fromRGB(200, 182, 140) }
+	local zone = 0 -- smoothed: -1 Dawnfield, 0 elsewhere, 1 Gloamwood
+	local atm = Lighting:FindFirstChildOfClass("Atmosphere")
+	local cc = Lighting:FindFirstChildOfClass("ColorCorrectionEffect")
+	local atmBase = atm and { color = atm.Color, decay = atm.Decay, density = atm.Density, haze = atm.Haze }
+	local ccBase = cc and { tint = cc.TintColor, sat = cc.Saturation }
+	local ATM_GLOAM = { color = Color3.fromRGB(150, 120, 200), decay = Color3.fromRGB(90, 60, 140), density = 0.42, haze = 2.2 }
+	local ATM_DAWN = { color = Color3.fromRGB(255, 238, 205), decay = Color3.fromRGB(255, 214, 160), density = 0.32, haze = 1.4 }
+	local player = game:GetService("Players").LocalPlayer
 	task.spawn(function()
 		while true do
 			local offset = game:GetService("RunService"):IsStudio() and (workspace:GetAttribute("DebugTimeOffset") or 0) or 0
 			local clock, dark = sky(workspace:GetServerTimeNow() + offset)
+			local want = 0
+			local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if hrp and player:GetAttribute("Region") == "TwilightVale" then
+				want = hrp.Position.Z > D.TwilightSeam and -1 or 1
+			end
+			zone += (want - zone) * 0.12
+			if zone > 0 then
+				dark = math.max(dark, 0.7 * zone)
+				-- the Gloamwood sits in a permanent dusk: the sun sinks toward the horizon
+				if clock > 6 and clock < 18.4 then
+					clock = clock + (18.4 - clock) * zone * 0.9
+				end
+			elseif zone < 0 then
+				dark *= 1 + zone * 0.8
+				clock = clock + (13 - clock) * -zone * 0.6
+			end
+			DayNight.zone = zone
 			Lighting.ClockTime = clock
 			Lighting.Brightness = base.brightness + (NIGHT.brightness - base.brightness) * dark
 			Lighting.Ambient = base.ambient:Lerp(NIGHT.ambient, dark)
 			Lighting.OutdoorAmbient = base.outdoor:Lerp(NIGHT.outdoor, dark)
+			if atm and atmBase then
+				local to, k = zone > 0 and ATM_GLOAM or ATM_DAWN, math.abs(zone)
+				atm.Color = atmBase.color:Lerp(to.color, k)
+				atm.Decay = atmBase.decay:Lerp(to.decay, k)
+				atm.Density = atmBase.density + (to.density - atmBase.density) * k
+				atm.Haze = atmBase.haze + (to.haze - atmBase.haze) * k
+			end
+			if cc and ccBase then
+				cc.TintColor = ccBase.tint:Lerp(zone > 0 and Color3.fromRGB(222, 208, 255) or Color3.fromRGB(255, 246, 228), math.abs(zone))
+				cc.Saturation = ccBase.sat - math.abs(zone) * 0.12
+			end
+			Lighting.ExposureCompensation = base.exposure - math.max(0, zone) * 0.7 - math.max(0, -zone) * 0.15
+			if zone > 0.01 then
+				Lighting.Ambient = Lighting.Ambient:Lerp(GLOAM.ambient, zone * 0.7)
+				Lighting.OutdoorAmbient = Lighting.OutdoorAmbient:Lerp(GLOAM.outdoor, zone * 0.7)
+			elseif zone < -0.01 then
+				Lighting.Ambient = Lighting.Ambient:Lerp(DAWN.ambient, -zone * 0.3)
+				Lighting.OutdoorAmbient = Lighting.OutdoorAmbient:Lerp(DAWN.outdoor, -zone * 0.3)
+			end
 			-- lamps
 			local props = workspace:FindFirstChild("Props")
 			for _, p in (props and props:GetChildren() or {}) do
 				local spec = LIGHTS[p.Name]
+				local lit = math.max(dark, zone)
 				if spec and p:IsA("BasePart") then
 					local l = p:FindFirstChild("NightLight", true) :: PointLight?
 					if not l then
@@ -82,8 +133,8 @@ function DayNight.start()
 						l = att:FindFirstChild("NightLight") :: PointLight
 					end
 					local light = l :: PointLight
-					light.Brightness = spec.brightness * dark
-					light.Enabled = dark > 0.05
+					light.Brightness = spec.brightness * lit
+					light.Enabled = lit > 0.05
 				end
 			end
 			task.wait(0.25)

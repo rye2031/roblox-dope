@@ -63,6 +63,20 @@ PropData.List = {
 	{ mesh = "PropFloatingRocks", x = -40, z = -540, h = 20, yaw = 240 },
 	{ mesh = "PropBirdNest", x = 190, z = -480, h = 4.5, yaw = 40 },
 
+	-- Twilight Vale: sun obelisks in the Dawnfield, moon lanterns and shadow crystals in the
+	-- Gloamwood, ruined arches on the seam (z -340)
+	{ mesh = "PropSunObelisk", x = 300, z = -190, h = 16, yaw = 0 },
+	{ mesh = "PropSunObelisk", x = 490, z = -160, h = 18, yaw = 30 },
+	{ mesh = "PropSunObelisk", x = 640, z = -300, h = 15, yaw = -20 },
+	{ mesh = "PropMoonLantern", x = 470, z = -380, h = 12, yaw = 90 },
+	{ mesh = "PropMoonLantern", x = 490, z = -440, h = 12, yaw = -90 },
+	{ mesh = "PropMoonLantern", x = 560, z = -490, h = 12, yaw = 45 },
+	{ mesh = "PropShadowCrystals", x = 380, z = -460, h = 9, yaw = 0 },
+	{ mesh = "PropShadowCrystals", x = 660, z = -420, h = 11, yaw = 120 },
+	{ mesh = "PropShadowCrystals", x = 300, z = -560, h = 10, yaw = 220 },
+	{ mesh = "PropRuinedArch", x = 480, z = -340, h = 16, yaw = 0 },
+	{ mesh = "PropRuinedArch", x = 640, z = -345, h = 12, yaw = 15 },
+
 	-- Titan Field: the fallen titan
 	{ mesh = "PropTitanHead", x = 205, z = 24, h = 18, yaw = -40 },
 }

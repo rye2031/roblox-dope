@@ -19,8 +19,8 @@ local player = Players.LocalPlayer
 local Journey = {}
 
 local COUNTED = { defeat = true, feed = true, ult = true, summon = true }
-local REGION_NAMES = { Haven = "Haven", SproutMeadow = "Sprout Meadow", EmberCanyon = "Ember Canyon", TideCoast = "Tide Coast", GaleHighlands = "Gale Highlands" }
-local CAMPFIRE_ORDER = { "Haven", "SproutMeadow", "EmberCanyon", "TideCoast", "GaleHighlands" }
+local REGION_NAMES = { Haven = "Haven", SproutMeadow = "Sprout Meadow", EmberCanyon = "Ember Canyon", TideCoast = "Tide Coast", GaleHighlands = "Gale Highlands", TwilightVale = "Twilight Vale" }
+local CAMPFIRE_ORDER = { "Haven", "SproutMeadow", "EmberCanyon", "TideCoast", "GaleHighlands", "TwilightVale" }
 
 local function label(parent: Instance, props: { [string]: any }, weight: string?)
 	props.BackgroundTransparency = props.BackgroundTransparency or 1

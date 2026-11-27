@@ -186,6 +186,7 @@ Config.Loops = {
 			EmberCanyon = { Name = "Ember Canyon", Mult = 1.5, Essence = "Fire", Icon = "🔥" },
 			TideCoast = { Name = "Tide Coast", Mult = 2, Essence = "Water", Icon = "💧" },
 			GaleHighlands = { Name = "Gale Highlands", Mult = 2.5, Essence = "Wind", Icon = "🍃" },
+			TwilightVale = { Name = "Twilight Vale", Mult = 3, Essence = "Twilight", Icon = "🌗" }, -- Light or Dark Essence
 		},
 	},
 	IndexMilestones = {
@@ -234,6 +235,7 @@ Config.AutoHunt = {
 -- are night (more Dark monsters and elites, double Dark Essence); the first 2 minutes of day
 -- are dawn (more Light monsters).
 Config.DayNight = {
+	TwilightSeam = -340, -- Twilight Vale: north of this z is the Dawnfield (Light), south the Gloamwood (Dark)
 	Cycle = 1200,
 	NightStart = 840,
 	DawnLength = 120,
@@ -296,7 +298,7 @@ function Config.expeditionReward(monsters, place: string, minutes: number)
 		power += stars ^ 1.5 * (1 + m.lv / 15) * (m.aw and 1.25 or 1)
 	end
 	local mult = pl and pl.Mult or 1
-	local refLevel = place == "GaleHighlands" and 28 or place == "TideCoast" and 20 or place == "EmberCanyon" and 13 or 6
+	local refLevel = place == "TwilightVale" and 36 or place == "GaleHighlands" and 28 or place == "TideCoast" and 20 or place == "EmberCanyon" and 13 or 6
 	return {
 		coins = math.floor(power * minutes * 0.5 * mult),
 		essence = math.max(1, math.floor(power * minutes / 80 * mult)),

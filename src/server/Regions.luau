@@ -25,12 +25,14 @@ local Combat
 local remotes
 
 -- Order matters: each region needs the previous one's boss.
-Regions.Order = { "SproutMeadow", "EmberCanyon", "TideCoast", "GaleHighlands" }
+Regions.Order = { "SproutMeadow", "EmberCanyon", "TideCoast", "GaleHighlands", "TwilightVale" }
 Regions.Info = {
 	SproutMeadow = { Name = "Sprout Meadow", Boss = { sp = "Sproutknight", el = "Wind", lv = 10, title = "Meadow Guardian" } },
 	EmberCanyon = { Name = "Ember Canyon", PassLevel = 14, Boss = { sp = "Drakoryn", el = "Fire", lv = 18, title = "Canyon Tyrant" } },
 	TideCoast = { Name = "Tide Coast", PassLevel = 22, Boss = { sp = "Shellotl", el = "Water", lv = 26, title = "Tide Monarch" } },
 	GaleHighlands = { Name = "Gale Highlands", PassLevel = 30, Boss = { sp = "Zephyrion", el = "Wind", lv = 34, title = "Sky Sovereign" } },
+	-- the Warden is Light by day and Dark by night
+	TwilightVale = { Name = "Twilight Vale", PassLevel = 38, Boss = { sp = "Solmora", el = "Light", lv = 42, title = "Eclipse Warden" } },
 }
 local BOSS_HP = 8 -- region bosses: x8 a normal wild monster (soloable by a ready team)
 local BOSS_RESPAWN = 120
@@ -302,9 +304,140 @@ local function buildGaleHighlands(h)
 	local hh = { part = P }
 	ridge(hh, Vector3.new(x0 - 10, 0, -100), Vector3.new(x1 + 10, 0, -100), Vector3.new(0, 0, -100), 24)
 	ridge(hh, Vector3.new(x0 - 10, 0, -100), Vector3.new(x0 - 10, 0, z0 - 10))
-	ridge(hh, Vector3.new(x1 + 10, 0, -100), Vector3.new(x1 + 10, 0, z0 - 10))
+	-- east ridge: the Twilight Vale gate sits in it
+	ridge(hh, Vector3.new(x1 + 10, 0, -100), Vector3.new(x1 + 10, 0, z0 - 10), Vector3.new(x1 + 10, 0, -200), 24)
 	ridge(hh, Vector3.new(x0 - 10, 0, z0 - 10), Vector3.new(x1 + 10, 0, z0 - 10))
 	gate({ part = P, float = h.float }, "GaleHighlands", Vector3.new(0, World.groundY(0, -100), -100), Vector3.new(0, 0, -1), 24, TC.Mint, "GALE HIGHLANDS", "beat the Tide Monarch or reach Lv 30")
+end
+
+-- Twilight Vale (M8.2): south-east, through the Gale Highlands' east gate. The north half is
+-- the sunlit Dawnfield (Light 45% camps, white-and-gold ruins), the south half the Gloamwood
+-- (Dark 45%, violet crystals, glowing mushrooms); arches mark the seam. Boss: the Eclipse
+-- Warden, Light by day and Dark by night.
+Regions.TwilightSeamZ = -340
+local function buildTwilightVale(h)
+	local f = Instance.new("Folder")
+	f.Name = "TwilightVale"
+	f.Parent = h.root
+	local function P(props)
+		return h.part(props, f)
+	end
+	local x0, x1, z0, z1 = 260, 700, -570, -110
+	local seam = Regions.TwilightSeamZ
+	World.Regions.TwilightVale = {
+		Id = "TwilightVale",
+		Name = "Twilight Vale",
+		Bounds = { x0, x1, z0, z1 },
+		Elements = { Light = 30, Dark = 30, Fire = 13, Water = 13, Wind = 14 },
+		StarWeights = { 5, 25, 45, 20, 5 },
+		EliteChance = 0.12,
+		Seam = seam,
+	}
+	-- ground: pale gold limestone in the Dawnfield, violet mud in the Gloamwood
+	terrain:SetMaterialColor(Enum.Material.Limestone, Color3.fromRGB(206, 194, 150))
+	terrain:SetMaterialColor(Enum.Material.Mud, Color3.fromRGB(70, 62, 82))
+	terrain:ReplaceMaterial(Region3.new(Vector3.new(x0 - 4, -20, seam), Vector3.new(x1 + 20, 60, z1 + 20)):ExpandToGrid(4), 4, Enum.Material.Grass, Enum.Material.Limestone)
+	terrain:ReplaceMaterial(Region3.new(Vector3.new(x0 - 4, -20, z0 - 20), Vector3.new(x1 + 20, 60, seam)):ExpandToGrid(4), 4, Enum.Material.Grass, Enum.Material.Mud)
+	for _, m in { { 360, -190, 60, 14 }, { 620, -260, 70, 18 }, { 650, -150, 50, 10 }, { 320, -470, 60, 16 }, { 520, -420, 50, 10 }, { 680, -560, 60, 18 } } do
+		terrain:FillBall(Vector3.new(m[1], m[4] - m[3], m[2]), m[3], m[2] > seam and Enum.Material.Limestone or Enum.Material.Mud)
+	end
+	h.pathStrip(Vector3.new(250, 0, -200), Vector3.new(480, 0, -200), 12)
+	h.pathStrip(Vector3.new(480, 0, -200), Vector3.new(480, 0, -460), 12)
+	h.pathStrip(Vector3.new(480, 0, -460), Vector3.new(600, 0, -500), 12)
+	local gold, marble = Color3.fromRGB(255, 206, 90), Color3.fromRGB(248, 246, 255)
+	local violet, crystal = Color3.fromRGB(70, 58, 104), Color3.fromRGB(176, 120, 255)
+	-- Dawnfield: marble columns with gold caps, sun-shafts, golden blooms
+	for i = 1, 16 do
+		local x, z = x0 + 20 + math.random() * (x1 - x0 - 40), seam + 20 + math.random() * (z1 - seam - 40)
+		if math.abs(z + 200) > 14 and math.abs(x - 480) > 14 then
+			local y = World.groundY(x, z)
+			local hgt = 8 + math.random() * 10
+			local broken = math.random() < 0.4
+			P({ Name = "SunColumn", Shape = Enum.PartType.Cylinder, Size = Vector3.new(hgt, 2.6, 2.6), CFrame = CFrame.new(x, y + hgt / 2, z) * CFrame.Angles(0, 0, math.rad(90)) * CFrame.Angles(broken and 0.12 or 0, 0, 0), Color = marble, Material = Enum.Material.Marble })
+			if not broken then
+				P({ Name = "SunCap", Size = Vector3.new(3.6, 1, 3.6), CFrame = CFrame.new(x, y + hgt + 0.5, z), Color = gold, Material = Enum.Material.SmoothPlastic })
+			end
+		end
+	end
+	for i = 1, 7 do
+		local x, z = x0 + 40 + math.random() * (x1 - x0 - 80), seam + 30 + math.random() * (z1 - seam - 60)
+		local beam = P({ Name = "SunShaft", Size = Vector3.new(6, 60, 6), CFrame = CFrame.new(x, 30, z) * CFrame.Angles(0, math.random() * 3, math.rad(8)), Color = Color3.fromRGB(255, 236, 170), Material = Enum.Material.Neon, Transparency = 0.86, CanCollide = false, CanQuery = false, CastShadow = false })
+		h.decor(beam)
+	end
+	for i = 1, 90 do
+		local x, z = x0 + 10 + math.random() * (x1 - x0 - 20), seam + 6 + math.random() * (z1 - seam - 12)
+		local y = World.groundY(x, z)
+		h.decor(P({ Name = "GoldBloom", Shape = Enum.PartType.Ball, Size = Vector3.new(0.8, 0.6, 0.8), Position = Vector3.new(x, y + 0.3, z), Color = i % 3 == 0 and Color3.new(1, 1, 1) or gold }))
+	end
+	-- Gloamwood: twisted trees with violet crowns, crystal clusters, glowing mushrooms
+	for i = 1, 22 do
+		local x, z = x0 + 16 + math.random() * (x1 - x0 - 32), z0 + 16 + math.random() * (seam - z0 - 32)
+		if math.abs(x - 480) > 14 and (Vector3.new(x, 0, z) - Vector3.new(600, 0, -500)).Magnitude > 44 then
+			local y = World.groundY(x, z)
+			local hgt = 9 + math.random() * 6
+			P({ Name = "GloamTrunk", Shape = Enum.PartType.Cylinder, Size = Vector3.new(hgt, 1.6, 1.6), CFrame = CFrame.new(x, y + hgt / 2, z) * CFrame.Angles(0, math.random() * 6, math.rad(90 + (math.random() - 0.5) * 16)), Color = Color3.fromRGB(60, 48, 70) })
+			for k = 1, 2 do
+				local r = 7 - k * 1.6
+				P({ Name = "GloamCrown", Shape = Enum.PartType.Ball, Size = Vector3.new(r, r * 0.8, r), Position = Vector3.new(x + (math.random() - 0.5) * 2, y + hgt + (k - 1) * 2.4, z + (math.random() - 0.5) * 2), Color = Color3.fromRGB(120, 96, 170), CanCollide = k == 1 })
+			end
+		end
+	end
+	for i = 1, 14 do
+		local x, z = x0 + 20 + math.random() * (x1 - x0 - 40), z0 + 20 + math.random() * (seam - z0 - 40)
+		if math.abs(x - 480) > 12 then
+			local y = World.groundY(x, z)
+			for k = 1, 3 do
+				local hgt = 3 + math.random() * 5
+				local c = P({ Name = "GloamCrystal", Size = Vector3.new(1.4, hgt, 1.4), CFrame = CFrame.new(x + (k - 2) * 1.4, y + hgt / 2 - 0.5, z) * CFrame.Angles(math.rad((k - 2) * 14), math.random() * 3, math.rad((math.random() - 0.5) * 20)), Color = crystal, Material = Enum.Material.Neon, Transparency = 0.15 })
+				c:SetAttribute("NoLod", true)
+			end
+		end
+	end
+	for i = 1, 40 do
+		local x, z = x0 + 10 + math.random() * (x1 - x0 - 20), z0 + 10 + math.random() * (seam - z0 - 20)
+		local y = World.groundY(x, z)
+		local s = 0.8 + math.random() * 1.2
+		h.decor(P({ Name = "GlowStem", Size = Vector3.new(0.3 * s, 1 * s, 0.3 * s), Position = Vector3.new(x, y + 0.5 * s, z), Color = Color3.fromRGB(230, 224, 240) }))
+		h.decor(P({ Name = "GlowCap", Shape = Enum.PartType.Ball, Size = Vector3.new(1.4 * s, 0.7 * s, 1.4 * s), Position = Vector3.new(x, y + 1.1 * s, z), Color = i % 2 == 0 and Color3.fromRGB(120, 220, 255) or Color3.fromRGB(200, 140, 255), Material = Enum.Material.Neon }))
+	end
+	-- the seam: a row of marble arches, half gold, half violet
+	for i = 0, 4 do
+		local x = x0 + 50 + i * (x1 - x0 - 100) / 4
+		if math.abs(x - 480) > 20 then
+			local y = World.groundY(x, seam)
+			for _, side in { -1, 1 } do
+				P({ Name = "SeamPillar", Size = Vector3.new(2.4, 12, 2.4), CFrame = CFrame.new(x + side * 5, y + 6, seam), Color = side < 0 and marble or Color3.fromRGB(150, 136, 190), Material = Enum.Material.Marble })
+			end
+			P({ Name = "SeamLintel", Size = Vector3.new(13, 1.8, 2.8), CFrame = CFrame.new(x, y + 12.6, seam), Color = Color3.fromRGB(214, 200, 240), Material = Enum.Material.Marble })
+		end
+	end
+	h.float("Twilight", Vector3.new(480, 40, -230), "TWILIGHT VALE", TC.Lilac, 20, { Icon = "🌗", Sub = "levels 32-40 · Light and Dark", Height = 4.2 })
+	h.float("Dawnfield", Vector3.new(380, 22, -290), "DAWNFIELD", TC.Sun, 12, { Icon = "☀", Sub = "Light 45%", Height = 2.6 })
+	h.float("Gloamwood", Vector3.new(380, 22, -390), "GLOAMWOOD", TC.Lilac, 12, { Icon = "🌙", Sub = "Dark 45%", Height = 2.6 })
+	h.campfire("TwilightVale", Vector3.new(290, 0, -222), f)
+	local LIGHT = { Light = 45, Fire = 18, Water = 18, Wind = 19 }
+	local DARK = { Dark = 45, Fire = 18, Water = 18, Wind = 19 }
+	local camps = {
+		{ 330, -160, 32, 33 }, { 420, -140, 32, 34 }, { 560, -160, 33, 34 }, { 650, -230, 33, 35 }, { 360, -270, 34, 35 }, { 560, -290, 34, 36 },
+		{ 330, -400, 35, 37 }, { 430, -400, 36, 37 }, { 630, -400, 36, 38 }, { 330, -520, 37, 39 }, { 440, -530, 38, 40 },
+	}
+	for i, c in camps do
+		local zoneLight = c[2] > seam
+		table.insert(World.Camps, { id = "TV" .. i, region = "TwilightVale", pos = Vector3.new(c[1], 0, c[2]), radius = 14, count = 3, lv = { c[3], c[4] }, elements = zoneLight and LIGHT or DARK, zone = zoneLight and "Light" or "Dark" })
+	end
+	local ac = Vector3.new(600, World.groundY(600, -500), -500)
+	arena({ part = P, float = h.float }, "TwilightVale", ac, TC.Lilac, Color3.fromRGB(214, 200, 240), Regions.Info.TwilightVale.Boss.title)
+	World.Regions.TwilightVale.BossArena = ac
+	bossCamp("TwilightVale", ac)
+	bossCamps.TwilightVale.elementFn = function()
+		return workspace:GetAttribute("IsNight") and "Dark" or "Light"
+	end
+	-- walls (the west side is the Gale Highlands' east ridge, gate in it)
+	local hh = { part = P }
+	ridge(hh, Vector3.new(x0 - 10, 0, -100), Vector3.new(x1 + 10, 0, -100))
+	ridge(hh, Vector3.new(x1 + 10, 0, -100), Vector3.new(x1 + 10, 0, z0 - 10))
+	ridge(hh, Vector3.new(x0 - 10, 0, z0 - 10), Vector3.new(x1 + 10, 0, z0 - 10))
+	gate({ part = P, float = h.float }, "TwilightVale", Vector3.new(250, World.groundY(250, -200), -200), Vector3.new(1, 0, 0), 24, TC.Lilac, "TWILIGHT VALE", "beat the Sky Sovereign or reach Lv 38")
 end
 
 local function buildTitanField(h)
@@ -487,6 +620,7 @@ function Regions.register(w)
 		buildEmberCanyon(h)
 		buildTideCoast(h)
 		buildGaleHighlands(h)
+		buildTwilightVale(h)
 		buildTitanField(h)
 	end
 end
@@ -497,6 +631,21 @@ function Regions.init(r, c)
 	setupGroups()
 	Combat.onBossDefeated = onBossDefeated
 	Combat.onBossDied = onBossDied
+	-- the Eclipse Warden changes with the sky: at nightfall and dawn an idle Warden swaps
+	-- element (one in a fight keeps going until it falls)
+	workspace:GetAttributeChangedSignal("IsNight"):Connect(function()
+		local camp = bossCamps.TwilightVale
+		if not camp then
+			return
+		end
+		local list = Combat.campUnits(camp)
+		local u = list[1]
+		local want = camp.elementFn and camp.elementFn()
+		if u and want and u.el ~= want and not u.target and u.hp >= u.maxHp * 0.99 then
+			Combat.despawnCamp(camp)
+			Combat.spawnWild(camp)
+		end
+	end)
 	Combat.onLegendDied = function(u)
 		Regions.onLegendDied(u)
 	end

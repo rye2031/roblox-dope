@@ -932,7 +932,7 @@ function Combat.spawnWild(camp)
 		local r = rng:NextNumber() * camp.radius
 		local pos = camp.pos + Vector3.new(math.cos(a) * r, 0, math.sin(a) * r)
 		local sp = camp.species or (camp.stars and Monsters.byStars(camp.stars)[rng:NextInteger(1, #Monsters.byStars(camp.stars))]) or pickWildSpecies(region)
-		local el = camp.element or Config.pickWeighted(camp.elements or Loops.surgeWeights(region.Elements), rng:NextNumber())
+		local el = (camp.elementFn and camp.elementFn()) or camp.element or Config.pickWeighted(camp.elements or Loops.surgeWeights(region.Elements), rng:NextNumber())
 		local lv = rng:NextInteger(camp.lv[1], camp.lv[2])
 		local nightBonus = Loops.phase() == "night" and Config.DayNight.NightEliteBonus or 0
 		local elite = camp.elite or (not camp.boss and not camp.noElite and rng:NextNumber() < (region.EliteChance or 0) + nightBonus)

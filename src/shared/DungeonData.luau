@@ -14,7 +14,7 @@ DungeonData.Modes = {
 	Hard = { lvAdd = 8, hpMult = 1.5, bossHp = 12, runes = 2, weights = { Rare = 25, Epic = 50, Legendary = 25 }, coins = 2, first = { legendary = 1 } },
 }
 
-DungeonData.Order = { "Grove", "Forge", "Grotto", "Aerie" }
+DungeonData.Order = { "Grove", "Forge", "Grotto", "Aerie", "Sanctum" }
 DungeonData.List = {
 	Grove = {
 		Name = "Bramble Hollow",
@@ -59,6 +59,17 @@ DungeonData.List = {
 		Color = Color3.fromRGB(150, 224, 196),
 		Stone = Color3.fromRGB(196, 204, 214),
 		Blurb = "Nests on a pillar in the thunderclouds.",
+	},
+	Sanctum = {
+		Name = "Eclipse Sanctum",
+		Icon = "🌗",
+		Region = "TwilightVale",
+		RegionName = "Twilight Vale",
+		Levels = { 40, 42 },
+		Elements = { Light = 45, Dark = 45, Fire = 4, Water = 3, Wind = 3 },
+		Color = Color3.fromRGB(170, 140, 230),
+		Stone = Color3.fromRGB(226, 220, 240),
+		Blurb = "Half sunlit, half starlit, all dangerous.",
 	},
 }
 

@@ -103,7 +103,9 @@ local flyAnchor = piece(Vector3.new(70, 6, 70), Color3.new(1, 1, 1))
 flyAnchor.Transparency = 1
 local fireflies = Instance.new("ParticleEmitter")
 fireflies.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-fireflies.Color = ColorSequence.new(Color3.fromRGB(230, 255, 140), Color3.fromRGB(255, 240, 120))
+local FLY_COLOR = ColorSequence.new(Color3.fromRGB(230, 255, 140), Color3.fromRGB(255, 240, 120))
+local TWILIGHT_SEAM = -340 -- Config.DayNight.TwilightSeam
+fireflies.Color = FLY_COLOR
 fireflies.LightEmission = 1
 fireflies.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.2, 0.3), NumberSequenceKeypoint.new(0.5, 0.12), NumberSequenceKeypoint.new(0.8, 0.3), NumberSequenceKeypoint.new(1, 0) })
 fireflies.Lifetime = NumberRange.new(3, 5)
@@ -155,9 +157,16 @@ function AmbientFx.start()
 		local t = os.clock()
 		local night = workspace:GetAttribute("IsNight") == true
 		local green = here == "Haven" or here == "SproutMeadow" or here == "GaleHighlands"
-		if green and night then
+		local vale = here == "TwilightVale"
+		if (green and night) or vale then
 			flyAnchor.CFrame = CFrame.new(pos.X, pos.Y + 1, pos.Z)
-			fireflies.Rate = 14
+			-- Twilight Vale: golden motes in the Dawnfield, violet-blue wisps in the Gloamwood
+			local mode = vale and (pos.Z > TWILIGHT_SEAM and "dawn" or "gloam") or "flies"
+			if fireflies:GetAttribute("Mode") ~= mode then
+				fireflies:SetAttribute("Mode", mode)
+				fireflies.Color = mode == "dawn" and ColorSequence.new(Color3.fromRGB(255, 230, 150)) or mode == "gloam" and ColorSequence.new(Color3.fromRGB(190, 140, 255), Color3.fromRGB(120, 210, 255)) or FLY_COLOR
+			end
+			fireflies.Rate = vale and 22 or 14
 		else
 			fireflies.Rate = 0
 		end

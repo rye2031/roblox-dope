@@ -35,6 +35,7 @@ Runes.Sets = {
 	Forge = { Name = "Forge", Focus = { "atk", "critDmg" }, Bonus = { atk = 8 }, Desc = "+8% ATK" },
 	Grotto = { Name = "Grotto", Focus = { "def", "crit" }, Bonus = { def = 12 }, Desc = "+12% DEF" },
 	Aerie = { Name = "Aerie", Focus = { "spd", "crit" }, Bonus = { spd = 4, crit = 3 }, Desc = "+4 SPD · +3% crit" },
+	Sanctum = { Name = "Sanctum", Focus = { "atk", "crit" }, Bonus = { atk = 5, critDmg = 10 }, Desc = "+5% ATK · +10% crit damage" },
 }
 Runes.SetPieces = 2
 Runes.Slots = 3

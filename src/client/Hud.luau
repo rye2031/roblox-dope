@@ -54,7 +54,7 @@ local bossChip = Ui.card({ Position = UDim2.fromOffset(px(70), 10 + px(52)), Siz
 local bossText = label(bossChip, { Size = UDim2.fromScale(1, 1), Text = "", TextSize = px(14), TextXAlignment = Enum.TextXAlignment.Center }, "Title")
 bossChip.Visible = false -- the Next-up ticker (Ticker.luau) shows the titan now
 
-local REGION_NAMES = { Haven = "Haven", SproutMeadow = "Sprout Meadow", EmberCanyon = "Ember Canyon", TideCoast = "Tide Coast", GaleHighlands = "Gale Highlands", TitanField = "Titan Field" }
+local REGION_NAMES = { Haven = "Haven", SproutMeadow = "Sprout Meadow", EmberCanyon = "Ember Canyon", TideCoast = "Tide Coast", GaleHighlands = "Gale Highlands", TwilightVale = "Twilight Vale", TitanField = "Titan Field" }
 
 local help = button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(70), 0, 10), Size = UDim2.fromOffset(px(44), px(44)), BackgroundColor3 = C.Card, TextColor3 = C.Ink, Text = "?", TextScaled = false, TextSize = px(22), ZIndex = 2, Parent = gui, Radius = 22 })
 -- sound on/off (session only)

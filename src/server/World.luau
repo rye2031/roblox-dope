@@ -202,8 +202,9 @@ end
 local function terrainBase()
 	terrain:Clear()
 	-- one big grass field; regions paint their own materials on top
-	terrain:FillBlock(CFrame.new(0, -8, 200), Vector3.new(1600, 16, 1000), Enum.Material.Grass)
-	terrain:FillBlock(CFrame.new(0, -24, 200), Vector3.new(1600, 16, 1000), Enum.Material.Ground)
+	-- z -620..720: covers Gale Highlands' south half and Twilight Vale (it stopped at z -300)
+	terrain:FillBlock(CFrame.new(0, -8, 50), Vector3.new(1600, 16, 1340), Enum.Material.Grass)
+	terrain:FillBlock(CFrame.new(0, -24, 50), Vector3.new(1600, 16, 1340), Enum.Material.Ground)
 end
 
 local function hill(x: number, z: number, r: number, h: number, material: Enum.Material?)

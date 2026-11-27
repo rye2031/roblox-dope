@@ -69,6 +69,12 @@ species("Cloudram", "Cloudram", 4, "Tank", "melee", 5.2, { Name = "Cloud Butt", 
 species("Stormstag", "Stormstag", 4, "Attacker", "ranged", 6.0, { Name = "Thunder Antlers", Mult = 0.55, Hits = 2 }, "Little storms nest in its antlers.", { Core = true })
 species("Zephyrion", "Zephyrion", 5, "Tank", "melee", 7.6, { Name = "Sovereign Roar", Mult = 1.15 }, "The sky's own king. Its wingbeat starts the wind.", { Core = true })
 
+-- wave 4 (M8.2, 2026-11-27): Twilight Vale
+species("Lanternpup", "Lanternpup", 3, "Support", "ranged", 3.6, { Name = "Lantern Swing", Mult = 1.0 }, "Its tail lantern never goes out, even in the rain.", { Core = true })
+species("Umbracat", "Umbracat", 4, "Speed", "melee", 5.0, { Name = "Crescent Swipe", Mult = 0.65, Hits = 2 }, "Walks between shadows without a sound.", { Core = true })
+species("Seraphawk", "Seraphawk", 4, "Attacker", "ranged", 5.6, { Name = "Halo Dive", Mult = 0.55, Hits = 2 }, "Two halos, one very sharp stare.", { Core = true })
+species("Solmora", "Solmora", 5, "Tank", "melee", 7.4, { Name = "Sun-and-Moon Shell", Mult = 1.15 }, "Carries the day on one side of its shell and the night on the other.", { Core = true })
+
 Monsters.Species = S
 
 function Monsters.ordered()

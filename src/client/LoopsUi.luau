@@ -162,7 +162,7 @@ local function planner(p)
 	local places = new("Frame", { LayoutOrder = 2, Size = UDim2.new(1, 0, 0, px(44)), BackgroundTransparency = 1, ZIndex = 12, Parent = body }, {
 		new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
-	for i, id in { "SproutMeadow", "EmberCanyon", "TideCoast", "GaleHighlands" } do
+	for i, id in { "SproutMeadow", "EmberCanyon", "TideCoast", "GaleHighlands", "TwilightVale" } do
 		local pl = E.Places[id]
 		local open = p.regions[id] == true
 		local b = pill(places, { LayoutOrder = i, Size = UDim2.fromOffset(px(170), px(40)), Text = pl.Icon .. " " .. pl.Name .. (pl.Mult > 1 and (" ×" .. pl.Mult) or "") }, open and (plan.place == id and C.Sun or C.Soft) or C.Line)
