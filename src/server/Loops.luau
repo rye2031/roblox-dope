@@ -23,7 +23,18 @@ function Loops.surge(): string
 	return (Config.surgeAt(os.time()))
 end
 
--- Element weights for a region with the current surge applied.
+local RunService = game:GetService("RunService")
+local function now(): number
+	-- Studio only: workspace attribute DebugTimeOffset (seconds) fast-forwards the clock for tests
+	return os.time() + (RunService:IsStudio() and (workspace:GetAttribute("DebugTimeOffset") or 0) or 0)
+end
+Loops.now = now
+
+function Loops.phase(): string
+	return (Config.dayPhase(now()))
+end
+
+-- Element weights for a region with the current surge and time of day applied.
 function Loops.surgeWeights(base: { [string]: number }): { [string]: number }
 	local el = Loops.surge()
 	local w = table.clone(base)
@@ -32,7 +43,34 @@ function Loops.surgeWeights(base: { [string]: number }): { [string]: number }
 	elseif w[el] then
 		w[el] *= L.Surge.SpawnMult
 	end
+	local phase = Loops.phase()
+	local D = Config.DayNight
+	if phase == "night" then
+		w.Dark = math.max(w.Dark or 0, D.DarkWeight)
+	elseif phase == "dawn" then
+		w.Light = math.max(w.Light or 0, D.LightWeight)
+	end
 	return w
+end
+
+local function dayNightLoop()
+	local last = nil
+	while true do
+		local phase, nightAt, dayAt = Config.dayPhase(now())
+		local isNight = phase == "night"
+		workspace:SetAttribute("IsNight", isNight)
+		workspace:SetAttribute("NightAt", nightAt)
+		workspace:SetAttribute("DayAt", dayAt)
+		if last ~= nil and phase ~= last then
+			if phase == "night" then
+				toast:FireAllClients("🌙 Night falls. Dark monsters and elites roam, and Dark Essence drops double", "info")
+			elseif phase == "dawn" then
+				toast:FireAllClients("🌅 Dawn breaks. Light monsters are out for a little while", "info")
+			end
+		end
+		last = phase
+		task.wait(2)
+	end
 end
 
 local function surgeLoop()
@@ -216,6 +254,7 @@ end
 function Loops.init(remotes)
 	toast = remotes.Toast
 	task.spawn(surgeLoop)
+	task.spawn(dayNightLoop)
 	local _ = Players
 	local _t = T
 end

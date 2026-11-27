@@ -98,6 +98,20 @@ leaves.EmissionDirection = Enum.NormalId.Right
 leaves.Rate = 0
 leaves.Parent = emberAnchor
 
+-- fireflies at night (Haven, Meadow, Highlands)
+local flyAnchor = piece(Vector3.new(70, 6, 70), Color3.new(1, 1, 1))
+flyAnchor.Transparency = 1
+local fireflies = Instance.new("ParticleEmitter")
+fireflies.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+fireflies.Color = ColorSequence.new(Color3.fromRGB(230, 255, 140), Color3.fromRGB(255, 240, 120))
+fireflies.LightEmission = 1
+fireflies.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.2, 0.3), NumberSequenceKeypoint.new(0.5, 0.12), NumberSequenceKeypoint.new(0.8, 0.3), NumberSequenceKeypoint.new(1, 0) })
+fireflies.Lifetime = NumberRange.new(3, 5)
+fireflies.Speed = NumberRange.new(0.3, 1.2)
+fireflies.SpreadAngle = Vector2.new(180, 180)
+fireflies.Rate = 0
+fireflies.Parent = flyAnchor
+
 ----------------------------------------------------------------------------------------------
 -- seagulls
 
@@ -139,7 +153,15 @@ function AmbientFx.start()
 			embers.Rate = 0
 		end
 		local t = os.clock()
-		if here == "Haven" or here == "SproutMeadow" then
+		local night = workspace:GetAttribute("IsNight") == true
+		local green = here == "Haven" or here == "SproutMeadow" or here == "GaleHighlands"
+		if green and night then
+			flyAnchor.CFrame = CFrame.new(pos.X, pos.Y + 1, pos.Z)
+			fireflies.Rate = 14
+		else
+			fireflies.Rate = 0
+		end
+		if (here == "Haven" or here == "SproutMeadow") and not night then
 			local want = here == "Haven" and 8 or 14
 			while #flies < want do
 				table.insert(flies, newFly(pos))

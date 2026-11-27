@@ -203,6 +203,30 @@ Config.Loops = {
 	SpeciesComplete = { legendary = 1 }, -- all 5 elements of one species
 }
 
+-- Day and night: a 20-minute cycle on server time (every server agrees). The last 6 minutes
+-- are night (more Dark monsters and elites, double Dark Essence); the first 2 minutes of day
+-- are dawn (more Light monsters).
+Config.DayNight = {
+	Cycle = 1200,
+	NightStart = 840,
+	DawnLength = 120,
+	DarkWeight = 4, -- Dark spawn weight at night (normally 0.5)
+	LightWeight = 3, -- Light spawn weight at dawn
+	NightEliteBonus = 0.06,
+	DarkEssenceMult = 2,
+}
+
+-- Phase at os.time t: "day" | "dawn" | "night", plus the next nightfall and the next sunrise.
+function Config.dayPhase(t: number): (string, number, number)
+	local D = Config.DayNight
+	local c = t % D.Cycle
+	local base = t - c
+	local nightAt = c < D.NightStart and base + D.NightStart or base + D.Cycle + D.NightStart
+	local dayAt = base + D.Cycle
+	local phase = c >= D.NightStart and "night" or (c < D.DawnLength and "dawn" or "day")
+	return phase, nightAt, dayAt
+end
+
 -- M7 Arena: async turn-based 3v3 PvP
 Config.Arena = {
 	UnlockBoss = "SproutMeadow",

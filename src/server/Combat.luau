@@ -331,6 +331,9 @@ local function rewardKill(u)
 				local drops = { coins = coins, xp = xp, el = u.el, pos = u.pos }
 				if rng:NextNumber() < (u.boss and 1 or u.elite and 0.8 or R.EssenceChance) then
 					local n = (u.boss and 8 or u.elite and 3 or 1) * (surge and Config.Loops.Surge.EssenceMult or 1)
+					if u.el == "Dark" and Loops.phase() == "night" then
+						n *= Config.DayNight.DarkEssenceMult
+					end
 					p.essence[u.el] = (p.essence[u.el] or 0) + n
 					drops.essence = n
 				end
@@ -895,7 +898,8 @@ function Combat.spawnWild(camp)
 		local sp = camp.species or pickWildSpecies(region)
 		local el = camp.element or Config.pickWeighted(Loops.surgeWeights(region.Elements), rng:NextNumber())
 		local lv = rng:NextInteger(camp.lv[1], camp.lv[2])
-		local elite = camp.elite or (not camp.boss and rng:NextNumber() < (region.EliteChance or 0))
+		local nightBonus = Loops.phase() == "night" and Config.DayNight.NightEliteBonus or 0
+		local elite = camp.elite or (not camp.boss and rng:NextNumber() < (region.EliteChance or 0) + nightBonus)
 		makeUnit("wild", sp, el, lv, false, { 1, 1, 1 }, { pos = pos, camp = camp, elite = elite, boss = camp.boss, hpMult = camp.hpMult })
 	end
 end
