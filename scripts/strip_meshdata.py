@@ -3,7 +3,8 @@
 
 Once a species is in src/shared/CreatureAssets.luau its model comes from
 ReplicatedStorage/CreatureModels, so the client only needs the baked texture
-(the base for element recolouring). This rewrites src/shared/MeshData/<Name>.luau
+(the base for element recolouring). Uploaded props (src/shared/PropAssets.luau,
+ReplicatedStorage/PropModels) don't need even that: their whole module goes. This rewrites src/shared/MeshData/<Name>.luau
 to keep TextureSize/Texture and deletes the vertex and index chunk modules,
 which roughly halves what every client downloads at join.
 
@@ -15,10 +16,25 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 MD = os.path.join(ROOT, 'src', 'shared', 'MeshData')
 dry = '--dry-run' in sys.argv
 
-assets = open(os.path.join(ROOT, 'src', 'shared', 'CreatureAssets.luau')).read()
-uploaded = re.findall(r'^\t(\w+) = \{ Model = \d+', assets, re.M)
+uploaded = []
+for f in ('CreatureAssets.luau', 'PropAssets.luau'):
+    path = os.path.join(ROOT, 'src', 'shared', f)
+    if os.path.exists(path):
+        uploaded += re.findall(r'^\t(\w+) = \{ Model = \d+', open(path).read(), re.M)
 saved = 0
+# props: nothing is needed client-side once uploaded, so the whole module goes
+props_path = os.path.join(ROOT, 'src', 'shared', 'PropAssets.luau')
+props = re.findall(r'^\t(\w+) = \{ Model = \d+', open(props_path).read(), re.M) if os.path.exists(props_path) else []
+for name in props:
+    for f in [os.path.join(MD, name + '.luau')] + [os.path.join(MD, x) for x in os.listdir(MD) if re.fullmatch(re.escape(name) + r'_\d+\.luau', x)]:
+        if os.path.exists(f):
+            saved += os.path.getsize(f)
+            if not dry:
+                os.remove(f)
+    print(f'{name}: removed (uploaded prop)')
 for name in uploaded:
+    if name in props:
+        continue
     main = os.path.join(MD, name + '.luau')
     if not os.path.exists(main):
         continue

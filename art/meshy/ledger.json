@@ -1266,5 +1266,187 @@
       "art/meshy/props/models/prop_titan_head/model.glb",
       "art/meshy/props/models/prop_titan_head/thumb.png"
     ]
+  },
+  {
+    "name": "prop_cart",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "120566676675617",
+    "roblox_mesh": "rbxassetid://80092891619147",
+    "roblox_texture": "rbxassetid://104284269125583",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_cart/model.glb"
+    ]
+  },
+  {
+    "name": "prop_coral",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "99536875629540",
+    "roblox_mesh": "rbxassetid://137366421644075",
+    "roblox_texture": "rbxassetid://122990991181012",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_coral/model.glb"
+    ]
+  },
+  {
+    "name": "prop_dragon_skull",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "117352763186588",
+    "roblox_mesh": "rbxassetid://117154502829213",
+    "roblox_texture": "rbxassetid://79156725158601",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_dragon_skull/model.glb"
+    ]
+  },
+  {
+    "name": "prop_fire_brazier",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "78721893961963",
+    "roblox_mesh": "rbxassetid://82478552463898",
+    "roblox_texture": "rbxassetid://108787357422442",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_fire_brazier/model.glb"
+    ]
+  },
+  {
+    "name": "prop_fountain",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "88352413427262",
+    "roblox_mesh": "rbxassetid://89832527362432",
+    "roblox_texture": "rbxassetid://126094109025756",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_fountain/model.glb"
+    ]
+  },
+  {
+    "name": "prop_lighthouse",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "89611920756060",
+    "roblox_mesh": "rbxassetid://110532311236950",
+    "roblox_texture": "rbxassetid://84585657232676",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_lighthouse/model.glb"
+    ]
+  },
+  {
+    "name": "prop_magma_crystals",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "129522341466908",
+    "roblox_mesh": "rbxassetid://96207703109183",
+    "roblox_texture": "rbxassetid://95109128199521",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_magma_crystals/model.glb"
+    ]
+  },
+  {
+    "name": "prop_market_stall",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "82862843436999",
+    "roblox_mesh": "rbxassetid://114175670381135",
+    "roblox_texture": "rbxassetid://93794176309547",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_market_stall/model.glb"
+    ]
+  },
+  {
+    "name": "prop_mushrooms",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "94182891862507",
+    "roblox_mesh": "rbxassetid://94412185997335",
+    "roblox_texture": "rbxassetid://83398171156951",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_mushrooms/model.glb"
+    ]
+  },
+  {
+    "name": "prop_seashell",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "137217465326953",
+    "roblox_mesh": "rbxassetid://118270802993592",
+    "roblox_texture": "rbxassetid://132412112160006",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_seashell/model.glb"
+    ]
+  },
+  {
+    "name": "prop_stone_arch",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "124684073623286",
+    "roblox_mesh": "rbxassetid://109036825090893",
+    "roblox_texture": "rbxassetid://92736082607505",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_stone_arch/model.glb"
+    ]
+  },
+  {
+    "name": "prop_street_lamp",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "75554391532886",
+    "roblox_mesh": "rbxassetid://73612767367750",
+    "roblox_texture": "rbxassetid://102731026874883",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_street_lamp/model.glb"
+    ]
+  },
+  {
+    "name": "prop_titan_head",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "140138344317950",
+    "roblox_mesh": "rbxassetid://114546642904680",
+    "roblox_texture": "rbxassetid://74956505898022",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_titan_head/model.glb"
+    ]
+  },
+  {
+    "name": "prop_well",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "138761559237551",
+    "roblox_mesh": "rbxassetid://126419114275064",
+    "roblox_texture": "rbxassetid://117294599266958",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_well/model.glb"
+    ]
   }
 ]
