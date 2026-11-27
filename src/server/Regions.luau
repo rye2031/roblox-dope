@@ -36,7 +36,9 @@ Regions.Info = {
 }
 local BOSS_HP = 8 -- region bosses: x8 a normal wild monster (soloable by a ready team)
 local BOSS_RESPAWN = 120
-local WORLD_EVERY, WORLD_LASTS, WORLD_LEVEL = 30 * 60, 6 * 60, 20
+-- Titan: a group fight. Lv 28 and x36 HP (it also gains +60% HP per extra player hitting it),
+-- so a mid-level team can't solo it in a minute (owner, 2026-11-27: Lv 11 teams did).
+local WORLD_EVERY, WORLD_LASTS, WORLD_LEVEL, WORLD_HP = 30 * 60, 6 * 60, 28, 36
 local WORLD_POS = Vector3.new(170, 0, -10)
 
 local bossCamps: { [string]: any } = {}
@@ -591,7 +593,7 @@ local function spawnWorldBoss()
 	worldCamp.species = pool[math.random(1, #pool)]
 	local r = math.random()
 	worldCamp.element = r < 0.05 and "Light" or r < 0.1 and "Dark" or ({ "Fire", "Water", "Wind" })[math.random(1, 3)]
-	worldCamp.hpMult = 22
+	worldCamp.hpMult = WORLD_HP
 	Combat.spawnWild(worldCamp)
 	worldActive = true
 	local untilT = os.time() + WORLD_LASTS
@@ -600,6 +602,14 @@ local function spawnWorldBoss()
 	remotes.Toast:FireAllClients(`A titan {Monsters.Species[worldCamp.species].Name} appeared at the Titan Field! Team up to beat it`, "alert")
 	task.delay(WORLD_LASTS, function()
 		if worldActive and os.time() >= untilT - 1 then
+			-- Tamers who really fought it (5% of its HP) still get the story step
+			for _, u in Combat.campUnits(worldCamp) do
+				for pl, dmg in u.contrib or {} do
+					if pl.Parent and dmg >= u.maxHp * 0.05 then
+						Story.event(pl, "titan")
+					end
+				end
+			end
 			Combat.despawnCamp(worldCamp)
 			worldActive = false
 			workspace:SetAttribute("WorldBossUntil", 0)

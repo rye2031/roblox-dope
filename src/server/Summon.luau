@@ -1,10 +1,11 @@
 -- Summoning scrolls: the only way to get monsters.
---   Regular:   1★ 40, 2★ 34.4, 3★ 20, 4★ 4.5, 5★ Fire/Water/Wind 1, 5★ Light/Dark 0.1 (%).
---   Legendary: 4★ 89, 5★ Fire/Water/Wind 10, 5★ Light/Dark 1 (%).
---   1-4 star results roll their element: Fire/Water/Wind 33 each, Light 0.5, Dark 0.5.
---   Pity: 50 Regular scrolls without a 4-star+ guarantees a 4★ or Fire/Water/Wind 5★; 200
---   scrolls without Light/Dark guarantees a 1-4 star Light/Dark. Pity never gives a 5★ L/D:
---   that's only ever the FiveLD chance (and the one Eclipse Scroll).
+--   Regular:   1★ 40, 2★ 34.4, 3★ 20, 4★ 4.3, 4★ Light/Dark 0.2, 5★ 1, 5★ Light/Dark 0.1 (%).
+--   Legendary: 4★ 87, 4★ Light/Dark 2, 5★ 10, 5★ Light/Dark 1 (%).
+--   4/5-star results are Fire/Water/Wind unless they're the Light/Dark roll; 1-3 star results
+--   roll their element: Fire/Water/Wind 33 each, Light 0.5, Dark 0.5.
+--   Pity: 50 Regular scrolls without a 4-star+ guarantees a Fire/Water/Wind 4★ or 5★; 200
+--   scrolls without Light/Dark guarantees a 1-3 star Light/Dark. Pity never gives a 4★ or 5★
+--   Light/Dark: those are only ever their own chances (and the one Eclipse Scroll).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -24,18 +25,21 @@ local rng = Random.new()
 local toast: RemoteEvent
 local announce: RemoteEvent
 
--- Stars, and whether it's the 5-star Light/Dark outcome.
+-- Stars, and whether it's a 4/5-star Light/Dark outcome.
 local function rollStars(kind: string, p): (number, boolean)
 	local weights = {}
 	for i, w in SC[kind].Stars do
 		weights[i] = w
 	end
-	weights[6] = SC[kind].FiveLD -- 6 = "5-star Light/Dark"
+	weights[6] = SC[kind].FourLD -- 6 = "4-star Light/Dark"
+	weights[7] = SC[kind].FiveLD -- 7 = "5-star Light/Dark"
 	if kind == "Regular" and p.pity.four + 1 >= SC.PityFourStar then
 		weights = { [4] = SC.Regular.Stars[4], [5] = SC.Regular.Stars[5] }
 	end
 	local r = Config.pickWeighted(weights, rng:NextNumber())
 	if r == 6 then
+		return 4, true
+	elseif r == 7 then
 		return 5, true
 	end
 	return r, false
@@ -45,7 +49,7 @@ local function rollElement(p, kind: string?, stars: number, fiveLD: boolean): st
 	if kind == "Eclipse" or fiveLD then
 		return rng:NextNumber() < 0.5 and "Light" or "Dark"
 	end
-	if stars >= 5 then
+	if stars >= 4 then
 		return Config.pickWeighted(SC.FiveElements, rng:NextNumber())
 	end
 	if p.pity.ld + 1 >= SC.PityLightDark then

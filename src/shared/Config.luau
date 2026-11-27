@@ -41,17 +41,18 @@ Config.Tuning = {
 	StorageCost = { 500, 1200, 2500, 5000, 9000 }, -- coins per +10 slots
 
 	Scrolls = {
-		-- Percent chances (owner, 2026-11-27). Stars[5] is a 5-star in Fire/Water/Wind; FiveLD is a
-		-- 5-star Light or Dark. 1-4 star results roll their element from Elements below.
-		Regular = { Stars = { 40, 34.4, 20, 4.5, 1 }, FiveLD = 0.1 },
-		Legendary = { Stars = { 0, 0, 0, 89, 10 }, FiveLD = 1 },
+		-- Percent chances (owner, 2026-11-27). Stars[4]/[5] are 4/5-stars in Fire/Water/Wind;
+		-- FourLD/FiveLD are 4/5-star Light or Dark (always rarer than the same star in a regular
+		-- element). 1-3 star results roll their element from Elements below.
+		Regular = { Stars = { 40, 34.4, 20, 4.3, 1 }, FourLD = 0.2, FiveLD = 0.1 },
+		Legendary = { Stars = { 0, 0, 0, 87, 10 }, FourLD = 2, FiveLD = 1 },
 		-- The one Eclipse Scroll: earned once, for finishing the whole story. Always a 5-star,
 		-- always Light or Dark (species random). The only free 5-star Light/Dark in the game.
 		Eclipse = { Stars = { 0, 0, 0, 0, 1 }, Elements = { Light = 50, Dark = 50 } },
-		Elements = { Fire = 33, Water = 33, Wind = 33, Light = 0.5, Dark = 0.5 }, -- 1-4 star results
-		FiveElements = { Fire = 1, Water = 1, Wind = 1 }, -- a Stars[5] result
+		Elements = { Fire = 33, Water = 33, Wind = 33, Light = 0.5, Dark = 0.5 }, -- 1-3 star results
+		FiveElements = { Fire = 1, Water = 1, Wind = 1 }, -- a Stars[4] or Stars[5] result
 		PityFourStar = 50, -- Regular scrolls without a 4-star+ before one is guaranteed (4-star or Fire/Water/Wind 5-star)
-		PityLightDark = 200, -- scrolls without Light/Dark before a 1-4 star Light/Dark is guaranteed (never a 5-star)
+		PityLightDark = 200, -- scrolls without Light/Dark before a 1-3 star Light/Dark is guaranteed (never a 4 or 5-star)
 		Start = { Regular = 4, Legendary = 1 },
 		MultiOpen = 10, -- scrolls opened by the "Open 10" button -- a new Tamer's first scrolls
 	},
@@ -239,8 +240,9 @@ Config.AutoHunt = {
 -- are dawn (more Light monsters).
 Config.DayNight = {
 	TwilightSeam = -340, -- Twilight Vale: north of this z is the Dawnfield (Light), south the Gloamwood (Dark)
-	Cycle = 1200,
-	NightStart = 840,
+	-- owner, 2026-11-27: night is 5 minutes at the end of every hour (UTC :55-:00)
+	Cycle = 3600,
+	NightStart = 3300,
 	DawnLength = 120,
 	DarkWeight = 4, -- Dark spawn weight at night (normally 0.5)
 	LightWeight = 3, -- Light spawn weight at dawn

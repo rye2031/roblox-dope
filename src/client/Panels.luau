@@ -602,6 +602,9 @@ local function oddsText(kind: string): string
 			table.insert(parts, string.format("%d★ %s%%", s, tostring(w[s])))
 		end
 	end
+	if (T.Scrolls[kind].FourLD or 0) > 0 then
+		table.insert(parts, string.format("4★ Light/Dark %s%%", tostring(T.Scrolls[kind].FourLD)))
+	end
 	if (T.Scrolls[kind].FiveLD or 0) > 0 then
 		table.insert(parts, string.format("5★ Light/Dark %s%%", tostring(T.Scrolls[kind].FiveLD)))
 	end
@@ -614,7 +617,7 @@ renderShrine = function()
 		return
 	end
 	clear(shrineBody)
-	shrineSub.Text = string.format("1-4★: Fire, Water, Wind 33%% each · Light and Dark %s%% each. 5★ is Fire/Water/Wind unless it's the Light/Dark roll", tostring(T.Scrolls.Elements.Light))
+	shrineSub.Text = string.format("1-3★: Fire, Water, Wind 33%% each · Light and Dark %s%% each. 4★ and 5★ are Fire/Water/Wind unless it's their Light/Dark roll", tostring(T.Scrolls.Elements.Light))
 	for i, kind in { "Regular", "Legendary" } do
 		local accent = kind == "Regular" and C.Sky or C.Sun
 		local have = p.scrolls[kind] or 0
@@ -712,7 +715,7 @@ renderShrine = function()
 	Ui.section(shrineBody, 7, "PITY")
 	local four = T.Scrolls.PityFourStar - (p.pity.four or 0)
 	local ld = T.Scrolls.PityLightDark - (p.pity.ld or 0)
-	label(shrineBody, { LayoutOrder = 8, Size = UDim2.new(1, 0, 0, px(40)), Text = string.format("A 4★ or better is guaranteed within %d Regular scrolls.\nA 1-4★ Light or Dark monster is guaranteed within %d scrolls.", four, ld), TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
+	label(shrineBody, { LayoutOrder = 8, Size = UDim2.new(1, 0, 0, px(40)), Text = string.format("A 4★ or better is guaranteed within %d Regular scrolls.\nA 1-3★ Light or Dark monster is guaranteed within %d scrolls.", four, ld), TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
 	Ui.section(shrineBody, 9, "WHERE SCROLLS COME FROM")
 	label(shrineBody, { LayoutOrder = 10, Size = UDim2.new(1, 0, 0, px(40)), Text = "Wild monsters sometimes drop Regular scrolls (elites often). Bosses always drop 3, sometimes a Legendary. Every daily quest gives Regular scrolls, and so does your login streak.", TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
 end

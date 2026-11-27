@@ -882,7 +882,10 @@ local function tickEffects(e, dt: number)
 		if fx.untilT > t then
 			table.insert(keep, fx)
 			if fx.type == "burn" then
-				local amt = maxHpOf(e) * fx.pct * dt
+				-- burns are % of max HP per second; big monsters resist them, or a couple of burns
+				-- melted a 100k-HP titan in seconds (2026-11-27)
+				local resist = e.kind == "unit" and e.side == "wild" and (e.boss and 0.06 or (e.camp and e.camp.legend) and 0.1 or e.elite and 0.35) or 1
+				local amt = maxHpOf(e) * fx.pct * dt * resist
 				if e.kind == "tamer" then
 					local hum = e.player.Character and e.player.Character:FindFirstChildOfClass("Humanoid")
 					if hum and t >= e.invulnUntil then

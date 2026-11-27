@@ -485,6 +485,16 @@ if game:GetService("RunService"):IsStudio() then
 			return "ok"
 		elseif cmd == "legend" then
 			return tostring(Regions.spawnLegend(a))
+		elseif cmd == "unitstats" then
+			local u = a == "tamer" and Combat.debug.tamerOf(player) or Combat.debug.units[a]
+			if not u then
+				return "none"
+			end
+			local fx = {}
+			for _, e in u.effects or {} do
+				table.insert(fx, { type = e.type, stat = e.stat, value = e.value, pct = e.pct, left = e.untilT and math.floor((e.untilT - os.clock()) * 10) / 10 })
+			end
+			return HttpService:JSONEncode({ stats = u.stats, fx = fx, lv = u.lv, el = u.el })
 		elseif cmd == "worldboss" then
 			return tostring(Regions.debugWorldBoss())
 		end
