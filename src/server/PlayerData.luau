@@ -59,7 +59,7 @@ local function defaults(): Profile
 		team = { "", "", "" },
 		storageCap = T.StartStorage,
 		overflow = {},
-		scrolls = { Regular = T.Scrolls.Start.Regular, Legendary = T.Scrolls.Start.Legendary },
+		scrolls = { Regular = T.Scrolls.Start.Regular, Legendary = T.Scrolls.Start.Legendary, Eclipse = 0 },
 		pity = { four = 0, ld = 0 },
 		essence = essence,
 		weapon = { type = "Blade", lv = 1 },
@@ -150,7 +150,7 @@ function PlayerData.sanitize(raw: any): Profile
 		end
 	end
 	if typeof(raw.scrolls) == "table" then
-		p.scrolls = { Regular = int(raw.scrolls.Regular, 0), Legendary = int(raw.scrolls.Legendary, 0) }
+		p.scrolls = { Regular = int(raw.scrolls.Regular, 0), Legendary = int(raw.scrolls.Legendary, 0), Eclipse = math.min(1, int(raw.scrolls.Eclipse, 0)) }
 	end
 	if typeof(raw.pity) == "table" then
 		p.pity = { four = int(raw.pity.four, 0), ld = int(raw.pity.ld, 0) }

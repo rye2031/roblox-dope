@@ -46,13 +46,14 @@ Ui.pad(0, 12, 0, 12).Parent = wallet
 local coinL = label(wallet, { LayoutOrder = 1, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "💰 0", TextSize = px(18) }, "Title")
 local regL = label(wallet, { LayoutOrder = 2, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "📜 0", TextSize = px(18) }, "Title")
 local legL = label(wallet, { LayoutOrder = 3, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "🌟 0", TextSize = px(18) }, "Title")
+local eclL = label(wallet, { LayoutOrder = 4, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "🌑 1", TextSize = px(18), Visible = false }, "Title")
 wallet.AutomaticSize = Enum.AutomaticSize.X
 
 -- World boss chip (under the wallet)
 local bossChip = Ui.card({ Position = UDim2.fromOffset(px(70), 10 + px(52)), Size = UDim2.fromOffset(px(250), px(32)), ZIndex = 2, Shadow = false, Parent = gui }, 16)
 local bossText = label(bossChip, { Size = UDim2.fromScale(1, 1), Text = "", TextSize = px(14), TextXAlignment = Enum.TextXAlignment.Center }, "Title")
 
-local REGION_NAMES = { Haven = "Haven", SproutMeadow = "Sprout Meadow", EmberCanyon = "Ember Canyon", TideCoast = "Tide Coast", TitanField = "Titan Field" }
+local REGION_NAMES = { Haven = "Haven", SproutMeadow = "Sprout Meadow", EmberCanyon = "Ember Canyon", TideCoast = "Tide Coast", GaleHighlands = "Gale Highlands", TitanField = "Titan Field" }
 
 local help = button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(70), 0, 10), Size = UDim2.fromOffset(px(44), px(44)), BackgroundColor3 = C.Card, TextColor3 = C.Ink, Text = "?", TextScaled = false, TextSize = px(22), ZIndex = 2, Parent = gui, Radius = 22 })
 -- sound on/off (session only)
@@ -346,6 +347,7 @@ function Hud.setProfile(p)
 	coinL.Text = "💰 " .. Ui.fmt(p.coins)
 	regL.Text = "📜 " .. (p.scrolls.Regular or 0)
 	legL.Text = "🌟 " .. (p.scrolls.Legendary or 0)
+	eclL.Visible = (p.scrolls.Eclipse or 0) > 0
 	renderTeam(p)
 	local claimable = false
 	for _, q in p.daily.quests do

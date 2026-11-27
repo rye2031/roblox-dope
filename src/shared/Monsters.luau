@@ -63,6 +63,11 @@ species("Ironhorn", "Ironhorn", 4, "Tank", "melee", 5.4, { Name = "Horn Charge",
 species("Wyvernox", "Wyvernox", 5, "Attacker", "melee", 7.6, { Name = "Wyvern Rend", Mult = 0.7, Hits = 2 }, "Its wingbeat flattens forests.", { Core = true })
 species("Valkyra", "Valkyra", 5, "Speed", "melee", 6.4, { Name = "Sky Spear", Mult = 0.7, Hits = 2 }, "A winged warrior who chooses the bravest Tamers.", { Core = true })
 species("Phoenara", "Phoenara", 5, "Support", "ranged", 6.6, { Name = "Rebirth Flare", Mult = 1.1 }, "Rises from every fall a little brighter.", { Core = true })
+-- wave 3 (M8, 2026-11-27): the Gale Highlands
+species("Zephkit", "Zephkit", 3, "Speed", "melee", 3.8, { Name = "Gust Pounce", Mult = 0.55, Hits = 2 }, "Its ribbon ears read the wind before it blows.", { Core = true })
+species("Cloudram", "Cloudram", 4, "Tank", "melee", 5.2, { Name = "Cloud Butt", Mult = 1.1 }, "Charges headfirst into storms, then naps in them.", { Core = true })
+species("Stormstag", "Stormstag", 4, "Attacker", "ranged", 6.0, { Name = "Thunder Antlers", Mult = 0.55, Hits = 2 }, "Little storms nest in its antlers.", { Core = true })
+species("Zephyrion", "Zephyrion", 5, "Tank", "melee", 7.6, { Name = "Sovereign Roar", Mult = 1.15 }, "The sky's own king. Its wingbeat starts the wind.", { Core = true })
 
 Monsters.Species = S
 

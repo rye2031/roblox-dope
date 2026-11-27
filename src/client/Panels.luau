@@ -592,12 +592,26 @@ renderShrine = function()
 			doSummon(kind, multiN)
 		end)
 	end
-	Ui.section(shrineBody, 3, "PITY")
+	-- the one Eclipse Scroll (story reward)
+	do
+		local have = p.scrolls.Eclipse or 0
+		local used = p.tutorial and p.tutorial.eclipseScroll and have == 0
+		local blurb = have > 0 and "Guaranteed 5★, Light or Dark. There's only ever one." or used and "You've opened your one Eclipse Scroll." or "Finish Tamer's Journey to earn it. There's only ever one."
+		local r = Ui.row(shrineBody, 3, C.Lilac, "🌑", "Eclipse Scroll  ×" .. have, blurb)
+		r.row.Size = UDim2.new(1, 0, 0, px(84))
+		Ui.setBuy(r.buy, have > 0 and "Open" or used and "Opened" or "Locked", have > 0 and "afford" or "poor", C.Lilac)
+		r.buy.Activated:Connect(function()
+			if (Ui.profile.scrolls.Eclipse or 0) > 0 then
+				doSummon("Eclipse", 1)
+			end
+		end)
+	end
+	Ui.section(shrineBody, 4, "PITY")
 	local four = T.Scrolls.PityFourStar - (p.pity.four or 0)
 	local ld = T.Scrolls.PityLightDark - (p.pity.ld or 0)
-	label(shrineBody, { LayoutOrder = 4, Size = UDim2.new(1, 0, 0, px(40)), Text = string.format("A 4★ or better is guaranteed within %d Regular scrolls.\nA Light or Dark monster is guaranteed within %d scrolls.", four, ld), TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
-	Ui.section(shrineBody, 5, "WHERE SCROLLS COME FROM")
-	label(shrineBody, { LayoutOrder = 6, Size = UDim2.new(1, 0, 0, px(40)), Text = "Wild monsters sometimes drop Regular scrolls (elites often). Bosses always drop 3, sometimes a Legendary. Every daily quest gives Regular scrolls, and so does your login streak.", TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
+	label(shrineBody, { LayoutOrder = 5, Size = UDim2.new(1, 0, 0, px(40)), Text = string.format("A 4★ or better is guaranteed within %d Regular scrolls.\nA Light or Dark monster is guaranteed within %d scrolls.", four, ld), TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
+	Ui.section(shrineBody, 6, "WHERE SCROLLS COME FROM")
+	label(shrineBody, { LayoutOrder = 7, Size = UDim2.new(1, 0, 0, px(40)), Text = "Wild monsters sometimes drop Regular scrolls (elites often). Bosses always drop 3, sometimes a Legendary. Every daily quest gives Regular scrolls, and so does your login streak.", TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
 end
 Ui.onOpen.Shrine = renderShrine
 

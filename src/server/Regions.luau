@@ -25,11 +25,12 @@ local Combat
 local remotes
 
 -- Order matters: each region needs the previous one's boss.
-Regions.Order = { "SproutMeadow", "EmberCanyon", "TideCoast" }
+Regions.Order = { "SproutMeadow", "EmberCanyon", "TideCoast", "GaleHighlands" }
 Regions.Info = {
 	SproutMeadow = { Name = "Sprout Meadow", Boss = { sp = "Sproutknight", el = "Wind", lv = 10, title = "Meadow Guardian" } },
 	EmberCanyon = { Name = "Ember Canyon", PassLevel = 14, Boss = { sp = "Drakoryn", el = "Fire", lv = 18, title = "Canyon Tyrant" } },
 	TideCoast = { Name = "Tide Coast", PassLevel = 22, Boss = { sp = "Shellotl", el = "Water", lv = 26, title = "Tide Monarch" } },
+	GaleHighlands = { Name = "Gale Highlands", PassLevel = 30, Boss = { sp = "Zephyrion", el = "Wind", lv = 34, title = "Sky Sovereign" } },
 }
 local BOSS_HP = 8 -- region bosses: x8 a normal wild monster (soloable by a ready team)
 local BOSS_RESPAWN = 120
@@ -243,6 +244,69 @@ local function buildTideCoast(h)
 	gate({ part = P, float = h.float }, "TideCoast", Vector3.new(-250, World.groundY(-250, 330), 330), Vector3.new(-1, 0, 0), 24, TC.Sky, "TIDE COAST", "beat the Canyon Tyrant or reach Lv 22")
 end
 
+-- Gale Highlands (M8): windswept uplands south of Haven, levels 24-32, Wind 60%.
+local function buildGaleHighlands(h)
+	local f = Instance.new("Folder")
+	f.Name = "GaleHighlands"
+	f.Parent = h.root
+	local function P(props)
+		return h.part(props, f)
+	end
+	local x0, x1, z0, z1 = -240, 240, -570, -110
+	World.Regions.GaleHighlands = {
+		Id = "GaleHighlands",
+		Name = "Gale Highlands",
+		Bounds = { x0, x1, z0, z1 },
+		Elements = { Wind = 60, Fire = 17, Water = 22, Light = 0.5, Dark = 0.5 },
+		StarWeights = { 10, 35, 40, 13, 2 },
+		EliteChance = 0.1,
+	}
+	terrain:SetMaterialColor(Enum.Material.LeafyGrass, Color3.fromRGB(150, 205, 170))
+	terrain:SetMaterialColor(Enum.Material.Slate, Color3.fromRGB(150, 160, 186))
+	terrain:ReplaceMaterial(Region3.new(Vector3.new(x0 - 20, -20, z0 - 20), Vector3.new(x1 + 20, 60, z1 + 20)):ExpandToGrid(4), 4, Enum.Material.Grass, Enum.Material.LeafyGrass)
+	-- big rolling uplands and slate bluffs (kept off the road)
+	for _, m in { { -150, -220, 70, 18 }, { 150, -260, 80, 22 }, { -170, -420, 90, 26 }, { 170, -450, 80, 24 }, { -60, -330, 40, 10 }, { 80, -380, 45, 12 } } do
+		terrain:FillBall(Vector3.new(m[1], m[4] - m[3], m[2]), m[3], Enum.Material.LeafyGrass)
+	end
+	for _, b in { { -200, -160, 18 }, { 210, -340, 22 }, { -210, -500, 20 }, { 120, -540, 16 } } do
+		terrain:FillBlock(CFrame.new(b[1], b[3] / 2, b[2]) * CFrame.Angles(0, math.random() * 3, 0), Vector3.new(30, b[3], 24), Enum.Material.Slate)
+	end
+	h.pathStrip(Vector3.new(0, 0, -95), Vector3.new(0, 0, -330), 12)
+	h.pathStrip(Vector3.new(0, 0, -330), Vector3.new(0, 0, -490), 12)
+	-- standing stones and floating isles of rock (the wind holds them up)
+	for i = 1, 18 do
+		local x, z = x0 + 20 + math.random() * (x1 - x0 - 40), z0 + 20 + math.random() * (z1 - z0 - 40)
+		if math.abs(x) > 16 then
+			local y = World.groundY(x, z)
+			local hgt = 6 + math.random() * 10
+			P({ Name = "Menhir", Size = Vector3.new(3 + math.random() * 2, hgt, 2.5 + math.random() * 2), CFrame = CFrame.new(x, y + hgt / 2 - 1, z) * CFrame.Angles(0, math.random() * 6, (math.random() - 0.5) * 0.25), Color = Color3.fromRGB(176, 184, 206), Material = Enum.Material.Slate })
+		end
+	end
+	for _, fl in { { -90, -200, 34 }, { 110, -310, 42 }, { -120, -380, 38 }, { 60, -470, 46 } } do
+		local isle = P({ Name = "FloatingIsle", Shape = Enum.PartType.Ball, Size = Vector3.new(16, 9, 14), CFrame = CFrame.new(fl[1], fl[3], fl[2]), Color = Color3.fromRGB(150, 160, 186), Material = Enum.Material.Slate })
+		isle:SetAttribute("Bob", true)
+		h.decor(P({ Name = "IsleGrass", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.4, 15, 15), CFrame = CFrame.new(fl[1], fl[3] + 4.2, fl[2]) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(150, 205, 170) }))
+	end
+	h.float("Gale", Vector3.new(0, 36, -230), "GALE HIGHLANDS", TC.Mint, 20, { Icon = "🍃", Sub = "levels 24-32 · Wind 60%", Height = 4.2 })
+	h.campfire("GaleHighlands", Vector3.new(20, 0, -140), f)
+	addCamps("GaleHighlands", "GH", {
+		{ -60, -170, 24, 25 }, { 70, -180, 24, 26 }, { -130, -260, 25, 26 }, { 130, -230, 25, 27 },
+		{ -60, -320, 26, 28 }, { 80, -340, 27, 28 }, { -170, -380, 28, 29 }, { 160, -390, 28, 30 },
+		{ -100, -470, 29, 31 }, { 120, -500, 30, 32 },
+	})
+	local ac = Vector3.new(0, World.groundY(0, -520), -520)
+	arena({ part = P, float = h.float }, "GaleHighlands", ac, TC.Mint, Color3.fromRGB(200, 214, 230), Regions.Info.GaleHighlands.Boss.title)
+	World.Regions.GaleHighlands.BossArena = ac
+	bossCamp("GaleHighlands", ac)
+	-- walls: ridges all round; the way in is the south gate of Haven
+	local hh = { part = P }
+	ridge(hh, Vector3.new(x0 - 10, 0, -100), Vector3.new(x1 + 10, 0, -100), Vector3.new(0, 0, -100), 24)
+	ridge(hh, Vector3.new(x0 - 10, 0, -100), Vector3.new(x0 - 10, 0, z0 - 10))
+	ridge(hh, Vector3.new(x1 + 10, 0, -100), Vector3.new(x1 + 10, 0, z0 - 10))
+	ridge(hh, Vector3.new(x0 - 10, 0, z0 - 10), Vector3.new(x1 + 10, 0, z0 - 10))
+	gate({ part = P, float = h.float }, "GaleHighlands", Vector3.new(0, World.groundY(0, -100), -100), Vector3.new(0, 0, -1), 24, TC.Mint, "GALE HIGHLANDS", "beat the Tide Monarch or reach Lv 30")
+end
+
 local function buildTitanField(h)
 	local f = Instance.new("Folder")
 	f.Name = "TitanField"
@@ -262,14 +326,23 @@ end
 -- Gates and passes
 
 local function setupGroups()
-	for _, g in { "Gate_EmberCanyon", "Gate_TideCoast", "Pass_1", "Pass_2" } do
+	-- Gate_<region i> is passable for Pass_n with n >= i - 1 (regions open in order)
+	local count = #Regions.Order - 1
+	for i = 2, #Regions.Order do
 		pcall(function()
-			PhysicsService:RegisterCollisionGroup(g)
+			PhysicsService:RegisterCollisionGroup("Gate_" .. Regions.Order[i])
 		end)
 	end
-	PhysicsService:CollisionGroupSetCollidable("Gate_EmberCanyon", "Pass_1", false)
-	PhysicsService:CollisionGroupSetCollidable("Gate_EmberCanyon", "Pass_2", false)
-	PhysicsService:CollisionGroupSetCollidable("Gate_TideCoast", "Pass_2", false)
+	for n = 1, count do
+		pcall(function()
+			PhysicsService:RegisterCollisionGroup("Pass_" .. n)
+		end)
+	end
+	for i = 2, #Regions.Order do
+		for n = i - 1, count do
+			PhysicsService:CollisionGroupSetCollidable("Gate_" .. Regions.Order[i], "Pass_" .. n, false)
+		end
+	end
 end
 
 local function maxLevel(p): number
@@ -413,6 +486,7 @@ function Regions.register(w)
 		bossCamp("SproutMeadow", meadow.BossArena)
 		buildEmberCanyon(h)
 		buildTideCoast(h)
+		buildGaleHighlands(h)
 		buildTitanField(h)
 	end
 end

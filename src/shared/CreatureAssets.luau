@@ -32,4 +32,8 @@ return {
 	Wyrmlet = { Model = 135667202729717, Mesh = "rbxassetid://130068542419418", Texture = "rbxassetid://127792255766751", Height = 1.901 },
 	Wyvernox = { Model = 107629384097467, Mesh = "rbxassetid://90064799798111", Texture = "rbxassetid://126227043449666", Height = 1.899 },
 	Yoyoctopus = { Model = 129891373489009, Mesh = "rbxassetid://82177724215387", Texture = "rbxassetid://135936843027712", Height = 1.480 },
+	Cloudram = { Model = 104281138148898, Mesh = "rbxassetid://81940260990936", Texture = "rbxassetid://95921120210572", Height = 1.344 },
+	Stormstag = { Model = 101949996472302, Mesh = "rbxassetid://86648853797101", Texture = "rbxassetid://110154858853034", Height = 1.901 },
+	Zephkit = { Model = 84118700399377, Mesh = "rbxassetid://95033739360360", Texture = "rbxassetid://138105805048399", Height = 1.381 },
+	Zephyrion = { Model = 121427312172659, Mesh = "rbxassetid://89479439401696", Texture = "rbxassetid://138807908727008", Height = 1.533 },
 }

@@ -1,0 +1,18 @@
+[
+  {"name": "zephkit", "kind": "text-to-image", "task_id": "01a21dfa-2e07-7036-970a-3876f73bff8b", "credits": 6, "files": ["art/meshy/concepts/zephkit.png"]},
+  {"name": "cloudram", "kind": "text-to-image", "task_id": "01a21dfa-327b-76ac-9d25-de685607c018", "credits": 6, "files": ["art/meshy/concepts/cloudram.png"]},
+  {"name": "stormstag", "kind": "text-to-image", "task_id": "01a21dfa-36e5-75c8-a666-f4dfef689b89", "credits": 6, "files": ["art/meshy/concepts/stormstag.png"]},
+  {"name": "zephyrion", "kind": "text-to-image", "task_id": "01a21dfa-3b6f-711e-9182-db5a36d4d6e7", "credits": 6, "files": ["art/meshy/concepts/zephyrion.png"]},
+  {"name": "prop_wind_shrine", "kind": "text-to-image", "task_id": "01a21dfa-3f9a-7043-8dab-607ae089fbf2", "credits": 6, "files": ["art/meshy/props/prop_wind_shrine.png"]},
+  {"name": "prop_watchtower", "kind": "text-to-image", "task_id": "01a21dfa-43ec-75cb-9bdb-eb9b9428cc53", "credits": 6, "files": ["art/meshy/props/prop_watchtower.png"]},
+  {"name": "prop_floating_rocks", "kind": "text-to-image", "task_id": "01a21dfa-4832-71cc-b6fb-4d0497bf5884", "credits": 6, "files": ["art/meshy/props/prop_floating_rocks.png"]},
+  {"name": "prop_bird_nest", "kind": "text-to-image", "task_id": "01a21dfa-4bf0-76f1-8abe-93c8d331a069", "credits": 6, "files": ["art/meshy/props/prop_bird_nest.png"]},
+  {"name": "zephkit", "kind": "image-to-3d", "task_id": "01a21dfb-1794-7067-b633-782e76ef7136", "credits": 30, "files": ["art/meshy/models/zephkit/model.glb", "art/meshy/models/zephkit/model_base_color.png", "art/meshy/models/zephkit/thumb.png"]},
+  {"name": "cloudram", "kind": "image-to-3d", "task_id": "01a21dfb-1c97-736d-abef-530326c4f0d6", "credits": 30, "files": ["art/meshy/models/cloudram/model.glb", "art/meshy/models/cloudram/model_base_color.png", "art/meshy/models/cloudram/thumb.png"]},
+  {"name": "stormstag", "kind": "image-to-3d", "task_id": "01a21dfb-2293-7722-b522-5546db17ab57", "credits": 30, "files": ["art/meshy/models/stormstag/model.glb", "art/meshy/models/stormstag/model_base_color.png", "art/meshy/models/stormstag/thumb.png"]},
+  {"name": "zephyrion", "kind": "image-to-3d", "task_id": "01a21dfb-2811-71ed-9354-d1f439fd2bfe", "credits": 30, "files": ["art/meshy/models/zephyrion/model.glb", "art/meshy/models/zephyrion/model_base_color.png", "art/meshy/models/zephyrion/thumb.png"]},
+  {"name": "prop_wind_shrine", "kind": "image-to-3d", "task_id": "01a21dfb-3100-74f2-8805-1448301aab24", "credits": 30, "files": ["art/meshy/props/models/prop_wind_shrine/model.glb", "art/meshy/props/models/prop_wind_shrine/model_base_color.png", "art/meshy/props/models/prop_wind_shrine/thumb.png"]},
+  {"name": "prop_watchtower", "kind": "image-to-3d", "task_id": "01a21dfb-355a-769b-acd9-1c9faae9ac80", "credits": 30, "files": ["art/meshy/props/models/prop_watchtower/model.glb", "art/meshy/props/models/prop_watchtower/model_base_color.png", "art/meshy/props/models/prop_watchtower/thumb.png"]},
+  {"name": "prop_floating_rocks", "kind": "image-to-3d", "task_id": "01a21dfb-39cb-77ea-949d-5b4d6bd47612", "credits": 30, "files": ["art/meshy/props/models/prop_floating_rocks/model.glb", "art/meshy/props/models/prop_floating_rocks/model_base_color.png", "art/meshy/props/models/prop_floating_rocks/thumb.png"]},
+  {"name": "prop_bird_nest", "kind": "image-to-3d", "task_id": "01a21dfb-3e44-7786-853f-fb2dfd704737", "credits": 30, "files": ["art/meshy/props/models/prop_bird_nest/model.glb", "art/meshy/props/models/prop_bird_nest/model_base_color.png", "art/meshy/props/models/prop_bird_nest/thumb.png"]}
+]

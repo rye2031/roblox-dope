@@ -19,8 +19,8 @@ local player = Players.LocalPlayer
 local Journey = {}
 
 local COUNTED = { defeat = true, feed = true, ult = true, summon = true }
-local REGION_NAMES = { Haven = "Haven", SproutMeadow = "Sprout Meadow", EmberCanyon = "Ember Canyon", TideCoast = "Tide Coast" }
-local CAMPFIRE_ORDER = { "Haven", "SproutMeadow", "EmberCanyon", "TideCoast" }
+local REGION_NAMES = { Haven = "Haven", SproutMeadow = "Sprout Meadow", EmberCanyon = "Ember Canyon", TideCoast = "Tide Coast", GaleHighlands = "Gale Highlands" }
+local CAMPFIRE_ORDER = { "Haven", "SproutMeadow", "EmberCanyon", "TideCoast", "GaleHighlands" }
 
 local function label(parent: Instance, props: { [string]: any }, weight: string?)
 	props.BackgroundTransparency = props.BackgroundTransparency or 1
@@ -261,6 +261,16 @@ function Journey.start()
 		end
 		if msg.kind == "dialogue" and type(msg.lines) == "table" then
 			Journey.say(msg.npc, msg.lines)
+		elseif msg.kind == "eclipse" then
+			task.delay(dialog.Visible and 4 or 3.4, function()
+				bTop.Text = "TAMER'S JOURNEY COMPLETE"
+				showBanner(0, "")
+				bTitle.Text = "🌑 You earned the Eclipse Scroll"
+				bReward.Text = "A guaranteed 5★ Light or Dark. Open it at the Shrine. There's only ever one."
+				task.delay(4, function()
+					bTop.Text = "CHAPTER COMPLETE"
+				end)
+			end)
 		elseif msg.kind == "done" then
 			local s = StoryData.Steps[msg.step]
 			if msg.chapterDone then

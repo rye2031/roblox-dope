@@ -26,6 +26,7 @@ StoryData.Npcs = {
 	Pip = { Name = "Pip", Title = "Meadow Scout", Icon = "🌱", Color = Color3.fromRGB(140, 210, 120), Pos = Vector3.new(22, 0, 300) },
 	Cinder = { Name = "Cinder", Title = "Canyon Scout", Icon = "🔥", Color = Color3.fromRGB(240, 130, 90), Pos = Vector3.new(298, 0, 345) },
 	Marlo = { Name = "Marlo", Title = "Coast Scout", Icon = "💧", Color = Color3.fromRGB(90, 160, 240), Pos = Vector3.new(-298, 0, 345) },
+	Aeris = { Name = "Aeris", Title = "Windkeeper", Icon = "🍃", Color = Color3.fromRGB(110, 200, 180), Pos = Vector3.new(30, 0, -146) },
 }
 
 local P = {
@@ -44,6 +45,10 @@ local P = {
 	TideBoss = Vector3.new(-560, 0, 520),
 	Titan = Vector3.new(170, 0, -10),
 	Arena = Vector3.new(52, 0, 52),
+	GaleGate = Vector3.new(0, 0, -96),
+	GaleCamps = Vector3.new(0, 0, -300),
+	GaleFire = Vector3.new(20, 0, -140),
+	GaleBoss = Vector3.new(0, 0, -520),
 }
 StoryData.Points = P
 
@@ -109,6 +114,20 @@ StoryData.Chapters = {
 			{ id = "big_summon", kind = "multi", text = "Open 10 scrolls at once at the Shrine", at = P.Shrine, reward = { coins = 500, legendary = 1 } },
 			{ id = "arena_win", kind = "arena", text = "Win a fight in the Arena", at = P.Arena, reward = { coins = 600, scrolls = 3 },
 				hint = "The Arena is east of the plaza. Pick skills turn by turn, or press Auto." },
+		},
+	},
+	{
+		Title = "Gale Highlands",
+		Steps = {
+			{ id = "to_gale", kind = "visit", region = "GaleHighlands", text = "Climb into Gale Highlands through Haven's south gate", at = P.GaleGate, reward = { coins = 400 },
+				hint = "The south gate opens once the Tide Monarch falls, or when a monster reaches Lv 30." },
+			{ id = "aeris", kind = "talk", npc = "Aeris", text = "Talk to Aeris at the highland campfire", at = StoryData.Npcs.Aeris.Pos, reward = { coins = 300 },
+				lines = { "You climbed all the way up here? The wind told me you might.", "Wind monsters rule these heights. Fire burns through them, so bring your hottest team.", "At the top sits the Sky Sovereign. Beat it and you'll have walked the whole Tamer's Journey.", "And legend says the journey's end brings a very rare scroll..." } },
+			{ id = "gale_fire", kind = "campfire", region = "GaleHighlands", text = "Light the highland campfire", at = P.GaleFire, reward = { coins = 300 } },
+			{ id = "gale_hunt", kind = "defeat", n = 20, region = "GaleHighlands", text = "Defeat wild monsters in Gale Highlands", at = P.GaleCamps, reward = { coins = 600, scrolls = 3 } },
+			{ id = "lv30", kind = "level", n = 30, text = "Get a monster to level 30", at = P.GaleCamps, reward = { coins = 600 } },
+			{ id = "sovereign", kind = "boss", region = "GaleHighlands", text = "Defeat the Sky Sovereign", at = P.GaleBoss, reward = { coins = 1500, legendary = 1 },
+				hint = "Bring awakened monsters. Fire hits Wind hardest." },
 		},
 	},
 }

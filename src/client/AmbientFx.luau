@@ -68,6 +68,36 @@ embers.Rate = 0
 embers.EmissionDirection = Enum.NormalId.Top
 embers.Parent = emberAnchor
 
+-- wind streaks and blowing leaves (Gale Highlands), on the same follower anchor
+local wind = Instance.new("ParticleEmitter")
+wind.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+wind.Color = ColorSequence.new(Color3.new(1, 1, 1))
+wind.LightEmission = 0.4
+wind.Orientation = Enum.ParticleOrientation.VelocityParallel
+wind.Squash = NumberSequence.new(-2.5)
+wind.Size = NumberSequence.new({ NumberSequenceKeypoint.new(0, 0), NumberSequenceKeypoint.new(0.2, 0.35), NumberSequenceKeypoint.new(1, 0) })
+wind.Transparency = NumberSequence.new({ NumberSequenceKeypoint.new(0, 1), NumberSequenceKeypoint.new(0.3, 0.55), NumberSequenceKeypoint.new(1, 1) })
+wind.Lifetime = NumberRange.new(1, 1.6)
+wind.Speed = NumberRange.new(28, 40)
+wind.SpreadAngle = Vector2.new(4, 10)
+wind.EmissionDirection = Enum.NormalId.Right
+wind.Rate = 0
+wind.Parent = emberAnchor
+local leaves = Instance.new("ParticleEmitter")
+leaves.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+leaves.Color = ColorSequence.new(Color3.fromRGB(150, 210, 140), Color3.fromRGB(230, 220, 120))
+leaves.LightEmission = 0.1
+leaves.Size = NumberSequence.new(0.45, 0.3)
+leaves.Lifetime = NumberRange.new(2.5, 4)
+leaves.Speed = NumberRange.new(10, 16)
+leaves.SpreadAngle = Vector2.new(20, 30)
+leaves.Rotation = NumberRange.new(0, 360)
+leaves.RotSpeed = NumberRange.new(-200, 200)
+leaves.Acceleration = Vector3.new(0, -1.5, 0)
+leaves.EmissionDirection = Enum.NormalId.Right
+leaves.Rate = 0
+leaves.Parent = emberAnchor
+
 ----------------------------------------------------------------------------------------------
 -- seagulls
 
@@ -136,6 +166,19 @@ function AmbientFx.start()
 			embers.Rate = 14
 		else
 			embers.Rate = 0
+		end
+		if here == "GaleHighlands" then
+			-- the anchor sits upwind (west) of the player so streaks blow across the view
+			emberAnchor.CFrame = CFrame.new(pos.X - 40, pos.Y + 3, pos.Z) * CFrame.Angles(0, 0, 0)
+			emberAnchor.Size = Vector3.new(1, 18, 70)
+			wind.Rate = 22
+			leaves.Rate = 6
+		else
+			if wind.Rate > 0 then
+				emberAnchor.Size = Vector3.new(60, 1, 60)
+			end
+			wind.Rate = 0
+			leaves.Rate = 0
 		end
 		if here == "TideCoast" then
 			while #gulls < 5 do

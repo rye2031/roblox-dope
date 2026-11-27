@@ -75,6 +75,18 @@ local function grant(player: Player, p, s)
 	remote:FireClient(player, { kind = "done", step = p.story.i, reward = StoryData.rewardText(r), chapterDone = not nextStep or nextStep.chapter ~= s.chapter, chapter = s.chapter })
 end
 
+-- Finishing the whole story grants the one Eclipse Scroll (never again, even if more
+-- chapters are added later).
+local function finishCheck(player: Player, p)
+	if StoryData.Steps[p.story.i] == nil and not p.tutorial.eclipseScroll then
+		p.tutorial.eclipseScroll = true
+		p.scrolls.Eclipse = 1
+		remote:FireClient(player, { kind = "eclipse" })
+		PlayerData.saveSoon(player)
+	end
+end
+Story.finishCheck = finishCheck
+
 -- Completes the current step if it's met, repeatedly (returning players skip ahead).
 function Story.check(player: Player)
 	local p = PlayerData.get(player)
@@ -97,6 +109,7 @@ function Story.check(player: Player)
 		advanced = true
 	end
 	if advanced then
+		finishCheck(player, p)
 		PlayerData.push(player)
 		PlayerData.saveSoon(player)
 	end
@@ -137,6 +150,7 @@ function Story.event(player: Player, kind: string, data: { [string]: any }?)
 			grant(player, p, s)
 			p.story.i += 1
 			p.story.n = 0
+			finishCheck(player, p)
 			PlayerData.push(player)
 			PlayerData.saveSoon(player)
 		end
@@ -159,6 +173,7 @@ function Story.talk(player: Player, npc: string)
 		grant(player, p, s)
 		p.story.i += 1
 		p.story.n = 0
+		finishCheck(player, p)
 		PlayerData.push(player)
 		PlayerData.saveSoon(player)
 		task.defer(Story.check, player)

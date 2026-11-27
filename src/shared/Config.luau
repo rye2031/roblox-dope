@@ -43,6 +43,9 @@ Config.Tuning = {
 	Scrolls = {
 		Regular = { Stars = { 40, 35, 20, 4.5, 0.5 } }, -- 1..5 star weights
 		Legendary = { Stars = { 0, 0, 0, 92, 8 } },
+		-- The one Eclipse Scroll: earned once, for finishing the whole story. Always a 5-star,
+		-- always Light or Dark (species random). The only free 5-star Light/Dark in the game.
+		Eclipse = { Stars = { 0, 0, 0, 0, 1 }, Elements = { Light = 50, Dark = 50 } },
 		Elements = { Fire = 33, Water = 33, Wind = 33, Light = 0.5, Dark = 0.5 },
 		PityFourStar = 50, -- Regular scrolls without a 4-star+ before one is guaranteed
 		PityLightDark = 200, -- scrolls without Light/Dark before one is guaranteed
@@ -182,6 +185,7 @@ Config.Loops = {
 			SproutMeadow = { Name = "Sprout Meadow", Mult = 1, Essence = nil, Icon = "🌱" },
 			EmberCanyon = { Name = "Ember Canyon", Mult = 1.5, Essence = "Fire", Icon = "🔥" },
 			TideCoast = { Name = "Tide Coast", Mult = 2, Essence = "Water", Icon = "💧" },
+			GaleHighlands = { Name = "Gale Highlands", Mult = 2.5, Essence = "Wind", Icon = "🍃" },
 		},
 	},
 	IndexMilestones = {
@@ -240,7 +244,7 @@ function Config.expeditionReward(monsters, place: string, minutes: number)
 		power += stars ^ 1.5 * (1 + m.lv / 15) * (m.aw and 1.25 or 1)
 	end
 	local mult = pl and pl.Mult or 1
-	local refLevel = place == "TideCoast" and 20 or place == "EmberCanyon" and 13 or 6
+	local refLevel = place == "GaleHighlands" and 28 or place == "TideCoast" and 20 or place == "EmberCanyon" and 13 or 6
 	return {
 		coins = math.floor(power * minutes * 0.5 * mult),
 		essence = math.max(1, math.floor(power * minutes / 80 * mult)),

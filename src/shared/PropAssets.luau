@@ -16,4 +16,8 @@ return {
 	PropStreetLamp = { Model = 75554391532886, Mesh = "rbxassetid://73612767367750", Texture = "rbxassetid://102731026874883", Height = 1.902 },
 	PropTitanHead = { Model = 140138344317950, Mesh = "rbxassetid://114546642904680", Texture = "rbxassetid://74956505898022", Height = 1.408 },
 	PropWell = { Model = 138761559237551, Mesh = "rbxassetid://126419114275064", Texture = "rbxassetid://117294599266958", Height = 1.899 },
+	PropBirdNest = { Model = 120688366837422, Mesh = "rbxassetid://97724302382392", Texture = "rbxassetid://123022696857827", Height = 0.643 },
+	PropFloatingRocks = { Model = 99333199729232, Mesh = "rbxassetid://124605417650302", Texture = "rbxassetid://102931194816083", Height = 1.899 },
+	PropWatchtower = { Model = 76497131544197, Mesh = "rbxassetid://81965799810618", Texture = "rbxassetid://134867503056068", Height = 1.899 },
+	PropWindShrine = { Model = 99525195193661, Mesh = "rbxassetid://94079925524449", Texture = "rbxassetid://140677442003430", Height = 1.899 },
 }

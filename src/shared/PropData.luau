@@ -54,6 +54,15 @@ PropData.List = {
 	{ mesh = "PropCoral", x = -580, z = 520, h = 6, yaw = 200 },
 	{ mesh = "PropCoral", x = -360, z = 470, h = 5, yaw = 300 },
 
+	-- Gale Highlands: wind shrines on the road, a lookout tower, floating rocks, a giant nest
+	{ mesh = "PropWindShrine", x = -14, z = -180, h = 9, yaw = 90 },
+	{ mesh = "PropWindShrine", x = 14, z = -420, h = 9, yaw = -90 },
+	{ mesh = "PropWatchtower", x = 40, z = -118, h = 22, yaw = -30 },
+	{ mesh = "PropFloatingRocks", x = -140, z = -300, h = 18, yaw = 0 },
+	{ mesh = "PropFloatingRocks", x = 150, z = -300, h = 14, yaw = 120 },
+	{ mesh = "PropFloatingRocks", x = -40, z = -540, h = 20, yaw = 240 },
+	{ mesh = "PropBirdNest", x = 190, z = -480, h = 4.5, yaw = 40 },
+
 	-- Titan Field: the fallen titan
 	{ mesh = "PropTitanHead", x = 205, z = 24, h = 18, yaw = -40 },
 }

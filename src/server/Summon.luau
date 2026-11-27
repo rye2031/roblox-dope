@@ -33,7 +33,10 @@ local function rollStars(kind: string, p): number
 	return Config.pickWeighted(weights, rng:NextNumber())
 end
 
-local function rollElement(p): string
+local function rollElement(p, kind: string?): string
+	if kind == "Eclipse" then
+		return Config.pickWeighted(SC.Eclipse.Elements, rng:NextNumber())
+	end
 	if p.pity.ld + 1 >= SC.PityLightDark then
 		return rng:NextNumber() < 0.5 and "Light" or "Dark"
 	end
@@ -43,7 +46,7 @@ end
 -- Rolls one scroll for a profile (no checks, no push). Returns the result table.
 local function rollOne(p, kind: string)
 	local stars = rollStars(kind, p)
-	local el = rollElement(p)
+	local el = rollElement(p, kind)
 	local pool = Monsters.byStars(stars)
 	local sp = pool[rng:NextInteger(1, #pool)]
 	p.scrolls[kind] -= 1
@@ -52,7 +55,9 @@ local function rollOne(p, kind: string)
 	if kind == "Regular" then
 		p.pity.four = stars >= 4 and 0 or p.pity.four + 1
 	end
-	p.pity.ld = (el == "Light" or el == "Dark") and 0 or p.pity.ld + 1
+	if kind ~= "Eclipse" then
+		p.pity.ld = (el == "Light" or el == "Dark") and 0 or p.pity.ld + 1
+	end
 	local isNew = not p.index[sp .. ":" .. el]
 	local uid = Inventory.addMonster(p, sp, el)
 	if not uid then
@@ -66,10 +71,10 @@ end
 -- results is one result for count 1, or a list for a multi-open.
 function Summon.openMany(player: Player, kind: any, count: any)
 	local p = PlayerData.get(player)
-	if not p or (kind ~= "Regular" and kind ~= "Legendary") then
+	if not p or (kind ~= "Regular" and kind ~= "Legendary" and kind ~= "Eclipse") then
 		return false, "Unknown scroll"
 	end
-	local n = count == SC.MultiOpen and SC.MultiOpen or 1
+	local n = (count == SC.MultiOpen and kind ~= "Eclipse") and SC.MultiOpen or 1
 	local have = p.scrolls[kind] or 0
 	if have <= 0 then
 		return false, `You have no {kind} scrolls`
