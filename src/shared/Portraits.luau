@@ -3,15 +3,21 @@
 -- screens never compete with the creatures in the world for mesh slots.
 local AssetService = game:GetService("AssetService")
 local MeshLoader = require(script.Parent.MeshLoader)
+local Budget = require(script.Parent.Budget)
 
 local Portraits = {}
 
 local folder = script.Parent:WaitForChild("PortraitData", 5)
 local cache: { [string]: EditableImage | false } = {}
+local pending: { [string]: boolean } = {}
 
 function Portraits.image(name: string): EditableImage?
+	while cache[name] == nil and pending[name] do
+		task.wait()
+	end
 	if cache[name] == nil then
-		local ok, img = pcall(function()
+		pending[name] = true
+		local ok, img = pcall(Budget.run, function()
 			local mod = folder and folder:FindFirstChild(name)
 			if not mod then
 				return nil
@@ -26,6 +32,7 @@ function Portraits.image(name: string): EditableImage?
 			warn(`[Portraits] {name} failed: {img}`)
 		end
 		cache[name] = (ok and img) or false
+		pending[name] = nil
 	end
 	return cache[name] or nil
 end

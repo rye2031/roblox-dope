@@ -13,6 +13,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Monsters = require(Shared.Monsters)
 local Ui = require(script.Parent.Ui)
+local Sfx = require(script.Parent.Sfx)
 
 local C = Ui.C
 local px = Ui.px
@@ -223,6 +224,7 @@ function ServerFeed.debugHover()
 end
 
 function ServerFeed.add(data)
+	Sfx.play("announce")
 	addEntry(data)
 	chatLine(data)
 end

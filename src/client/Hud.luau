@@ -55,6 +55,14 @@ local bossText = label(bossChip, { Size = UDim2.fromScale(1, 1), Text = "", Text
 local REGION_NAMES = { Haven = "Haven", SproutMeadow = "Sprout Meadow", EmberCanyon = "Ember Canyon", TideCoast = "Tide Coast", TitanField = "Titan Field" }
 
 local help = button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(70), 0, 10), Size = UDim2.fromOffset(px(44), px(44)), BackgroundColor3 = C.Card, TextColor3 = C.Ink, Text = "?", TextScaled = false, TextSize = px(22), ZIndex = 2, Parent = gui, Radius = 22 })
+-- sound on/off (session only)
+local Sfx = require(script.Parent.Sfx)
+local muteB = button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(70) - px(52), 0, 10), Size = UDim2.fromOffset(px(44), px(44)), BackgroundColor3 = C.Card, TextColor3 = C.Ink, Text = "🔊", TextScaled = false, TextSize = px(20), ZIndex = 2, Parent = gui, Radius = 22 })
+muteB.Visible = Sfx.enabled
+muteB.Activated:Connect(function()
+	Sfx.setMuted(not Sfx.isMuted())
+	muteB.Text = Sfx.isMuted() and "🔇" or "🔊"
+end)
 
 ----------------------------------------------------------------------------------------------
 -- Menu rail (left)

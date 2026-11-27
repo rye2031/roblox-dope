@@ -14,6 +14,8 @@ for i = 1, 64 do
 	decodeMap[string.byte(B64, i)] = i - 1
 end
 
+local Budget = require(script.Parent.Budget)
+
 local function b64decode(s: string): buffer
 	local len = #s
 	local pad = 0
@@ -26,7 +28,12 @@ local function b64decode(s: string): buffer
 	local outLen = (len // 4) * 3 - pad
 	local out = buffer.create(outLen)
 	local o = 0
+	local step = 0
 	for i = 1, len, 4 do
+		step += 1
+		if step % 2048 == 0 then
+			Budget.check()
+		end
 		local a, b, c, d = string.byte(s, i, i + 3)
 		local n = bit32.bor(
 			bit32.lshift(decodeMap[a], 18),
@@ -54,6 +61,9 @@ local function build(name: string): (MeshPart?, EditableMesh?)
 		return nil
 	end
 	local data = require(mod)
+	if not data.Vertices then
+		return nil -- texture-only data: the species is uploaded, its model comes from CreatureModels
+	end
 	local em = AssetService:CreateEditableMesh({})
 	local vb = b64decode(data.Vertices)
 	local ib = b64decode(data.Indices)
@@ -233,7 +243,9 @@ function MeshLoader.texture(name: string): (buffer?, number, number)
 		if mod then
 			local data = require(mod)
 			if data.Texture then
-				c = { b64decode(data.Texture), data.TextureSize[1], data.TextureSize[2] }
+				c = Budget.run(function()
+					return { b64decode(data.Texture), data.TextureSize[1], data.TextureSize[2] }
+				end)
 			end
 		end
 		texCache[name] = c or false

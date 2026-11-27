@@ -15,6 +15,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Monsters = require(Shared.Monsters)
 local Ui = require(script.Parent.Ui)
+local Sfx = require(script.Parent.Sfx)
 
 local C = Ui.C
 local px = Ui.px
@@ -135,6 +136,7 @@ end
 
 -- Lightning from the top of the screen down to `to` (screen pixels), with a branch or two.
 local function lightning(to: Vector2, color: Color3, scale: number)
+	Sfx.play("thunder", { pitch = 1.15 - scale * 0.15, vary = 0.06 })
 	local vp = workspace.CurrentCamera.ViewportSize
 	local from = Vector2.new(math.clamp(to.X + (math.random() - 0.5) * vp.X * 0.35, 0, vp.X), -20)
 	local holder = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 31, Parent = fxLayer })
@@ -289,6 +291,9 @@ local function popStars(row: Frame, n: number, color: Color3, size: number, my: 
 		if token ~= my then
 			return
 		end
+		if delayEach > 0 then
+			Sfx.play("star", { pitch = 2 ^ ((i - 1) * 2 / 12), vary = 0 })
+		end
 		local s = label(row, { LayoutOrder = i, Size = UDim2.fromOffset(size, size), Text = "★", TextSize = size, TextColor3 = color, TextStrokeTransparency = 0.6, TextStrokeColor3 = Color3.new(1, 1, 1), ZIndex = row.ZIndex })
 		local sc = new("UIScale", { Scale = 2.4, Parent = s })
 		tween(sc, 0.22, { Scale = 1 }, Enum.EasingStyle.Back)
@@ -335,6 +340,8 @@ local function single(res, h: Handlers)
 		if not pause(0.45, my) then
 			return
 		end
+		Sfx.play("scroll_land")
+		Sfx.play("rattle", { pitch = high and 1.1 or 1 })
 		for i = 1, (high and 5 or 3) do
 			if skipping then
 				break
@@ -365,6 +372,7 @@ local function single(res, h: Handlers)
 		tween(top, 0.35, { Position = UDim2.new(0.5, 0, 0, px(8)) }, Enum.EasingStyle.Quart)
 		tween(bot, 0.35, { Position = UDim2.new(0.5, 0, 1, -px(8)) }, Enum.EasingStyle.Quart)
 		tween(seal, 0.2, { Size = UDim2.fromOffset(0, 0) })
+		Sfx.play("unroll")
 		tween(glowStroke, 0.35, { Thickness = 8 })
 		if high and not skipping then
 			task.delay(0.15, function()
@@ -380,6 +388,7 @@ local function single(res, h: Handlers)
 		end
 		-- 4) burst into the card
 		flash(Color3.new(1, 1, 1), high and 0.9 or 0.6)
+		Sfx.play(res.stars >= 5 and "reveal_legend" or res.stars == 4 and "reveal_rare" or "reveal", { pitch = res.stars == 3 and 1.12 or 1, vary = 0 })
 		scroll:Destroy()
 		tween(halo, 0.4, { Size = UDim2.fromOffset(px(520), px(520)), BackgroundTransparency = 0.85 })
 		local card, starRow = monsterCard(stage, res, px(300), 10)
@@ -445,6 +454,7 @@ local function multi(list, h: Handlers)
 		})
 		label(back, { Size = UDim2.fromScale(1, 1), Text = "📜", TextSize = math.floor(cw * 0.36), ZIndex = 11, TextXAlignment = Enum.TextXAlignment.Center })
 		slots[i] = { pos = pos, back = back, rc = rc, hint = hint }
+		Sfx.play("flip", { pitch = 0.8 + i * 0.03, vol = 0.6 })
 		tween(back, 0.4, { Position = UDim2.fromOffset(pos.X, pos.Y) }, Enum.EasingStyle.Back)
 		if not skipping then
 			task.wait(0.04)
@@ -474,6 +484,14 @@ local function multi(list, h: Handlers)
 		local function flip(i: number, dramatic: boolean)
 			local r, s = list[i], slots[i]
 			local t = dramatic and not skipping and 0.14 or 0.08
+			Sfx.play("flip", { vary = 0.1 })
+			if r.stars >= 5 then
+				Sfx.play("reveal_legend", { vary = 0 })
+			elseif r.stars == 4 then
+				Sfx.play("reveal_rare", { vary = 0 })
+			elseif r.stars == 3 then
+				Sfx.play("star", { pitch = 1.2, vol = 0.7 })
+			end
 			tween(s.back, t, { Size = UDim2.fromOffset(0, ch) }, Enum.EasingStyle.Quad, Enum.EasingDirection.In)
 			task.wait(t)
 			s.back:Destroy()

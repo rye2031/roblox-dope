@@ -988,5 +988,17 @@
     "files": [
       "art/meshy/models/phoenara/model.glb"
     ]
+  },
+  {
+    "name": "sfx_bank",
+    "kind": "roblox-upload",
+    "roblox_audio_asset": "137685719849517",
+    "moderation": "Reviewing",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/audio/sfx_bank.wav"
+    ],
+    "note": "44 synthesized sound effects (scripts/make_sfx.py); slices in src/shared/SfxBank.luau"
   }
 ]

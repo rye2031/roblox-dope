@@ -9,6 +9,7 @@ local RunService = game:GetService("RunService")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local CombatFx = require(script.Parent.CombatFx)
+local Sfx = require(script.Parent.Sfx)
 
 local T = Config.Tuning
 local player = Players.LocalPlayer
@@ -283,6 +284,34 @@ function TamerAnim.play(plr: Player, kind: string, skill: boolean, predicted: bo
 	end
 	local s: Swing = { kind = kind, skill = skill, variant = variant, t0 = now, dur = tm.dur, impact = tm.impact, release = tm.release or tm.impact }
 	swings[plr] = s
+	-- whoosh / twang / zap, timed to the strike; 2D for you, from the character for others
+	local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	local at = plr ~= player and root and root.Position or nil
+	local function sound(name: string, t: number, o: { [string]: any }?)
+		local opts = o or {}
+		opts.at = at
+		task.delay(math.max(0, t), Sfx.play, name, opts)
+	end
+	if skill then
+		if kind == "Blade" then
+			sound("swing", 0.08, { pitch = 0.85 })
+			sound("swing", 0.24, { pitch = 1.05 })
+		elseif kind == "Hammer" then
+			sound("swing_heavy", s.impact - 0.2, { pitch = 0.85 })
+		elseif kind == "Bow" then
+			sound("bow", s.release - 0.02, { pitch = 1.1 })
+		else
+			sound("revive", s.impact - 0.05)
+		end
+	elseif kind == "Blade" then
+		sound("swing", s.impact - 0.07, { pitch = ({ 1.0, 1.12, 0.9 })[variant] or 1 })
+	elseif kind == "Hammer" then
+		sound("swing_heavy", s.impact - 0.14)
+	elseif kind == "Staff" then
+		sound("zap", s.release - 0.02)
+	else
+		sound("bow", s.release - 0.03)
+	end
 	if plr == player and predicted then
 		localStart[key] = now
 	end
@@ -502,6 +531,7 @@ function TamerAnim.effects(plr: Player?, e): number
 				local at = origin + dir * (w.Range * 0.6)
 				CombatFx.shockwave(at, 5, color, 0.35)
 				CombatFx.debris(at, Color3.fromRGB(150, 140, 125), 6, 6)
+				Sfx.play("slam", { at = at, vol = 0.45, pitch = 1.25 })
 				if mine then
 					CombatFx.shake(0.9, 0.22)
 				end
@@ -529,6 +559,9 @@ function TamerAnim.effects(plr: Player?, e): number
 		task.delay(rel, function()
 			local start = (plr and TamerAnim.muzzle(plr)) or muzzleFrom
 			CombatFx.projectile(start, to + Vector3.new(0, 1, 0), color, proj == "arrow" and 0.5 or 0.9, proj, proj == "arrow" and 1.2 or 0.6, function()
+				if proj == "arrow" then
+					Sfx.play("arrow_hit", { at = to, vol = 0.7 })
+				end
 				CombatFx.flash(to + Vector3.new(0, 1, 0), color, 1.6)
 				CombatFx.burst(to + Vector3.new(0, 1, 0), color, 8, 8, { size = 0.5, life = 0.35 })
 			end)
@@ -550,6 +583,7 @@ function TamerAnim.effects(plr: Player?, e): number
 						local land = centre + Vector3.new(math.cos(a) * r, 0, math.sin(a) * r)
 						land = Vector3.new(land.X, CombatFx.groundY(land) + 0.3, land.Z)
 						CombatFx.projectile(sky:Lerp(land, 0.35) + Vector3.new(0, 12, 0), land, color, 0.5, "arrow", 0.5, function()
+							Sfx.play("arrow_hit", { at = land, vol = 0.6, vary = 0.12 })
 							CombatFx.burst(land, color, 4, 6, { size = 0.4, life = 0.3 })
 						end)
 					end)
@@ -572,6 +606,7 @@ function TamerAnim.effects(plr: Player?, e): number
 				end)
 				CombatFx.debris(centre, Color3.fromRGB(150, 140, 125), 14, radius * 0.7)
 				CombatFx.shakeAt(centre, 2.2, 0.4, 45)
+				Sfx.play("slam", { at = centre })
 			else -- Blade spin
 				local cf = CFrame.new(centre)
 				CombatFx.slash(cf * CFrame.new(0, 0.6, 0), radius * 0.75, color, 0, math.pi * 2, 0.22, 0, 1.2)

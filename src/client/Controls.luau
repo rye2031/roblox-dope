@@ -12,6 +12,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local UnitView = require(script.Parent.UnitView)
 local TamerAnim = require(script.Parent.TamerAnim)
+local Sfx = require(script.Parent.Sfx)
 
 local T = Config.Tuning
 local player = Players.LocalPlayer
@@ -203,6 +204,7 @@ function Controls.dodge()
 	hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
 	hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
 	TamerAnim.dodge(player)
+	Sfx.play("dodge")
 end
 
 function Controls.team(slot: number)

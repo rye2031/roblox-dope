@@ -18,6 +18,7 @@ local Theme = require(Shared.Theme)
 local Models = require(script.Parent.Models)
 local CombatFx = require(script.Parent.CombatFx)
 local TamerAnim = require(script.Parent.TamerAnim)
+local Sfx = require(script.Parent.Sfx)
 
 local player = Players.LocalPlayer
 local C = Theme.C
@@ -573,6 +574,12 @@ local function showHit(e, from: Vector3?)
 		color = Color3.fromRGB(230, 70, 70)
 	end
 	UnitView.popText(pos, (crit and "CRIT " or "") .. tostring(e[3]) .. (adv > 1 and not ally and "!" or ""), color, crit)
+	if plr == player then
+		Sfx.play("hurt", { vary = 0.08 })
+	else
+		local big = v and (v.part:GetAttribute("Boss") or v.baseSize.Y > 6)
+		Sfx.play(crit and "crit" or big and "hit_heavy" or "hit", { at = pos, vary = 0.1, pitch = adv > 1 and 1.08 or 1, vol = ally and 0.6 or 1 })
+	end
 	local el = e[5]
 	local hitAt = pos
 	if from then
@@ -628,6 +635,9 @@ end
 -- Effects where a unit's skill lands.
 local function landCast(tier: number, at: Vector3, el: string, radius: number, from: Vector3, ranged: boolean, size: number)
 	local color = CombatFx.color(el)
+	if tier == 3 then
+		Sfx.play(ranged and "blast" or "slam", { at = at })
+	end
 	if radius > 0 then
 		CombatFx.shockwave(at, radius, color, tier == 3 and 0.55 or 0.4)
 		CombatFx.impact(at + Vector3.new(0, 1, 0), el, tier == 3 and 2.4 or 1.5)
@@ -688,6 +698,11 @@ function UnitView.onEvents(list)
 				local ranged = sp ~= nil and sp.Range == "ranged"
 				local impact, release = startCast(v, tier, at, ranged)
 				local from = v.part.Position
+				-- attack sound from the monster, pitched by its size
+				local pitch = math.clamp(1.35 - v.baseSize.Y * 0.07, 0.7, 1.3)
+				if tier < 3 then
+					task.delay(math.max(0, (ranged and release or impact) - 0.06), Sfx.play, ranged and "zap" or "swing", { at = from, pitch = pitch, vol = 0.55 })
+				end
 				local delay = impact
 				if ranged then
 					local h = v.baseSize.Y
@@ -720,6 +735,11 @@ function UnitView.onEvents(list)
 			end
 		elseif kind == "telegraph" then
 			CombatFx.telegraph(e[3], e[4], e[5])
+			Sfx.play("warn", { at = e[3] })
+			local caster = viewByKey(e[2])
+			if caster then
+				Sfx.play("charge", { at = caster.part.Position, pitch = math.clamp(0.9 / math.max(0.3, e[5]), 0.5, 1.6), vary = 0 })
+			end
 			local v = viewByKey(e[2])
 			if v then
 				v.anim = { kind = "charge", t0 = now, dur = e[5], tier = 3, dir = flat(e[3] - v.part.Position), pre = 0, ranged = false }
@@ -776,6 +796,11 @@ function UnitView.onEvents(list)
 			end
 			later(d, function()
 				local pos = positionOf(e[2])
+				if kind == "faint" and v and v.part:GetAttribute("Owner") == player.UserId then
+					Sfx.play("faint")
+				elseif pos then
+					Sfx.play("poof", { at = pos, vary = 0.12 })
+				end
 				if pos then
 					local el = v and v.part:GetAttribute("Element")
 					CombatFx.burst(pos, Color3.fromRGB(235, 235, 245), 16, 7, { texture = "smoke", size = 2, life = 0.8, emission = 0, gravity = 3 })
@@ -786,10 +811,12 @@ function UnitView.onEvents(list)
 			local plr = playerOfKey(e[2])
 			if plr and plr ~= player then
 				TamerAnim.dodge(plr)
+				Sfx.play("dodge", { at = positionOf(e[2]) })
 			end
 		elseif kind == "revive" then
 			local pos = positionOf(e[2])
 			if pos then
+				Sfx.play("revive", { at = pos })
 				CombatFx.pillar(pos, C.Mint, 2, 10)
 				UnitView.popText(pos, "Back up!", C.Mint)
 			end

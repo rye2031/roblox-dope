@@ -1,0 +1,178 @@
+{
+ "tap": {
+  "start": 0.0,
+  "length": 0.035
+ },
+ "open": {
+  "start": 0.285,
+  "length": 0.0898
+ },
+ "close": {
+  "start": 0.6248,
+  "length": 0.08
+ },
+ "error": {
+  "start": 0.9548,
+  "length": 0.2
+ },
+ "toast": {
+  "start": 1.4048,
+  "length": 0.6
+ },
+ "select": {
+  "start": 2.2548,
+  "length": 0.05
+ },
+ "coin": {
+  "start": 2.5548,
+  "length": 0.705
+ },
+ "coins": {
+  "start": 3.5098,
+  "length": 1.0016
+ },
+ "essence": {
+  "start": 4.7614,
+  "length": 0.9064
+ },
+ "scroll_get": {
+  "start": 5.9178,
+  "length": 0.905
+ },
+ "level_up": {
+  "start": 7.0728,
+  "length": 0.975
+ },
+ "quest_done": {
+  "start": 8.2978,
+  "length": 1.1697
+ },
+ "claim": {
+  "start": 9.7176,
+  "length": 0.765
+ },
+ "buy": {
+  "start": 10.7326,
+  "length": 0.72
+ },
+ "swing": {
+  "start": 11.7026,
+  "length": 0.2
+ },
+ "swing_heavy": {
+  "start": 12.1526,
+  "length": 0.3
+ },
+ "hit": {
+  "start": 12.7026,
+  "length": 0.1104
+ },
+ "hit_heavy": {
+  "start": 13.063,
+  "length": 0.2313
+ },
+ "crit": {
+  "start": 13.5443,
+  "length": 0.71
+ },
+ "slam": {
+  "start": 14.5043,
+  "length": 0.6283
+ },
+ "zap": {
+  "start": 15.3826,
+  "length": 0.22
+ },
+ "bow": {
+  "start": 15.8526,
+  "length": 0.3386
+ },
+ "arrow_hit": {
+  "start": 16.4412,
+  "length": 0.0666
+ },
+ "dodge": {
+  "start": 16.7578,
+  "length": 0.218
+ },
+ "skill_ready": {
+  "start": 17.2259,
+  "length": 0.56
+ },
+ "hurt": {
+  "start": 18.0359,
+  "length": 0.1529
+ },
+ "poof": {
+  "start": 18.4388,
+  "length": 0.2827
+ },
+ "charge": {
+  "start": 18.9715,
+  "length": 0.9
+ },
+ "blast": {
+  "start": 20.1215,
+  "length": 0.5934
+ },
+ "warn": {
+  "start": 20.9649,
+  "length": 0.28
+ },
+ "faint": {
+  "start": 21.4949,
+  "length": 0.4485
+ },
+ "revive": {
+  "start": 22.1934,
+  "length": 0.82
+ },
+ "boss": {
+  "start": 23.2633,
+  "length": 1.6738
+ },
+ "region": {
+  "start": 25.1871,
+  "length": 1.2052
+ },
+ "scroll_land": {
+  "start": 26.6423,
+  "length": 0.109
+ },
+ "rattle": {
+  "start": 27.0014,
+  "length": 0.25
+ },
+ "unroll": {
+  "start": 27.5014,
+  "length": 0.87
+ },
+ "reveal": {
+  "start": 28.6213,
+  "length": 0.7405
+ },
+ "reveal_rare": {
+  "start": 29.6118,
+  "length": 1.0895
+ },
+ "reveal_legend": {
+  "start": 30.9512,
+  "length": 1.8085
+ },
+ "star": {
+  "start": 33.0097,
+  "length": 0.1452
+ },
+ "flip": {
+  "start": 33.4049,
+  "length": 0.07
+ },
+ "thunder": {
+  "start": 33.7249,
+  "length": 1.0809
+ },
+ "announce": {
+  "start": 35.0558,
+  "length": 1.2589
+ }
+}

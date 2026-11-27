@@ -12,6 +12,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Monsters = require(Shared.Monsters)
 local MeshLoader = require(Shared.MeshLoader)
+local Budget = require(Shared.Budget)
 
 local Models = {}
 
@@ -82,17 +83,25 @@ local function tint(src: buffer, w: number, h: number, element: string): buffer
 	local lr, lg, lb = info.Light.R * 255, info.Light.G * 255, info.Light.B * 255
 	local out = buffer.create(w * h * 4)
 	local k = 0.85
+	-- luminance -> ramp position, precomputed (lum quantised to 0..255)
+	local ramp = table.create(256)
+	for q = 0, 255 do
+		ramp[q + 1] = (q / 255) ^ 0.85
+	end
 	for i = 0, w * h - 1 do
+		if i % 4096 == 0 then
+			Budget.check()
+		end
 		local o = i * 4
 		local r, g, b, a = buffer.readu8(src, o), buffer.readu8(src, o + 1), buffer.readu8(src, o + 2), buffer.readu8(src, o + 3)
-		local lum = (0.3 * r + 0.59 * g + 0.11 * b) / 255
-		if lum < 0.13 then
+		local lq = (0.3 * r + 0.59 * g + 0.11 * b) // 1
+		if lq < 33 then
 			-- keep dark details (eyes, outlines)
 			buffer.writeu8(out, o, r)
 			buffer.writeu8(out, o + 1, g)
 			buffer.writeu8(out, o + 2, b)
 		else
-			local t = lum ^ 0.85
+			local t = ramp[lq + 1]
 			local tr, tg, tb = dr + (lr - dr) * t, dg + (lg - dg) * t, db + (lb - db) * t
 			buffer.writeu8(out, o, math.clamp(math.floor(r * (1 - k) + tr * k), 0, 255))
 			buffer.writeu8(out, o + 1, math.clamp(math.floor(g * (1 - k) + tg * k), 0, 255))
@@ -116,10 +125,12 @@ function Models.texture(sp: string, element: string): EditableImage?
 		return tintCache[key]
 	end
 	loading[key] = true
-	local base = baseTexture(sp)
+	local base = Budget.run(function()
+		return baseTexture(sp)
+	end)
 	local img = nil
 	if base then
-		local ok, res = pcall(function()
+		local ok, res = pcall(Budget.run, function()
 			local buf = tint(base[1], base[2], base[3], element)
 			local im = AssetService:CreateEditableImage({ Size = Vector2.new(base[2], base[3]) })
 			im:WritePixelsBuffer(Vector2.zero, Vector2.new(base[2], base[3]), buf)
