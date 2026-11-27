@@ -2,8 +2,11 @@
 -- (player attribute Travelling) you run faster; this adds a light dust trail at your feet and
 -- a one-time tip so players notice it.
 local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 
 local Ui = require(script.Parent.Ui)
+local Sfx = require(script.Parent.Sfx)
 
 local Pace = {}
 local player = Players.LocalPlayer
@@ -31,7 +34,41 @@ local function dust(char: Model): ParticleEmitter?
 	return e
 end
 
+-- Ride button (F): hop on your lead monster to travel faster. Out of combat only.
+local C, px = Ui.C, Ui.px
+local rideB = Ui.button({ Name = "Ride", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(16), 0, px(206)), Size = UDim2.fromOffset(px(170), px(40)), BackgroundColor3 = C.Lilac, Text = "🐾 Ride [F]", TextScaled = false, TextSize = px(16), ZIndex = 3, Parent = Ui.gui, Radius = 20 })
+
+local function toggleRide()
+	local Intent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Intent") :: RemoteEvent
+	if not player:GetAttribute("Riding") and player:GetAttribute("InCombat") then
+		Ui.toast("You can't ride during a fight", "warn")
+		return
+	end
+	Intent:FireServer("ride")
+end
+
 function Pace.start()
+	rideB.Activated:Connect(toggleRide)
+	UserInputService.InputBegan:Connect(function(input, processed)
+		if not processed and input.KeyCode == Enum.KeyCode.F then
+			toggleRide()
+		end
+	end)
+	local function paintRide()
+		local riding = player:GetAttribute("Riding") ~= nil
+		rideB.Text = riding and "🐾 Get off [F]" or "🐾 Ride [F]"
+		rideB.BackgroundColor3 = riding and C.Mint or (player:GetAttribute("InCombat") and C.Line or C.Lilac)
+		rideB.Visible = player:GetAttribute("Dungeon") == nil
+	end
+	for _, a in { "Riding", "InCombat", "Dungeon" } do
+		player:GetAttributeChangedSignal(a):Connect(paintRide)
+	end
+	paintRide()
+	player:GetAttributeChangedSignal("Riding"):Connect(function()
+		if player:GetAttribute("Riding") then
+			Sfx.play("skill_ready", { pitch = 1.2 })
+		end
+	end)
 	local emitter: ParticleEmitter? = nil
 	local function onChar(char: Model)
 		emitter = dust(char)

@@ -31,6 +31,7 @@ local TIPS = {
 	gear = { "⚔", "New weapon!", "Open Weapons (the Smithy) and tap it to equip it. Rarer ones glow." },
 	awaken = { "✨", "Level 20!", "A monster reached level 20, its cap. Awaken it on its page to raise the cap to 40 and boost its stats." },
 	auto = { "🤖", "Auto-Hunt unlocked", "Press R (or the Auto-Hunt button) and your Tamer fights nearby monsters for you, at a bit less reward." },
+	ride = { "🐾", "Ride your monster", "Press F (or Ride) to hop on your lead monster and travel fast. A fight knocks you off." },
 	portal = { "🌀", "Portals", "Glowing portals take you between places. A locked one tells you what opens it." },
 }
 
@@ -187,6 +188,7 @@ function Tips.start()
 		local r = player:GetAttribute("Region")
 		if r and r ~= "Haven" and r ~= "TitanField" then
 			Tips.show("portal")
+			Tips.show("ride")
 		end
 	end)
 	local function watchHp(char: Model)

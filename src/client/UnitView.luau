@@ -380,6 +380,21 @@ local function updateView(v: View, dt: number, now: number)
 
 	-- follow the server part smoothly (it moves at 10 Hz)
 	local target = part.CFrame * CFrame.new(0, (v.baseSize.Y - part.Size.Y) / 2, 0)
+	-- ridden: sit right under the rider every frame (no lag behind a 40-speed character)
+	local mounted = part:GetAttribute("Mount") == true
+	local rideScale = mounted and (part:GetAttribute("RideScale") or 1) or 1
+	if mounted then
+		local owner = Players:GetPlayerByUserId(part:GetAttribute("Owner") or 0)
+		local hrp = owner and owner.Character and owner.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		local hum = owner and owner.Character and owner.Character:FindFirstChildOfClass("Humanoid")
+		if hrp and hum then
+			local groundY = hrp.Position.Y - hrp.Size.Y / 2 - hum.HipHeight
+			local look = hrp.CFrame.LookVector
+			local pos = Vector3.new(hrp.Position.X, groundY + v.baseSize.Y / 2 - 0.2, hrp.Position.Z)
+			target = CFrame.lookAt(pos, pos + Vector3.new(look.X, 0, look.Z))
+			v.cf = target
+		end
+	end
 	if not v.cf or (v.cf.Position - target.Position).Magnitude > 30 then
 		v.cf = target
 	else
@@ -452,7 +467,7 @@ local function updateView(v: View, dt: number, now: number)
 		v.shake = math.max(0, v.shake - dt * 6)
 		off = CFrame.new((math.random() - 0.5) * 0.3 * v.shake, 0, (math.random() - 0.5) * 0.3 * v.shake) * off
 	end
-	setScale(v, ld, sF, sU, uniform)
+	setScale(v, ld, sF, sU, uniform * rideScale)
 	if math.abs(transp - v.lastTransp) > 0.01 then
 		v.lastTransp = transp
 		v.body.Transparency = transp

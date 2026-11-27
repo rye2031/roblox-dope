@@ -750,6 +750,15 @@ local function updateTeamUnit(u, dt: number)
 	end
 	-- burns tick even when not fighting
 	local tamer = tamerOf(player)
+	-- the ridden monster carries its Tamer: it goes where the character goes
+	if u.part and u.part:GetAttribute("Mount") then
+		u.target = nil
+		local look = hrp.CFrame.LookVector
+		u.pos = Vector3.new(hrp.Position.X, u.pos.Y, hrp.Position.Z)
+		u.facing = Vector3.new(look.X, 0, look.Z)
+		u.state = (hrp.AssemblyLinearVelocity * Vector3.new(1, 0, 1)).Magnitude > 2 and "move" or "idle"
+		return
+	end
 	if u.target and (not alive(u.target) or (posOf(u.target) - hrp.Position).Magnitude > 90) then
 		u.target = nil
 	end
@@ -1088,6 +1097,67 @@ function Combat.inCombat(player: Player): boolean
 	return false
 end
 
+-- Riding (2026-11-27): hop on your lead monster to travel. Out of combat and outside dungeons
+-- only; the first hit (or entering a fight) throws you off. The ridden unit follows the
+-- character's root on the server; clients draw it under the rider (UnitView) and the
+-- character stands on its back through HipHeight.
+local BASE_HIP = 2
+local function rideScale(sp: string): number
+	return math.clamp(CT.RideHeight / Monsters.Species[sp].Height, 1, 1.8)
+end
+local function mountOf(player: Player)
+	local slot = player:GetAttribute("Riding")
+	local u = slot and teams[player] and teams[player][slot]
+	return u
+end
+function Combat.dismount(player: Player, why: string?)
+	local u = mountOf(player)
+	player:SetAttribute("Riding", nil)
+	if u and u.part then
+		u.part:SetAttribute("Mount", nil)
+	end
+	local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum.HipHeight = BASE_HIP
+	end
+	if why and remotes then
+		remotes.Toast:FireClient(player, why, "info")
+	end
+end
+function Combat.toggleRide(player: Player)
+	if player:GetAttribute("Riding") then
+		Combat.dismount(player)
+		return
+	end
+	if Combat.inCombat(player) or player:GetAttribute("Dungeon") then
+		remotes.Toast:FireClient(player, "You can't ride during a fight", "warn")
+		return
+	end
+	local list = teams[player] or {}
+	local u
+	for slot = 1, T.TeamSize do
+		local c = list[slot]
+		if c and alive(c) then
+			u = c
+			break
+		end
+	end
+	local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if not u or not hum then
+		remotes.Toast:FireClient(player, "Put a monster on your team to ride it", "warn")
+		return
+	end
+	player:SetAttribute("Riding", u.slot)
+	u.part:SetAttribute("Mount", true)
+	u.part:SetAttribute("RideScale", rideScale(u.sp))
+	u.target = nil
+	hum.HipHeight = BASE_HIP + Monsters.Species[u.sp].Height * rideScale(u.sp) * 0.72
+	local hrp = hrpOf(player)
+	if hrp then
+		hrp.CFrame += Vector3.new(0, Monsters.Species[u.sp].Height * rideScale(u.sp) * 0.72, 0)
+	end
+end
+
 -- Travel pace (2026-11-27, owner: move faster when not fighting): after a few calm seconds
 -- you run at TravelSpeed and your team keeps up; the first hit drops you back at once.
 local calmSince: { [Player]: number } = {}
@@ -1102,8 +1172,20 @@ local function updatePace(player: Player)
 	elseif not calmSince[player] then
 		calmSince[player] = now()
 	end
+	local riding = player:GetAttribute("Riding") ~= nil
+	if riding and fighting then
+		Combat.dismount(player, "You jumped off to fight!")
+		riding = false
+	end
+	if riding then
+		local u = mountOf(player)
+		if not u or not alive(u) then
+			Combat.dismount(player)
+			riding = false
+		end
+	end
 	local fast = not fighting and now() - (calmSince[player] or now()) >= CT.TravelDelay
-	local speed = fast and CT.TravelSpeed or CT.WalkSpeed
+	local speed = riding and CT.RideSpeed or fast and CT.TravelSpeed or CT.WalkSpeed
 	if hum.WalkSpeed ~= speed then
 		hum.WalkSpeed = speed
 	end

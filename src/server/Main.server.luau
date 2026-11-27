@@ -161,7 +161,9 @@ end
 
 -- Combat intents (fire-and-forget; the server validates everything)
 remotes.Intent.OnServerEvent:Connect(function(player, kind, a)
-	if kind == "attack" then
+	if kind == "ride" then
+		Combat.toggleRide(player)
+	elseif kind == "attack" then
 		Combat.attack(player, a)
 	elseif kind == "wskill" then
 		Combat.weaponSkill(player, a)
@@ -277,6 +279,7 @@ local function onCharacter(player: Player, char: Model)
 	end
 	hum.WalkSpeed = Config.Tuning.Combat.WalkSpeed
 	task.defer(function()
+		Combat.dismount(player)
 		Combat.healTeam(player)
 		Combat.syncTeam(player)
 	end)
