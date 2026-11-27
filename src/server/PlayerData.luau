@@ -19,6 +19,7 @@ export type Profile = {
 	nextUid: number,
 	team: { string }, -- 3 slots, "" = empty
 	storageCap: number,
+	overflow: { [string]: number }, -- "<species>:<element>" -> count, summons that arrived while storage was full
 	scrolls: { Regular: number, Legendary: number },
 	pity: { four: number, ld: number },
 	essence: { [string]: number },
@@ -52,6 +53,7 @@ local function defaults(): Profile
 		nextUid = 1,
 		team = { "", "", "" },
 		storageCap = T.StartStorage,
+		overflow = {},
 		scrolls = { Regular = T.Scrolls.Start.Regular, Legendary = T.Scrolls.Start.Legendary },
 		pity = { four = 0, ld = 0 },
 		essence = essence,
@@ -126,6 +128,17 @@ function PlayerData.sanitize(raw: any): Profile
 		end
 	end
 	p.storageCap = math.max(T.StartStorage, int(raw.storageCap, T.StartStorage))
+	if typeof(raw.overflow) == "table" then
+		local total = 0
+		for k, v in raw.overflow do
+			local sp, el = string.match(tostring(k), "^(%w+):(%w+)$")
+			local n = math.min(int(v, 0), T.OverflowCap - total)
+			if sp and Monsters.Species[sp] and validElement(el) and n > 0 then
+				p.overflow[k] = n
+				total += n
+			end
+		end
+	end
 	if typeof(raw.scrolls) == "table" then
 		p.scrolls = { Regular = int(raw.scrolls.Regular, 0), Legendary = int(raw.scrolls.Legendary, 0) }
 	end

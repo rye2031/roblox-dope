@@ -120,6 +120,103 @@ local function canConsume(p, uid: string, target: string?): (boolean, string?)
 	return true
 end
 
+----------------------------------------------------------------------------------------------
+-- Overflow: summons that arrive while storage is full wait here, grouped by species + element
+-- (they're all fresh Lv 1, so duplicates are identical). Take one into storage, swap one in for
+-- a stored monster (which is sold), or sell them.
+
+function Inventory.overflowCount(p): number
+	local n = 0
+	for _, c in p.overflow do
+		n += c
+	end
+	return n
+end
+
+function Inventory.overflowAdd(p, sp: string, el: string): boolean
+	if Inventory.overflowCount(p) >= T.OverflowCap then
+		return false
+	end
+	local key = sp .. ":" .. el
+	p.overflow[key] = (p.overflow[key] or 0) + 1
+	p.index[key] = true
+	return true
+end
+
+local function takeOne(p, key: string): (string?, string?)
+	local sp, el = string.match(key, "^(%w+):(%w+)$")
+	if not sp or not el then
+		return nil, nil
+	end
+	p.overflow[key] -= 1
+	if p.overflow[key] <= 0 then
+		p.overflow[key] = nil
+	end
+	return sp, el
+end
+
+function Inventory.overflow(player: Player, action: any, key: any, uid: any): (boolean, string)
+	local p = PlayerData.get(player)
+	if not p then
+		return false, "No profile"
+	end
+	local function done(msg: string): (boolean, string)
+		PlayerData.push(player)
+		PlayerData.saveSoon(player)
+		return true, msg
+	end
+	if action == "sellall" then
+		local total, n = 0, 0
+		for k, c in p.overflow do
+			local sp = string.match(k, "^(%w+):")
+			total += Config.sellValue(Monsters.Species[sp].Stars, 1) * c
+			n += c
+		end
+		if n == 0 then
+			return false, "Overflow is empty"
+		end
+		p.overflow = {}
+		p.coins += total
+		return done(`Sold {n} overflow monsters for {total} coins`)
+	end
+	if typeof(key) ~= "string" or not p.overflow[key] then
+		return false, "That group is gone"
+	end
+	local sp0 = string.match(key, "^(%w+):")
+	local name = Monsters.Species[sp0].Name
+	if action == "take" then
+		if count(p) >= p.storageCap then
+			return false, "Storage is full: swap, sell or buy more storage"
+		end
+		local sp, el = takeOne(p, key)
+		Inventory.addMonster(p, sp :: string, el :: string)
+		return done(`{name} moved into storage`)
+	elseif action == "swap" then
+		if typeof(uid) ~= "string" then
+			return false, "Pick a monster to swap out"
+		end
+		local ok, why = canConsume(p, uid, nil)
+		if not ok then
+			return false, `Can't swap that one: {why}`
+		end
+		local old = p.monsters[uid]
+		local value = Inventory.sellValue(old)
+		local oldName = Monsters.Species[old.sp].Name
+		p.monsters[uid] = nil
+		p.coins += value
+		local sp, el = takeOne(p, key)
+		Inventory.addMonster(p, sp :: string, el :: string)
+		return done(`Sold {oldName} for {value} coins; {name} joined your storage`)
+	elseif action == "sell" then
+		local c = p.overflow[key]
+		local total = Config.sellValue(Monsters.Species[sp0].Stars, 1) * c
+		p.overflow[key] = nil
+		p.coins += total
+		return done(`Sold {c} {name} for {total} coins`)
+	end
+	return false, "Unknown action"
+end
+
 -- Feed fodder to a monster: XP by the fodder's stars and level; a duplicate species levels up a
 -- random unmaxed skill. Returns (ok, message).
 function Inventory.feed(player: Player, target: any, foods: any): (boolean, string)

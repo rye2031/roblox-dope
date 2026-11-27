@@ -13,7 +13,8 @@ local PlayerData = require(script.Parent.PlayerData)
 local Inventory = require(script.Parent.Inventory)
 local Quests = require(script.Parent.Quests)
 
-local SC = Config.Tuning.Scrolls
+local T = Config.Tuning
+local SC = T.Scrolls
 local Summon = {}
 
 local rng = Random.new()
@@ -52,8 +53,12 @@ local function rollOne(p, kind: string)
 	end
 	p.pity.ld = (el == "Light" or el == "Dark") and 0 or p.pity.ld + 1
 	local isNew = not p.index[sp .. ":" .. el]
-	local uid = Inventory.addMonster(p, sp, el) :: string
-	return { uid = uid, sp = sp, el = el, stars = stars, kind = kind, new = isNew }
+	local uid = Inventory.addMonster(p, sp, el)
+	if not uid then
+		-- storage is full: it waits in the overflow box (room was checked before rolling)
+		Inventory.overflowAdd(p, sp, el)
+	end
+	return { uid = uid, sp = sp, el = el, stars = stars, kind = kind, new = isNew, overflow = uid == nil }
 end
 
 -- Opens `count` scrolls (1 or Scrolls.MultiOpen). Returns (ok, message, results?) where
@@ -71,12 +76,9 @@ function Summon.openMany(player: Player, kind: any, count: any)
 	if have < n then
 		return false, `You need {n} {kind} scrolls (you have {have})`
 	end
-	local room = p.storageCap - Inventory.count(p)
-	if room <= 0 then
-		return false, "Your storage is full. Feed, sell or make room first"
-	end
+	local room = (p.storageCap - Inventory.count(p)) + (T.OverflowCap - Inventory.overflowCount(p))
 	if room < n then
-		return false, `You need {n} free storage slots (you have {room}). Feed, sell or buy storage first`
+		return false, `Storage and overflow are full ({room} spaces left). Sell or feed monsters first`
 	end
 	local results = {}
 	for _ = 1, n do

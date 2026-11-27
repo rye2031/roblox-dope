@@ -272,6 +272,11 @@ local function monsterCard(parent: Instance, res, w: number, z: number): (Frame,
 	local _, img = Ui.portrait(card, res.sp, res.el, UDim2.fromOffset(w * 0.78, w * 0.78), UDim2.new(0.11, 0, 0, w * 0.07), z + 1)
 	img.Parent.BackgroundTransparency = 1
 	label(card, { Position = UDim2.new(0, 0, 0, w * 0.86), Size = UDim2.new(1, 0, 0, w * 0.11), Text = sp.Name, TextSize = math.floor(w * 0.1), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = z + 2 })
+	if res.overflow then
+		-- storage was full: this one waits in the Overflow box
+		local tag = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, w * 0.04), Size = UDim2.fromOffset(w * 0.62, w * 0.12), BackgroundColor3 = Color3.fromRGB(240, 140, 70), ZIndex = z + 3, Parent = card }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+		label(tag, { Size = UDim2.fromScale(1, 1), Text = "→ Overflow", TextSize = math.floor(w * 0.075), TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = z + 4 })
+	end
 	local starRow = new("Frame", { Position = UDim2.new(0, 0, 0, w * 0.98), Size = UDim2.new(1, 0, 0, w * 0.12), BackgroundTransparency = 1, ZIndex = z + 2, Parent = card }, {
 		new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }),
 	})

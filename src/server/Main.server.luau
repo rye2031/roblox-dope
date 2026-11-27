@@ -34,7 +34,7 @@ for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce"
 	r.Parent = remoteFolder
 	remotes[n] = r
 end
-for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial" } do
+for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow" } do
 	local r = Instance.new("RemoteFunction")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -64,6 +64,9 @@ remotes.GetProfile.OnServerInvoke = function(player)
 end
 remotes.Summon.OnServerInvoke = function(player, kind, count)
 	return Summon.openMany(player, kind, count)
+end
+remotes.Overflow.OnServerInvoke = function(player, action, key, uid)
+	return Inventory.overflow(player, action, key, uid)
 end
 remotes.SetTeam.OnServerInvoke = function(player, slot, uid)
 	return Inventory.setTeam(player, slot, uid)
@@ -240,6 +243,12 @@ if game:GetService("RunService"):IsStudio() then
 			end
 			PlayerData.push(player)
 			return uid
+		elseif cmd == "storagecap" then
+			p.storageCap = a
+			PlayerData.push(player)
+			return "ok"
+		elseif cmd == "overflow" then
+			return HttpService:JSONEncode(p.overflow)
 		elseif cmd == "scrolls" then
 			p.scrolls.Regular += a or 0
 			p.scrolls.Legendary += b or 0

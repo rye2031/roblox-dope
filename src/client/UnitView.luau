@@ -782,6 +782,11 @@ function UnitView.onEvents(list)
 					CombatFx.burst(pos, CombatFx.light(el), 12, 5, { size = 0.6, life = 1.2, gravity = 9, spread = Vector2.new(30, 30) })
 				end
 			end)
+		elseif kind == "dodge" then
+			local plr = playerOfKey(e[2])
+			if plr and plr ~= player then
+				TamerAnim.dodge(plr)
+			end
 		elseif kind == "revive" then
 			local pos = positionOf(e[2])
 			if pos then

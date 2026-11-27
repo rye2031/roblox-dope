@@ -68,6 +68,7 @@ local RAIL = {
 	{ "Weapons", "⚔", C.Peach },
 }
 local questDot: Frame
+local monDot: Frame -- overflow waiting
 for i, r in RAIL do
 	local b = button({ LayoutOrder = i, Size = UDim2.fromOffset(px(64), px(64)), BackgroundColor3 = C.Card, Text = "", ZIndex = 2, Parent = rail, Radius = 18 })
 	Ui.stroke(Ui.Theme.tint(r[3], 0.4), 2).Parent = b
@@ -80,6 +81,9 @@ for i, r in RAIL do
 			Ui.open(r[1])
 		end
 	end)
+	if r[1] == "Monsters" then
+		monDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(px(16), px(16)), BackgroundColor3 = C.Peach, Visible = false, ZIndex = 4, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	end
 	if r[1] == "Quests" then
 		questDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(px(16), px(16)), BackgroundColor3 = C.Coral, Visible = false, ZIndex = 4, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 	end
@@ -337,6 +341,7 @@ function Hud.setProfile(p)
 	end
 	local _, ready = Config.streakPreview(p, Config.today())
 	questDot.Visible = claimable or ready
+	monDot.Visible = next(p.overflow or {}) ~= nil
 	if not p.tutorial.intro and not Hud.introShown then
 		Hud.introShown = true
 		howTo.Visible = true

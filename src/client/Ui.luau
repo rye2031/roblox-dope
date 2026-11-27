@@ -88,12 +88,21 @@ end
 ----------------------------------------------------------------------------------------------
 -- Toasts
 
+-- Toasts get their own top layer so they show above the summon reveal and panels.
+local toastGui = new("ScreenGui", {
+	Name = "WildToasts",
+	DisplayOrder = 60,
+	ResetOnSpawn = false,
+	IgnoreGuiInset = false,
+	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
+	Parent = player:WaitForChild("PlayerGui"),
+})
 local toastHolder = new("Frame", {
 	BackgroundTransparency = 1,
 	AnchorPoint = Vector2.new(0.5, 0),
 	Position = UDim2.new(0.5, 0, 0, px(84)),
 	Size = UDim2.new(0.8, 0, 0, 200),
-	Parent = Ui.gui,
+	Parent = toastGui,
 }, { new("UIListLayout", { HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
 
 local TOAST_COLORS = { info = C.Sky, warn = C.Peach, alert = C.Coral, good = C.Mint }

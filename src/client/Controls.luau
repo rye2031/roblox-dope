@@ -198,17 +198,11 @@ function Controls.dodge()
 		lv:Destroy()
 		att:Destroy()
 	end)
-	-- quick spin so the roll reads
-	local start = os.clock()
-	local conn
-	conn = RunService.RenderStepped:Connect(function()
-		local k = (os.clock() - start) / T.Tamer.DodgeTime
-		if k >= 1 or not root.Parent then
-			conn:Disconnect()
-			return
-		end
-		root.CFrame = CFrame.lookAt(root.Position, root.Position + dir) * CFrame.Angles(-k * math.pi * 2, 0, 0)
-	end)
+	-- face the roll direction (yaw only) and play the tucked roll on the body joints
+	root.CFrame = CFrame.lookAt(root.Position, root.Position + dir)
+	hum:SetStateEnabled(Enum.HumanoidStateType.FallingDown, false)
+	hum:SetStateEnabled(Enum.HumanoidStateType.Ragdoll, false)
+	TamerAnim.dodge(player)
 end
 
 function Controls.team(slot: number)

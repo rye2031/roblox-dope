@@ -71,7 +71,8 @@ end
 local monPanel, monBody, monSub = Ui.panel("Monsters", "Monsters", "Your team of 3 follows you. The rest wait in storage.", C.Lilac, "🐾", true)
 local SORTS = { "Power", "Stars", "Level", "Element", "Newest" }
 local sortIdx = 1
-local mode: string? = nil -- nil | "feed" | "sell"
+local mode: string? = nil -- nil | "feed" | "sell" | "swap"
+local swapKey: string? = nil -- overflow group being swapped in
 local selected: { [string]: boolean } = {}
 local feedTarget: string? = nil
 local detailUid: string? = nil
@@ -197,7 +198,68 @@ renderMonsters = function()
 	end
 
 	-- Toolbar
-	local bar = new("Frame", { LayoutOrder = 3, Size = UDim2.new(1, 0, 0, px(40)), BackgroundTransparency = 1, ZIndex = 12, Parent = monBody }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }) })
+	-- Overflow (summons that arrived while storage was full)
+	local ofKeys = {}
+	local ofTotal = 0
+	for k, c in p.overflow or {} do
+		table.insert(ofKeys, k)
+		ofTotal += c
+	end
+	if ofTotal > 0 and mode ~= "feed" and mode ~= "sell" then
+		table.sort(ofKeys, function(a, b)
+			local sa = Monsters.Species[string.match(a, "^(%w+):")].Stars
+			local sb = Monsters.Species[string.match(b, "^(%w+):")].Stars
+			if sa ~= sb then
+				return sa > sb
+			end
+			return a < b
+		end)
+		local head = new("Frame", { LayoutOrder = 3, Size = UDim2.new(1, 0, 0, px(36)), BackgroundTransparency = 1, ZIndex = 12, Parent = monBody }, {
+			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }),
+		})
+		label(head, { LayoutOrder = 1, Size = UDim2.new(1, -px(150), 1, 0), Text = string.format("OVERFLOW  ·  %d waiting (storage was full)", ofTotal), TextColor3 = C.Peach, TextSize = px(14) }, "Title")
+		local sellAll = pill(head, { LayoutOrder = 2, Size = UDim2.fromOffset(px(130), px(32)), Text = "Sell all" }, C.Coral)
+		sellAll.Activated:Connect(function()
+			Ui.call("Overflow", "sellall")
+		end)
+		local ofList = new("Frame", { LayoutOrder = 4, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 12, Parent = monBody }, {
+			new("UIListLayout", { Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
+		})
+		local full = countMonsters(p) >= p.storageCap
+		for i, k in ofKeys do
+			local spId, el = string.match(k, "^(%w+):(%w+)$")
+			local sp = Monsters.Species[spId]
+			local info = EI[el]
+			local c = p.overflow[k]
+			local row = new("Frame", { LayoutOrder = i, Size = UDim2.new(1, 0, 0, px(60)), BackgroundColor3 = swapKey == k and Ui.Theme.tint(C.Lilac, 0.75) or Ui.Theme.tint(C.Peach, 0.88), ZIndex = 12, Parent = ofList }, { corner(14) })
+			Ui.portrait(row, spId, el, UDim2.fromOffset(px(48), px(48)), UDim2.fromOffset(6, 6), 13)
+			label(row, { Position = UDim2.fromOffset(px(48) + 16, px(8)), Size = UDim2.new(1, -px(48) - px(380), 0, px(20)), Text = sp.Name .. "  ×" .. c, TextSize = px(17), TextTruncate = Enum.TextTruncate.AtEnd }, "Title")
+			label(row, { Position = UDim2.fromOffset(px(48) + 16, px(30)), Size = UDim2.new(1, -px(48) - px(380), 0, px(18)), Text = info.Icon .. " " .. el .. "  " .. stars(sp.Stars) .. "  ·  Lv 1", TextColor3 = info.Color, TextSize = px(14) }, "Bold")
+			local btns = new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -8, 0.5, 0), Size = UDim2.fromOffset(px(360), px(38)), BackgroundTransparency = 1, ZIndex = 13, Parent = row }, {
+				new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, HorizontalAlignment = Enum.HorizontalAlignment.Right, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
+			})
+			local take = pill(btns, { LayoutOrder = 1, Size = UDim2.fromOffset(px(96), px(36)), Text = "Take", ZIndex = 14 }, full and C.Line or C.Mint)
+			take.Activated:Connect(function()
+				if full then
+					Ui.toast("Storage is full: use Swap, sell extras or buy more storage", "warn")
+					return
+				end
+				Ui.call("Overflow", "take", k)
+			end)
+			local swap = pill(btns, { LayoutOrder = 2, Size = UDim2.fromOffset(px(96), px(36)), Text = swapKey == k and "Picking..." or "Swap", ZIndex = 14 }, C.Lilac)
+			swap.Activated:Connect(function()
+				mode, swapKey, selected = "swap", k, {}
+				renderMonsters()
+			end)
+			local value = Config.sellValue(sp.Stars, 1) * c
+			local sell = pill(btns, { LayoutOrder = 3, Size = UDim2.fromOffset(px(150), px(36)), Text = "Sell · " .. Ui.fmt(value), ZIndex = 14 }, C.Coral)
+			sell.Activated:Connect(function()
+				Ui.call("Overflow", "sell", k)
+			end)
+		end
+	end
+
+	local bar = new("Frame", { LayoutOrder = 6, Size = UDim2.new(1, 0, 0, px(40)), BackgroundTransparency = 1, ZIndex = 12, Parent = monBody }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }) })
 	if mode then
 		local p2 = Ui.profile
 		local nSel = 0
@@ -205,7 +267,10 @@ renderMonsters = function()
 			nSel += 1
 		end
 		local msg
-		if mode == "feed" then
+		if mode == "swap" then
+			local spId = swapKey and string.match(swapKey, "^(%w+):")
+			msg = string.format("Swapping in %s: pick a stored monster to sell in its place", spId and Monsters.Species[spId].Name or "?")
+		elseif mode == "feed" then
 			local tm = p2.monsters[feedTarget]
 			local xp, ups = feedXp(p2)
 			local to = tm and previewLevel(tm, xp) or 0
@@ -221,7 +286,8 @@ renderMonsters = function()
 			msg = string.format("Selling %d · +%s coins", nSel, Ui.fmt(coins))
 		end
 		label(bar, { LayoutOrder = 1, Size = UDim2.new(1, -px(250), 1, 0), Text = msg, TextSize = px(15), TextTruncate = Enum.TextTruncate.AtEnd }, "Title")
-		local go = pill(bar, { LayoutOrder = 2, Size = UDim2.fromOffset(px(110), px(36)), Text = mode == "feed" and "Feed" or "Sell" }, nSel > 0 and (mode == "feed" and C.Mint or C.Coral) or C.Line)
+		local go = pill(bar, { LayoutOrder = 2, Size = UDim2.fromOffset(px(110), px(36)), Text = mode == "feed" and "Feed" or mode == "swap" and "Pick one" or "Sell" }, nSel > 0 and (mode == "feed" and C.Mint or C.Coral) or C.Line)
+		go.Visible = mode ~= "swap"
 		go.Activated:Connect(function()
 			if nSel == 0 then
 				return
@@ -248,7 +314,7 @@ renderMonsters = function()
 		local cancel = pill(bar, { LayoutOrder = 3, Size = UDim2.fromOffset(px(110), px(36)), Text = "Cancel", TextColor3 = C.Sub }, C.Soft)
 		cancel.Activated:Connect(function()
 			local back = mode == "feed" and feedTarget
-			mode, selected, feedTarget = nil, {}, nil
+			mode, selected, feedTarget, swapKey = nil, {}, nil, nil
 			if back then
 				renderDetail(back)
 			else
@@ -283,19 +349,26 @@ renderMonsters = function()
 	end
 
 	-- Grid
-	local grid = new("Frame", { LayoutOrder = 4, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 12, Parent = monBody }, {
+	local grid = new("Frame", { LayoutOrder = 7, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 12, Parent = monBody }, {
 		new("UIGridLayout", { CellSize = UDim2.fromOffset(px(92), px(118)), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
 	local list = sortedUids(Ui.profile)
 	if #list == 0 then
-		label(monBody, { LayoutOrder = 5, Size = UDim2.new(1, 0, 0, px(40)), Text = "No monsters yet. Open a scroll at the Shrine!", TextColor3 = C.Sub }, "Bold")
+		label(monBody, { LayoutOrder = 8, Size = UDim2.new(1, 0, 0, px(40)), Text = "No monsters yet. Open a scroll at the Shrine!", TextColor3 = C.Sub }, "Bold")
 	end
 	for i, uid in list do
 		if mode and not eligibleFood(p, uid) then
 			continue
 		end
 		monsterCard(grid, p, uid, i, function()
-			if mode then
+			if mode == "swap" then
+				local key = swapKey
+				local ok = Ui.call("Overflow", "swap", key, uid)
+				if ok then
+					mode, swapKey, selected = nil, nil, {}
+					renderMonsters()
+				end
+			elseif mode then
 				selected[uid] = not selected[uid] or nil
 				renderMonsters()
 			else
@@ -518,6 +591,15 @@ Ui.onOpen.Shrine = renderShrine
 -- Full-screen reveal (single scroll or ten): see SummonReveal.
 reveal = function(res, kind)
 	local k = kind or res.kind or (res[1] and res[1].kind) or "Regular"
+	local nOver = 0
+	for _, r in (res.sp and { res } or res) do
+		if r.overflow then
+			nOver += 1
+		end
+	end
+	if nOver > 0 then
+		Ui.toast(string.format("Storage full: %d went to Overflow. Open Monsters to take, swap or sell %s", nOver, nOver > 1 and "them" or "it"), "warn")
+	end
 	SummonReveal.show(res, {
 		kind = k,
 		one = function()

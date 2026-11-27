@@ -105,11 +105,14 @@ local function weaponModel(kind: string): (Model, { Trail })
 		piece("LimbBottom", Vector3.new(0.22, 1.8, 0.22), CFrame.new(0, -1.15, -0.35) * CFrame.Angles(rad(22), 0, 0), Color3.fromRGB(130, 170, 90), Enum.Material.Wood)
 		piece("String", Vector3.new(0.05, 3.9, 0.05), CFrame.new(0, 0, -0.95), Color3.fromRGB(240, 240, 240))
 	end
+	-- Fixed welds (offset from the grip, set now). A WeldConstraint captures the offset when it
+	-- becomes active, which raced the hand motor and left the hammer head floating.
 	for _, p in m:GetChildren() do
-		if p ~= grip then
-			local w = Instance.new("WeldConstraint")
+		if p ~= grip and p:IsA("BasePart") then
+			local w = Instance.new("Weld")
 			w.Part0 = grip
 			w.Part1 = p
+			w.C0 = grip.CFrame:ToObjectSpace(p.CFrame)
 			w.Parent = p
 		end
 	end
@@ -119,8 +122,8 @@ end
 
 -- A body joint we can bend: classic Motor6D (bend C0) or the newer AnimationConstraint
 -- avatar joints (bend the parent-side Attachment0). Both rotate in the parent part's space.
-type Joint = { inst: Instance, base: CFrame, set: (CFrame) -> () }
-type Rig = { char: Model, rs: Joint?, ls: Joint?, waist: Joint? }
+type Joint = { inst: Instance, base: CFrame, set: (CFrame, Vector3?) -> () }
+type Rig = { char: Model, rs: Joint?, ls: Joint?, waist: Joint?, root: Joint? }
 type Equip = { model: Model, weld: Motor6D, kind: string, trails: { Trail }, base: CFrame }
 type Swing = { kind: string, skill: boolean, variant: number, t0: number, dur: number, impact: number, release: number }
 
@@ -131,8 +134,8 @@ local function joint(inst: Instance?): Joint?
 	if inst:IsA("Motor6D") then
 		local m = inst :: Motor6D
 		local base = m.C0
-		return { inst = m, base = base, set = function(rot: CFrame)
-			m.C0 = CFrame.new(base.Position) * rot * base.Rotation
+		return { inst = m, base = base, set = function(rot: CFrame, off: Vector3?)
+			m.C0 = CFrame.new(base.Position + (off or Vector3.zero)) * rot * base.Rotation
 		end }
 	elseif inst:IsA("AnimationConstraint") then
 		local a0 = (inst :: AnimationConstraint).Attachment0
@@ -140,8 +143,8 @@ local function joint(inst: Instance?): Joint?
 			return nil
 		end
 		local base = a0.CFrame
-		return { inst = inst, base = base, set = function(rot: CFrame)
-			a0.CFrame = CFrame.new(base.Position) * rot * base.Rotation
+		return { inst = inst, base = base, set = function(rot: CFrame, off: Vector3?)
+			a0.CFrame = CFrame.new(base.Position + (off or Vector3.zero)) * rot * base.Rotation
 		end }
 	end
 	return nil
@@ -151,7 +154,8 @@ local equipped: { [Player]: Equip } = {}
 local rigs: { [Player]: Rig } = {}
 local swings: { [Player]: Swing } = {}
 local combo: { [Player]: { n: number, at: number } } = {}
-local localStart: { [string]: number } = {} -- "attack"/"skill" -> os.clock() of the predicted local swing
+local localStart: { [string]: number } = {}
+local dodges: { [Player]: { t0: number, dur: number } } = {} -- "attack"/"skill" -> os.clock() of the predicted local swing
 
 local function rigOf(plr: Player): Rig?
 	local char = plr.Character
@@ -176,7 +180,7 @@ local function rigOf(plr: Player): Rig?
 	if not rs then
 		return nil
 	end
-	r = { char = char, rs = rs, ls = find("LeftShoulder", "Left Shoulder"), waist = find("Waist") }
+	r = { char = char, rs = rs, ls = find("LeftShoulder", "Left Shoulder"), waist = find("Waist"), root = find("Root", "RootJoint") }
 	rigs[plr] = r
 	return r
 end
@@ -393,6 +397,7 @@ function TamerAnim.start()
 		swings[plr] = nil
 		rigs[plr] = nil
 		combo[plr] = nil
+		dodges[plr] = nil
 	end)
 
 	RunService.RenderStepped:Connect(function()
@@ -409,7 +414,30 @@ function TamerAnim.start()
 					rR, lR, wR, weap, trailOn = pose(s, p)
 				end
 			end
+			-- dodge: a tucked forward roll through the root joint (the root part stays upright)
+			local d = dodges[plr]
+			local rollRot, rollOff = CFrame.identity, Vector3.zero
+			if d then
+				local k = (now - d.t0) / d.dur
+				if k >= 1 then
+					dodges[plr] = nil
+				else
+					local e = k * k * (3 - 2 * k)
+					local tuck = math.sin(k * math.pi)
+					rollRot = CFrame.Angles(-math.pi * 2 * e, 0, 0)
+					-- spin about the middle of the body, dipped toward the ground
+					local c = Vector3.new(0, 0.9, 0)
+					rollOff = (c - rollRot:VectorToWorldSpace(c)) + Vector3.new(0, -1.6 * tuck, 0)
+					rR = CFrame.Angles(rad(140) * tuck, 0, 0)
+					lR = CFrame.Angles(rad(140) * tuck, 0, 0)
+					wR = CFrame.Angles(rad(-35) * tuck, 0, 0)
+					trailOn = false
+				end
+			end
 			if rig then
+				if rig.root then
+					rig.root.set(rollRot, rollOff)
+				end
 				-- rotate about the joint, in the parent part's space
 				if rig.rs then
 					rig.rs.set(rR)
@@ -429,6 +457,22 @@ function TamerAnim.start()
 			end
 		end
 	end)
+end
+
+-- Dodge roll for any player (the local player calls this on input; others from the server event).
+function TamerAnim.dodge(plr: Player)
+	dodges[plr] = { t0 = os.clock(), dur = T.Tamer.DodgeTime + 0.08 }
+	swings[plr] = nil
+	local root = plr.Character and plr.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if root then
+		local feet = root.Position - Vector3.new(0, 2.6, 0)
+		CombatFx.burst(feet, Color3.fromRGB(225, 220, 205), 10, 7, { texture = "smoke", size = 1.6, life = 0.5, emission = 0, gravity = 2, spread = Vector2.new(80, 80) })
+		task.delay(T.Tamer.DodgeTime, function()
+			if root.Parent then
+				CombatFx.burst(root.Position - Vector3.new(0, 2.6, 0), Color3.fromRGB(225, 220, 205), 8, 5, { texture = "smoke", size = 1.4, life = 0.45, emission = 0, gravity = 2, spread = Vector2.new(80, 80) })
+			end
+		end)
+	end
 end
 
 -- Studio debug: what the animator currently sees for a player.

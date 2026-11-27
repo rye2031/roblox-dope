@@ -37,6 +37,7 @@ Config.Tuning = {
 	TeamSize = 3,
 	StartStorage = 50,
 	StorageStep = 10,
+	OverflowCap = 100, -- summons land here (grouped by species + element) while storage is full
 	StorageCost = { 500, 1200, 2500, 5000, 9000 }, -- coins per +10 slots
 
 	Scrolls = {
