@@ -1,17 +1,35 @@
--- Uploaded Roblox assets for each creature (uploaded 2026-11-26 from art/meshy/models/<name>/model.glb
+-- Uploaded Roblox assets for each creature (uploaded 2026-11-26/27 from art/meshy/models/<name>/model.glb
 -- through Studio MCP Open Cloud, owner account). The models live in ReplicatedStorage/CreatureModels;
 -- this table lets code (or a re-insert) find them by ID. Height is the imported mesh height in studs.
 return {
 	Blockodile = { Model = 95997855464414, Mesh = "rbxassetid://117296570704608", Texture = "rbxassetid://120213880362978", Height = 0.947 },
+	Bramblebun = { Model = 101927654220162, Mesh = "rbxassetid://130034472697799", Texture = "rbxassetid://71759527754283", Height = 1.721 },
 	Clawmato = { Model = 126827354319095, Mesh = "rbxassetid://88738111157245", Texture = "rbxassetid://71146344514529", Height = 1.900 },
 	CrabRangoon = { Model = 112199469574701, Mesh = "rbxassetid://80119024032549", Texture = "rbxassetid://123825616600275", Height = 1.685 },
 	Crocsquatch = { Model = 112237056589648, Mesh = "rbxassetid://111657711636896", Texture = "rbxassetid://97914366378870", Height = 1.822 },
+	Drakoryn = { Model = 70979792705780, Mesh = "rbxassetid://78703055387058", Texture = "rbxassetid://73772576525548", Height = 1.406 },
+	Duskfang = { Model = 85115119897192, Mesh = "rbxassetid://102874782081911", Texture = "rbxassetid://110213532016128", Height = 1.452 },
+	Glimmoth = { Model = 85114808915304, Mesh = "rbxassetid://117579886553489", Texture = "rbxassetid://116760233116128", Height = 1.648 },
+	Gryphlet = { Model = 126533409221983, Mesh = "rbxassetid://91651168869266", Texture = "rbxassetid://107707829381601", Height = 1.192 },
+	Ironhorn = { Model = 76112985804964, Mesh = "rbxassetid://76503910559538", Texture = "rbxassetid://108312868617974", Height = 1.902 },
 	JackpotTicketoad = { Model = 117734880849199, Mesh = "rbxassetid://134921487292513", Texture = "rbxassetid://106025595189848", Height = 1.561 },
 	Joystingray = { Model = 101623439872786, Mesh = "rbxassetid://113756706508513", Texture = "rbxassetid://87979877337421", Height = 1.388 },
 	KingRangoon = { Model = 94833803827189, Mesh = "rbxassetid://131533913349380", Texture = "rbxassetid://85808863689024", Height = 1.626 },
+	Kirinth = { Model = 84136092236067, Mesh = "rbxassetid://105417691054588", Texture = "rbxassetid://135500925858107", Height = 1.901 },
+	Lancewing = { Model = 112317241650455, Mesh = "rbxassetid://132435702003801", Texture = "rbxassetid://105637687495333", Height = 1.821 },
 	MallGobstopper = { Model = 94207375656236, Mesh = "rbxassetid://137988585837491", Texture = "rbxassetid://98969184357175", Height = 1.549 },
+	Owlsage = { Model = 130037695288590, Mesh = "rbxassetid://134719851231872", Texture = "rbxassetid://104972370909571", Height = 1.849 },
+	Pebblit = { Model = 79241923567079, Mesh = "rbxassetid://86677574075096", Texture = "rbxassetid://98081458869841", Height = 1.012 },
+	Phoenara = { Model = 100836201025667, Mesh = "rbxassetid://89506742985788", Texture = "rbxassetid://96114193835712", Height = 1.490 },
+	Runegolem = { Model = 110809632572093, Mesh = "rbxassetid://114537140303574", Texture = "rbxassetid://112573488015710", Height = 1.838 },
+	Shellotl = { Model = 73847322457364, Mesh = "rbxassetid://110765303214557", Texture = "rbxassetid://81356590099649", Height = 0.924 },
+	Sproutknight = { Model = 78302283323470, Mesh = "rbxassetid://105208371806354", Texture = "rbxassetid://77783295968700", Height = 1.902 },
 	Squeakicorn = { Model = 134727356045364, Mesh = "rbxassetid://70679766360732", Texture = "rbxassetid://100807336729180", Height = 1.903 },
 	SqueakicornRoyale = { Model = 85144663649417, Mesh = "rbxassetid://97384846310350", Texture = "rbxassetid://112034422571114", Height = 1.348 },
 	Ticketoad = { Model = 72372038132558, Mesh = "rbxassetid://139129963153673", Texture = "rbxassetid://113570492645554", Height = 1.536 },
+	Tuftail = { Model = 102042853387451, Mesh = "rbxassetid://92624152740698", Texture = "rbxassetid://108587682159703", Height = 1.784 },
+	Valkyra = { Model = 99324552492195, Mesh = "rbxassetid://130601714228329", Texture = "rbxassetid://131385963168397", Height = 1.900 },
+	Wyrmlet = { Model = 135667202729717, Mesh = "rbxassetid://130068542419418", Texture = "rbxassetid://127792255766751", Height = 1.901 },
+	Wyvernox = { Model = 107629384097467, Mesh = "rbxassetid://90064799798111", Texture = "rbxassetid://126227043449666", Height = 1.899 },
 	Yoyoctopus = { Model = 129891373489009, Mesh = "rbxassetid://82177724215387", Texture = "rbxassetid://135936843027712", Height = 1.480 },
 }

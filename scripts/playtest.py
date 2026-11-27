@@ -41,8 +41,10 @@ def lua_val(v):
         return repr(v)
     if v is None:
         return 'nil'
-    if isinstance(v, (list, tuple)) and len(v) == 3:
+    if isinstance(v, (list, tuple)) and len(v) == 3 and all(isinstance(x, (int, float)) for x in v):
         return 'Vector3.new(%r, %r, %r)' % tuple(v)
+    if isinstance(v, (list, tuple)):
+        return '{' + ', '.join(lua_val(x) for x in v) + '}'
     return json.dumps(v)
 
 
@@ -52,12 +54,12 @@ def luau(code, dm='Server'):
 
 def srv(cmd, *args):
     a = ', '.join([json.dumps(cmd)] + [lua_val(x) for x in args])
-    return luau('return game:GetService("ServerStorage").BrainrotDebug:Invoke(%s)' % a, 'Server')
+    return luau('return game:GetService("ServerStorage").WildDebug:Invoke(%s)' % a, 'Server')
 
 
 def cli(cmd, *args):
     a = ', '.join([json.dumps(cmd)] + [lua_val(x) for x in args])
-    return luau('return game:GetService("ReplicatedStorage"):WaitForChild("BrainrotClientDebug"):Invoke(%s)' % a, 'Client')
+    return luau('return game:GetService("ReplicatedStorage"):WaitForChild("WildClientDebug"):Invoke(%s)' % a, 'Client')
 
 
 def state():
@@ -70,17 +72,7 @@ def state():
 
 
 def me():
-    return list(state()['players'].values())[0]
-
-
-def sl(i):
-    return state()['sleepers'].get(str(i))
-
-
-def rare_id():
-    for k, v in state()['sleepers'].items():
-        if v['rar'] == 'Rare':
-            return int(k)
+    return state().get('player')
 
 
 def nav(x, y, z, speed=None, timeout=90):

@@ -326,6 +326,8 @@ weapon = { type = "Blade", el = "Fire", lv = 7, rarity = "Rare" }, index = { ["C
 
 ## 14. Milestones
 
+Status 2026-11-26 (uncommitted): M0-M5 built and playtested in Studio by data (combat, summons, feed, awaken, weapons, gates, region boss first clear, world boss). Core roster is 18 species (two Meshy waves), all running on the runtime mesh pool until the owner approves an upload batch. Region bosses: Sproutknight (Meadow), Drakoryn (Ember), Shellotl (Tide).
+
 | # | Milestone | Done when |
 |---|---|---|
 | M0 | **Import models** (owner) + strip the mall build | 12 filler meshes uploaded; first 3 core monsters generated (rigged) and imported; mall map, sleepers and noise removed; Theme, saving and quests kept |

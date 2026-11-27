@@ -412,5 +412,581 @@
     "files": [
       "art/meshy/models/yoyoctopus/model.glb"
     ]
+  },
+  {
+    "name": "tuftail",
+    "kind": "text-to-image",
+    "task_id": "01a2197f-8feb-7600-9b19-549858e6649a",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/tuftail.png"
+    ]
+  },
+  {
+    "name": "glimmoth",
+    "kind": "text-to-image",
+    "task_id": "01a2197f-94b7-7013-b2f6-a329e8dd9d7d",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/glimmoth.png"
+    ]
+  },
+  {
+    "name": "sproutknight",
+    "kind": "text-to-image",
+    "task_id": "01a2197f-99ca-70f4-a916-f1d3936816be",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/sproutknight.png"
+    ]
+  },
+  {
+    "name": "shellotl",
+    "kind": "text-to-image",
+    "task_id": "01a2197f-9ec3-745c-afd8-18ecc6686470",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/shellotl.png"
+    ]
+  },
+  {
+    "name": "gryphlet",
+    "kind": "text-to-image",
+    "task_id": "01a2197f-a39b-716d-ac0f-c6c8051cb913",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/gryphlet.png"
+    ]
+  },
+  {
+    "name": "runegolem",
+    "kind": "text-to-image",
+    "task_id": "01a2197f-a891-725d-a431-1b9a5d03db30",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/runegolem.png"
+    ]
+  },
+  {
+    "name": "lancewing",
+    "kind": "text-to-image",
+    "task_id": "01a2197f-ad77-76e7-bf81-703b924308f7",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/lancewing.png"
+    ]
+  },
+  {
+    "name": "drakoryn",
+    "kind": "text-to-image",
+    "task_id": "01a2197f-b249-73f4-bdbe-187d76605af7",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/drakoryn.png"
+    ]
+  },
+  {
+    "name": "kirinth",
+    "kind": "text-to-image",
+    "task_id": "01a2197f-b6e3-7661-9227-566d3d38c3c4",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/kirinth.png"
+    ]
+  },
+  {
+    "name": "tuftail",
+    "kind": "image-to-3d",
+    "task_id": "01a21980-1b31-7127-a954-cdf9e7778af7",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/tuftail/model.glb",
+      "art/meshy/models/tuftail/thumb.png"
+    ]
+  },
+  {
+    "name": "glimmoth",
+    "kind": "image-to-3d",
+    "task_id": "01a21980-2138-7587-ae6e-986c831444b4",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/glimmoth/model.glb",
+      "art/meshy/models/glimmoth/thumb.png"
+    ]
+  },
+  {
+    "name": "sproutknight",
+    "kind": "image-to-3d",
+    "task_id": "01a21980-267f-722d-891e-27a7ed5b319a",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/sproutknight/model.glb",
+      "art/meshy/models/sproutknight/thumb.png"
+    ]
+  },
+  {
+    "name": "shellotl",
+    "kind": "image-to-3d",
+    "task_id": "01a21980-2c57-7108-980f-d88beb217ad0",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/shellotl/model.glb",
+      "art/meshy/models/shellotl/thumb.png"
+    ]
+  },
+  {
+    "name": "gryphlet",
+    "kind": "image-to-3d",
+    "task_id": "01a21980-3274-7589-b332-ccef7df90913",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/gryphlet/model.glb",
+      "art/meshy/models/gryphlet/thumb.png"
+    ]
+  },
+  {
+    "name": "runegolem",
+    "kind": "image-to-3d",
+    "task_id": "01a21980-3863-7257-a6c0-4708bc8e5b08",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/runegolem/model.glb",
+      "art/meshy/models/runegolem/thumb.png"
+    ]
+  },
+  {
+    "name": "lancewing",
+    "kind": "image-to-3d",
+    "task_id": "01a21980-3e0f-75f9-a23e-36443cec4262",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/lancewing/model.glb",
+      "art/meshy/models/lancewing/thumb.png"
+    ]
+  },
+  {
+    "name": "drakoryn",
+    "kind": "image-to-3d",
+    "task_id": "01a21980-439a-7792-bd30-177d91ed96df",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/drakoryn/model.glb",
+      "art/meshy/models/drakoryn/thumb.png"
+    ]
+  },
+  {
+    "name": "kirinth",
+    "kind": "image-to-3d",
+    "task_id": "01a21980-4942-76c7-8a1c-38c3a1c540bc",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/kirinth/model.glb",
+      "art/meshy/models/kirinth/thumb.png"
+    ]
+  },
+  {
+    "name": "bramblebun",
+    "kind": "text-to-image",
+    "task_id": "01a2199d-d350-7396-a778-1764ca302892",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/bramblebun.png"
+    ]
+  },
+  {
+    "name": "bramblebun",
+    "kind": "image-to-3d",
+    "task_id": "01a2199e-4e31-7372-b470-3e30d572cf0a",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/bramblebun/model.glb",
+      "art/meshy/models/bramblebun/thumb.png"
+    ]
+  },
+  {
+    "name": "pebblit",
+    "kind": "text-to-image",
+    "task_id": "01a2199d-d735-75ed-bb69-d7d3eabe7e2c",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/pebblit.png"
+    ]
+  },
+  {
+    "name": "pebblit",
+    "kind": "image-to-3d",
+    "task_id": "01a2199e-5305-72c3-a774-2f0cd7ea1029",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/pebblit/model.glb",
+      "art/meshy/models/pebblit/thumb.png"
+    ]
+  },
+  {
+    "name": "wyrmlet",
+    "kind": "text-to-image",
+    "task_id": "01a2199d-daf7-7420-833a-87aa52debded",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/wyrmlet.png"
+    ]
+  },
+  {
+    "name": "wyrmlet",
+    "kind": "image-to-3d",
+    "task_id": "01a2199e-569a-7452-84fa-7de2f11fe9bd",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/wyrmlet/model.glb",
+      "art/meshy/models/wyrmlet/thumb.png"
+    ]
+  },
+  {
+    "name": "duskfang",
+    "kind": "text-to-image",
+    "task_id": "01a2199d-deac-771d-88c7-f0970d765c74",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/duskfang.png"
+    ]
+  },
+  {
+    "name": "duskfang",
+    "kind": "image-to-3d",
+    "task_id": "01a2199e-5aec-7186-84dc-cb75b0ab1988",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/duskfang/model.glb",
+      "art/meshy/models/duskfang/thumb.png"
+    ]
+  },
+  {
+    "name": "owlsage",
+    "kind": "text-to-image",
+    "task_id": "01a2199d-e28f-7277-bcd0-0b7fc1d51e7e",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/owlsage.png"
+    ]
+  },
+  {
+    "name": "owlsage",
+    "kind": "image-to-3d",
+    "task_id": "01a2199e-5f3f-702c-b129-d482ea643de7",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/owlsage/model.glb",
+      "art/meshy/models/owlsage/thumb.png"
+    ]
+  },
+  {
+    "name": "ironhorn",
+    "kind": "text-to-image",
+    "task_id": "01a2199d-e674-7006-bdfa-e486503c341c",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/ironhorn.png"
+    ]
+  },
+  {
+    "name": "ironhorn",
+    "kind": "image-to-3d",
+    "task_id": "01a2199e-635e-74a5-b8ab-7b8f4edb4456",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/ironhorn/model.glb",
+      "art/meshy/models/ironhorn/thumb.png"
+    ]
+  },
+  {
+    "name": "wyvernox",
+    "kind": "text-to-image",
+    "task_id": "01a2199d-ea32-77d0-b4dc-6cc798cafa31",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/wyvernox.png"
+    ]
+  },
+  {
+    "name": "wyvernox",
+    "kind": "image-to-3d",
+    "task_id": "01a2199e-6a3b-76ba-8985-0be7bb3ba40b",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/wyvernox/model.glb",
+      "art/meshy/models/wyvernox/thumb.png"
+    ]
+  },
+  {
+    "name": "valkyra",
+    "kind": "text-to-image",
+    "task_id": "01a2199d-ee2f-7264-871d-26bed2eed230",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/valkyra.png"
+    ]
+  },
+  {
+    "name": "valkyra",
+    "kind": "image-to-3d",
+    "task_id": "01a2199e-6e4a-7701-a6a2-c2bfd6adb3cc",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/valkyra/model.glb",
+      "art/meshy/models/valkyra/thumb.png"
+    ]
+  },
+  {
+    "name": "phoenara",
+    "kind": "text-to-image",
+    "task_id": "01a2199d-f179-7519-9263-d5eeb8817c0d",
+    "credits": 6,
+    "files": [
+      "art/meshy/concepts/phoenara.png"
+    ]
+  },
+  {
+    "name": "phoenara",
+    "kind": "image-to-3d",
+    "task_id": "01a2199e-731e-7707-ad44-3a3deea2f640",
+    "credits": 30,
+    "files": [
+      "art/meshy/models/phoenara/model.glb",
+      "art/meshy/models/phoenara/thumb.png"
+    ]
+  },
+  {
+    "name": "tuftail",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "102042853387451",
+    "roblox_mesh": "rbxassetid://92624152740698",
+    "roblox_texture": "rbxassetid://108587682159703",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/tuftail/model.glb"
+    ]
+  },
+  {
+    "name": "glimmoth",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "85114808915304",
+    "roblox_mesh": "rbxassetid://117579886553489",
+    "roblox_texture": "rbxassetid://116760233116128",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/glimmoth/model.glb"
+    ]
+  },
+  {
+    "name": "sproutknight",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "78302283323470",
+    "roblox_mesh": "rbxassetid://105208371806354",
+    "roblox_texture": "rbxassetid://77783295968700",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/sproutknight/model.glb"
+    ]
+  },
+  {
+    "name": "shellotl",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "73847322457364",
+    "roblox_mesh": "rbxassetid://110765303214557",
+    "roblox_texture": "rbxassetid://81356590099649",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/shellotl/model.glb"
+    ]
+  },
+  {
+    "name": "gryphlet",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "126533409221983",
+    "roblox_mesh": "rbxassetid://91651168869266",
+    "roblox_texture": "rbxassetid://107707829381601",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/gryphlet/model.glb"
+    ]
+  },
+  {
+    "name": "runegolem",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "110809632572093",
+    "roblox_mesh": "rbxassetid://114537140303574",
+    "roblox_texture": "rbxassetid://112573488015710",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/runegolem/model.glb"
+    ]
+  },
+  {
+    "name": "lancewing",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "112317241650455",
+    "roblox_mesh": "rbxassetid://132435702003801",
+    "roblox_texture": "rbxassetid://105637687495333",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/lancewing/model.glb"
+    ]
+  },
+  {
+    "name": "drakoryn",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "70979792705780",
+    "roblox_mesh": "rbxassetid://78703055387058",
+    "roblox_texture": "rbxassetid://73772576525548",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/drakoryn/model.glb"
+    ]
+  },
+  {
+    "name": "kirinth",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "84136092236067",
+    "roblox_mesh": "rbxassetid://105417691054588",
+    "roblox_texture": "rbxassetid://135500925858107",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/kirinth/model.glb"
+    ]
+  },
+  {
+    "name": "bramblebun",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "101927654220162",
+    "roblox_mesh": "rbxassetid://130034472697799",
+    "roblox_texture": "rbxassetid://71759527754283",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/bramblebun/model.glb"
+    ]
+  },
+  {
+    "name": "pebblit",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "79241923567079",
+    "roblox_mesh": "rbxassetid://86677574075096",
+    "roblox_texture": "rbxassetid://98081458869841",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/pebblit/model.glb"
+    ]
+  },
+  {
+    "name": "wyrmlet",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "135667202729717",
+    "roblox_mesh": "rbxassetid://130068542419418",
+    "roblox_texture": "rbxassetid://127792255766751",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/wyrmlet/model.glb"
+    ]
+  },
+  {
+    "name": "duskfang",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "85115119897192",
+    "roblox_mesh": "rbxassetid://102874782081911",
+    "roblox_texture": "rbxassetid://110213532016128",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/duskfang/model.glb"
+    ]
+  },
+  {
+    "name": "owlsage",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "130037695288590",
+    "roblox_mesh": "rbxassetid://134719851231872",
+    "roblox_texture": "rbxassetid://104972370909571",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/owlsage/model.glb"
+    ]
+  },
+  {
+    "name": "ironhorn",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "76112985804964",
+    "roblox_mesh": "rbxassetid://76503910559538",
+    "roblox_texture": "rbxassetid://108312868617974",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/ironhorn/model.glb"
+    ]
+  },
+  {
+    "name": "wyvernox",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "107629384097467",
+    "roblox_mesh": "rbxassetid://90064799798111",
+    "roblox_texture": "rbxassetid://126227043449666",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/wyvernox/model.glb"
+    ]
+  },
+  {
+    "name": "valkyra",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "99324552492195",
+    "roblox_mesh": "rbxassetid://130601714228329",
+    "roblox_texture": "rbxassetid://131385963168397",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/valkyra/model.glb"
+    ]
+  },
+  {
+    "name": "phoenara",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "100836201025667",
+    "roblox_mesh": "rbxassetid://89506742985788",
+    "roblox_texture": "rbxassetid://96114193835712",
+    "moderation": "Approved",
+    "uploaded": "2026-11-26",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/phoenara/model.glb"
+    ]
   }
 ]

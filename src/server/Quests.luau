@@ -18,14 +18,17 @@ local function valid(def, p, tier: number): boolean
 	if def.Tiers and not table.find(def.Tiers, tier) then
 		return false
 	end
-	if def.NeedsWing and not p.wings[def.NeedsWing] then
+	if def.NeedsBoss and not p.bosses[def.NeedsBoss] then
 		return false
 	end
-	if def.MinRescues and p.rescues < def.MinRescues then
-		return false
-	end
-	if def.NeedsShelf and (next(p.collection) == nil or Config.perk(p, "AutoCollect") > 0) then
-		return false
+	if def.MinMonsters then
+		local n = 0
+		for _ in p.monsters do
+			n += 1
+		end
+		if n < def.MinMonsters then
+			return false
+		end
 	end
 	return true
 end
@@ -102,26 +105,14 @@ function Quests.progress(player: Player, kind: string, amount: number?)
 	end
 end
 
--- Everything one banked rescue can count for.
-function Quests.onBank(player: Player, info)
-	Quests.progress(player, "Rescue")
-	if info.wing ~= "FoodCourt" and Config.questDef(info.wing) then
-		Quests.progress(player, info.wing)
+-- A wild monster this player helped defeat.
+function Quests.onKill(player: Player, element: string, elite: boolean?)
+	Quests.progress(player, "Defeat")
+	if element == "Fire" or element == "Water" or element == "Wind" then
+		Quests.progress(player, "Defeat" .. element)
 	end
-	if info.routes.Cozy or info.routes.Vent or info.routes.BallPit or info.routes.PlushPile then
-		Quests.progress(player, "Quiet")
-	end
-	if info.maxWake < Config.Tuning.WakeStages.Twitch then
-		Quests.progress(player, "Perfect")
-	end
-	if info.regrabbed then
-		Quests.progress(player, "Bolter")
-	end
-	if info.form ~= "Normal" then
-		Quests.progress(player, "Fancy")
-	end
-	if info.rarity == "Rare" then
-		Quests.progress(player, "Rare")
+	if elite then
+		Quests.progress(player, "Elite")
 	end
 end
 
@@ -142,10 +133,12 @@ function Quests.claim(player: Player, index: any): (boolean, string)
 		end
 		p.daily.bonus = true
 		local n = Config.questBonus(p)
+		local sc = Config.Tuning.Quests.AllBonusScrolls
 		p.coins += n
+		p.scrolls.Regular += sc
 		PlayerData.push(player)
 		PlayerData.saveSoon(player)
-		return true, `All quests done! +{n} coins`
+		return true, `All quests done! +{n} coins and {sc} Regular scrolls`
 	end
 	local q = typeof(index) == "number" and p.daily.quests[index]
 	if not q then
@@ -159,11 +152,14 @@ function Quests.claim(player: Player, index: any): (boolean, string)
 	end
 	q.c = true
 	local n = reward(p, q.t)
+	local sc = Config.questScrolls(q.t)
 	p.coins += n
+	p.scrolls.Regular += sc
 	Quests.ensure(player)
 	PlayerData.push(player)
 	PlayerData.saveSoon(player)
-	return true, `Quest reward: +{n} coins`
+	local extra = sc > 0 and string.format(" and %d Regular scroll%s", sc, sc > 1 and "s" or "") or ""
+	return true, `Quest reward: +{n} coins{extra}`
 end
 
 function Quests.claimStreak(player: Player): (boolean, string)
@@ -178,10 +174,13 @@ function Quests.claimStreak(player: Player): (boolean, string)
 	p.streak = { last = Config.today(), count = day }
 	local n = Config.streakReward(day)
 	p.coins += n
+	local sc = Config.streakScrolls(day)
+	p.scrolls.Regular += sc
 	Quests.ensure(player)
 	PlayerData.push(player)
 	PlayerData.saveSoon(player)
-	return true, `Day {day} reward: +{n} coins`
+	local extra = sc > 0 and string.format(" and %d Regular scroll%s", sc, sc > 1 and "s" or "") or ""
+	return true, `Day {day} reward: +{n} coins{extra}`
 end
 
 function Quests.init(r)

@@ -1,45 +1,40 @@
--- Player progress: loaded from / saved to a DataStore through Persistence (session-locked),
--- with a session-only fallback when DataStores are unavailable (e.g. Studio without API access).
+-- Player progress for Wildbound: loaded from / saved to a DataStore through Persistence
+-- (session-locked), with a session-only fallback when DataStores are unavailable.
+-- Gameplay changes go through Inventory / Summon / Quests, which call push() + saveSoon().
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
-local Creatures = require(Shared.Creatures)
+local Monsters = require(Shared.Monsters)
 local Persistence = require(script.Parent.Persistence)
 
+local T = Config.Tuning
 local PlayerData = {}
 
+export type Monster = { sp: string, el: string, lv: number, xp: number, aw: boolean, sk: { number }, lock: boolean, got: number }
 export type Profile = {
 	coins: number,
-	collection: { [string]: { count: number, forms: { [string]: boolean } } },
-	upgrades: { [string]: boolean },
-	tracks: { [string]: number }, -- upgrade track levels (Sneakers, SteadyHands)
-	wings: { [string]: boolean }, -- unlocked wings
-	evo: { [string]: number }, -- evolution progress by target species
-	buddy: string?,
-	rescues: number,
-	slots: number, -- unlocked shelf slots
-	display: { { s: string?, f: string? } }, -- one entry per slot; {} = empty
-	jar: number, -- uncollected shelf income (fractional)
-	lastSeen: number, -- os.time() of the last save, for offline earnings
-	daily: { day: number, quests: { { k: string, n: number, p: number, t: number, c: boolean } }, bonus: boolean },
-	streak: { last: number, count: number }, -- last claimed UTC day + streak length
-	pages: { [string]: boolean }, -- claimed Index page rewards, "<Wing>:<Tier>"
-	trails: { [string]: boolean }, -- owned trails
-	trail: string?, -- equipped trail
-	overtime: number, -- Overtime (rebirth) level
-	tokens: number, -- unspent Overtime tokens
-	perks: { [string]: number }, -- Overtime perk levels
+	monsters: { [string]: Monster },
+	nextUid: number,
+	team: { string }, -- 3 slots, "" = empty
+	storageCap: number,
+	scrolls: { Regular: number, Legendary: number },
+	pity: { four: number, ld: number },
+	essence: { [string]: number },
+	weapon: { type: string, lv: number },
+	index: { [string]: boolean }, -- "<species>:<element>"
+	kills: number,
+	opened: number,
+	regions: { [string]: boolean }, -- unlocked regions
+	bosses: { [string]: boolean }, -- region bosses beaten
+	daily: { day: number, quests: { any }, bonus: boolean },
+	streak: { last: number, count: number },
+	tutorial: { [string]: boolean },
+	lastSeen: number,
 }
 
-type Meta = {
-	cloud: boolean, -- true when this session owns the saved profile and may write it
-	dirty: boolean,
-	saveQueued: boolean,
-	leaving: boolean,
-	lastAuto: number?, -- last Auto Collect payout (os.clock)
-}
+type Meta = { cloud: boolean, dirty: boolean, saveQueued: boolean, leaving: boolean }
 
 local profiles: { [Player]: Profile } = {}
 local meta: { [Player]: Meta } = {}
@@ -47,131 +42,127 @@ local remote: RemoteEvent
 local activeSaves = 0
 
 local function defaults(): Profile
+	local essence = {}
+	for _, e in Config.Elements do
+		essence[e] = 0
+	end
 	return {
 		coins = 0,
-		collection = {},
-		upgrades = {},
-		tracks = { Sneakers = 0, SteadyHands = 0 },
-		wings = { FoodCourt = true },
-		evo = {},
-		buddy = nil,
-		rescues = 0,
-		slots = Config.Tuning.Display.StartSlots,
-		display = {},
-		jar = 0,
-		lastSeen = 0,
+		monsters = {},
+		nextUid = 1,
+		team = { "", "", "" },
+		storageCap = T.StartStorage,
+		scrolls = { Regular = T.Scrolls.Start.Regular, Legendary = T.Scrolls.Start.Legendary },
+		pity = { four = 0, ld = 0 },
+		essence = essence,
+		weapon = { type = "Blade", lv = 1 },
+		index = {},
+		kills = 0,
+		opened = 0,
+		regions = { SproutMeadow = true },
+		bosses = {},
 		daily = { day = 0, quests = {}, bonus = false },
 		streak = { last = 0, count = 0 },
-		pages = {},
-		trails = {},
-		trail = nil,
-		overtime = 0,
-		tokens = 0,
-		perks = {},
+		tutorial = {},
+		lastSeen = 0,
 	}
 end
 
 local function int(v: any, min: number): number
-	if typeof(v) ~= "number" or v ~= v then
+	if typeof(v) ~= "number" or v ~= v or v == math.huge or v == -math.huge then
 		return min
 	end
 	return math.max(min, math.floor(v))
 end
 
--- Turn whatever came out of the DataStore into a valid profile (unknown species, items or
--- forms are dropped, numbers are clamped), so a bad or old record can't break the game.
+local function validElement(e: any): boolean
+	return typeof(e) == "string" and Config.ElementInfo[e] ~= nil
+end
+
+-- Turn whatever came out of the DataStore into a valid profile (unknown species, bad numbers
+-- and dangling team slots are dropped), so a bad or old record can't break the game.
 function PlayerData.sanitize(raw: any): Profile
 	local p = defaults()
 	if typeof(raw) ~= "table" then
 		return p
 	end
+	-- A brand-new record keeps the starter scrolls; an existing one uses what it saved.
 	p.coins = int(raw.coins, 0)
-	p.rescues = int(raw.rescues, 0)
-	if typeof(raw.tracks) == "table" then
-		for id, def in Config.Tuning.Tracks do
-			p.tracks[id] = math.min(#def.Costs, int(raw.tracks[id], 0))
-		end
-	end
-	if typeof(raw.wings) == "table" then
-		for id in Config.Wings do
-			if raw.wings[id] == true then
-				p.wings[id] = true
-			end
-		end
-	end
-	if typeof(raw.evo) == "table" then
-		for _, e in Config.Tuning.Evolutions do
-			local n = int(raw.evo[e.To], 0)
-			if n > 0 then
-				p.evo[e.To] = math.min(n, e.Needed)
-			end
-		end
-	end
-	-- schema 1 records kept King Rangoon progress in ventRescues
-	if raw.ventRescues ~= nil and p.evo.KingRangoon == nil then
-		local n = int(raw.ventRescues, 0)
-		if n > 0 then
-			p.evo.KingRangoon = math.min(n, 3)
-		end
-	end
-	local validForms = {}
-	for _, f in Config.Tuning.Forms do
-		validForms[f.Id] = true
-	end
-	if typeof(raw.collection) == "table" then
-		for id, entry in raw.collection do
-			if Creatures.Species[id] and typeof(entry) == "table" then
-				local forms = {}
-				if typeof(entry.forms) == "table" then
-					for form, has in entry.forms do
-						if validForms[form] and has == true then
-							forms[form] = true
-						end
-					end
+	p.nextUid = int(raw.nextUid, 1)
+	if typeof(raw.monsters) == "table" then
+		for uid, m in raw.monsters do
+			if typeof(uid) == "string" and typeof(m) == "table" and Monsters.Species[m.sp] and validElement(m.el) then
+				local aw = m.aw == true
+				local cap = aw and T.MaxLevel or T.AwakenLevel
+				local skl = {}
+				for i = 1, 3 do
+					skl[i] = math.clamp(int(typeof(m.sk) == "table" and m.sk[i] or 1, 1), 1, Config.Tuning.Feed.MaxSkillLevel)
 				end
-				p.collection[id] = { count = math.max(1, int(entry.count, 1)), forms = forms }
-			end
-		end
-	end
-	if typeof(raw.upgrades) == "table" then
-		for item, has in raw.upgrades do
-			if Config.Tuning.Shop[item] and has == true then
-				p.upgrades[item] = true
-			end
-		end
-	end
-	if typeof(raw.buddy) == "string" and p.collection[raw.buddy] then
-		p.buddy = raw.buddy
-	end
-	p.slots = math.clamp(int(raw.slots, Config.Tuning.Display.StartSlots), Config.Tuning.Display.StartSlots, Config.maxSlots())
-	p.jar = math.max(0, if typeof(raw.jar) == "number" and raw.jar == raw.jar then raw.jar else 0)
-	p.lastSeen = int(raw.lastSeen, 0)
-	if typeof(raw.pages) == "table" then
-		for wing, list in Config.Tuning.IndexRewards do
-			for _, r in list do
-				local key = wing .. ":" .. r.Tier
-				if raw.pages[key] == true then
-					p.pages[key] = true
-					if r.Trail then
-						p.trails[r.Trail] = true -- trails come from claimed pages only
-					end
+				p.monsters[uid] = {
+					sp = m.sp,
+					el = m.el,
+					lv = math.clamp(int(m.lv, 1), 1, cap),
+					xp = int(m.xp, 0),
+					aw = aw,
+					sk = skl,
+					lock = m.lock == true,
+					got = int(m.got, 0),
+				}
+				local n = tonumber(string.match(uid, "%d+"))
+				if n and n >= p.nextUid then
+					p.nextUid = n + 1
 				end
 			end
 		end
 	end
-	p.overtime = int(raw.overtime, 0)
-	p.tokens = int(raw.tokens, 0)
-	if typeof(raw.perks) == "table" then
-		for _, d in Config.Tuning.Overtime.Perks do
-			local n = math.min(d.Max, int(raw.perks[d.Id], 0))
-			if n > 0 then
-				p.perks[d.Id] = n
+	if typeof(raw.team) == "table" then
+		local seen = {}
+		for i = 1, T.TeamSize do
+			local uid = raw.team[i]
+			if typeof(uid) == "string" and p.monsters[uid] and not seen[uid] then
+				p.team[i] = uid
+				seen[uid] = true
 			end
 		end
 	end
-	if typeof(raw.trail) == "string" and p.trails[raw.trail] then
-		p.trail = raw.trail
+	p.storageCap = math.max(T.StartStorage, int(raw.storageCap, T.StartStorage))
+	if typeof(raw.scrolls) == "table" then
+		p.scrolls = { Regular = int(raw.scrolls.Regular, 0), Legendary = int(raw.scrolls.Legendary, 0) }
 	end
+	if typeof(raw.pity) == "table" then
+		p.pity = { four = int(raw.pity.four, 0), ld = int(raw.pity.ld, 0) }
+	end
+	if typeof(raw.essence) == "table" then
+		for _, e in Config.Elements do
+			p.essence[e] = int(raw.essence[e], 0)
+		end
+	end
+	if typeof(raw.weapon) == "table" then
+		p.weapon = {
+			type = T.Weapons[raw.weapon.type] and raw.weapon.type or "Blade",
+			lv = math.clamp(int(raw.weapon.lv, 1), 1, T.Tamer.MaxWeaponLevel),
+		}
+	end
+	if typeof(raw.index) == "table" then
+		for k, v in raw.index do
+			local sp, el = string.match(tostring(k), "^(%w+):(%w+)$")
+			if v == true and sp and Monsters.Species[sp] and validElement(el) then
+				p.index[k] = true
+			end
+		end
+	end
+	p.kills = int(raw.kills, 0)
+	p.opened = int(raw.opened, 0)
+	for _, key in { "regions", "bosses", "tutorial" } do
+		if typeof(raw[key]) == "table" then
+			for k, v in raw[key] do
+				if typeof(k) == "string" and v == true then
+					p[key][k] = true
+				end
+			end
+		end
+	end
+	p.regions.SproutMeadow = true
 	if typeof(raw.streak) == "table" then
 		p.streak = { last = int(raw.streak.last, 0), count = int(raw.streak.count, 0) }
 	end
@@ -179,112 +170,36 @@ function PlayerData.sanitize(raw: any): Profile
 		local quests = {}
 		for _, q in raw.daily.quests do
 			if typeof(q) == "table" and typeof(q.k) == "string" and Config.questDef(q.k) and #quests < 3 then
-				local t = math.clamp(int(q.t, 1), 1, 3)
 				local n = math.max(1, int(q.n, 1))
-				table.insert(quests, { k = q.k, n = n, p = math.min(n, int(q.p, 0)), t = t, c = q.c == true })
+				table.insert(quests, { k = q.k, n = n, p = math.min(n, int(q.p, 0)), t = math.clamp(int(q.t, 1), 1, 3), c = q.c == true })
 			end
 		end
 		p.daily = { day = int(raw.daily.day, 0), quests = quests, bonus = raw.daily.bonus == true }
 	end
-	-- shelves: keep only creatures the player owns in that form, never more than they own
-	local used = {}
-	for i = 1, p.slots do
-		local e = typeof(raw.display) == "table" and raw.display[i]
-		local sp, form = typeof(e) == "table" and e.s, typeof(e) == "table" and e.f
-		local entry = typeof(sp) == "string" and p.collection[sp]
-		if entry and typeof(form) == "string" and entry.forms[form] and (used[sp] or 0) < entry.count then
-			used[sp] = (used[sp] or 0) + 1
-			p.display[i] = { s = sp, f = form }
-		else
-			p.display[i] = {}
-		end
-	end
+	p.lastSeen = int(raw.lastSeen, 0)
 	return p
 end
 
--- Coins per minute from everything on the shelves.
-function PlayerData.incomeRate(p: Profile): number
-	local rate = 0
-	for i = 1, p.slots do
-		local e = p.display[i]
-		if e and e.s then
-			rate += Config.displayRate(Creatures.Species[e.s], e.f)
-		end
+-- Plain deep copy for the DataStore.
+local function copy(v)
+	if typeof(v) ~= "table" then
+		return v
 	end
-	return rate * Config.coinMult(p)
+	local out = {}
+	for k, x in v do
+		out[k] = copy(x)
+	end
+	return out
 end
 
-function PlayerData.jarCap(p: Profile): number
-	local D = Config.Tuning.Display
-	return math.max(D.MinJarCap, PlayerData.incomeRate(p) * (D.JarCapMinutes + 60 * Config.perk(p, "BigJar")))
-end
-
--- Plain copy for the DataStore (only the fields we own).
 function PlayerData.serialize(p: Profile)
-	local collection = {}
-	for id, e in p.collection do
-		local forms = {}
-		for f, has in e.forms do
-			forms[f] = has
-		end
-		collection[id] = { count = e.count, forms = forms }
-	end
-	local upgrades = {}
-	for k, v in p.upgrades do
-		upgrades[k] = v
-	end
-	local tracks, wings, evo = {}, {}, {}
-	for k, v in p.tracks do
-		tracks[k] = v
-	end
-	for k, v in p.wings do
-		wings[k] = v
-	end
-	for k, v in p.evo do
-		evo[k] = v
-	end
-	local perks = {}
-	for k, v in p.perks do
-		perks[k] = v
-	end
-	local pages = {}
-	for k, v in p.pages do
-		pages[k] = v
-	end
-	local dq = {}
-	for i, q in p.daily.quests do
-		dq[i] = { k = q.k, n = q.n, p = q.p, t = q.t, c = q.c }
-	end
-	local display = {}
-	for i = 1, p.slots do
-		local e = p.display[i]
-		display[i] = (e and e.s) and { s = e.s, f = e.f } or {}
-	end
-	return {
-		coins = p.coins,
-		collection = collection,
-		upgrades = upgrades,
-		tracks = tracks,
-		wings = wings,
-		evo = evo,
-		buddy = p.buddy,
-		rescues = p.rescues,
-		slots = p.slots,
-		display = display,
-		jar = math.floor(p.jar * 100) / 100,
-		lastSeen = os.time(),
-		daily = { day = p.daily.day, quests = dq, bonus = p.daily.bonus },
-		streak = { last = p.streak.last, count = p.streak.count },
-		pages = pages,
-		trail = p.trail,
-		overtime = p.overtime,
-		tokens = p.tokens,
-		perks = perks,
-	}
+	local out = copy(p)
+	out.lastSeen = os.time()
+	return out
 end
 
 local function setSaveStatus(player: Player, mode: string)
-	player:SetAttribute("SaveMode", mode) -- Loading | Cloud | Session | Failed
+	player:SetAttribute("SaveMode", mode) -- Loading | Cloud | Session | Failed | Retrying
 	if mode == "Cloud" then
 		player:SetAttribute("LastSave", workspace:GetServerTimeNow())
 	end
@@ -312,7 +227,7 @@ local function saveNow(player: Player, release: boolean?): boolean
 	return ok
 end
 
--- Save soon after an important change (purchase, new creature, evolution); coalesces bursts.
+-- Save soon after an important change; coalesces bursts.
 function PlayerData.saveSoon(player: Player)
 	local m = meta[player]
 	if not m or not m.cloud or m.saveQueued then
@@ -330,7 +245,6 @@ end
 function PlayerData.init(profileRemote: RemoteEvent)
 	remote = profileRemote
 	Persistence.init()
-	-- autosave
 	task.spawn(function()
 		while true do
 			task.wait(Persistence.AUTOSAVE_INTERVAL)
@@ -341,7 +255,6 @@ function PlayerData.init(profileRemote: RemoteEvent)
 			end
 		end
 	end)
-	-- server shutdown: final save for everyone, then wait for writes to finish
 	game:BindToClose(function()
 		for _, player in Players:GetPlayers() do
 			task.spawn(PlayerData.leave, player)
@@ -361,19 +274,14 @@ local function makeLeaderstats(player: Player)
 	end
 	local ls = Instance.new("Folder")
 	ls.Name = "leaderstats"
-	local coins = Instance.new("IntValue")
-	coins.Name = "Coins"
-	coins.Parent = ls
-	local found = Instance.new("IntValue")
-	found.Name = "Found"
-	found.Parent = ls
-	local ot = Instance.new("IntValue")
-	ot.Name = "Overtime"
-	ot.Parent = ls
+	for _, n in { "Coins", "Index", "Defeated" } do
+		local v = Instance.new("IntValue")
+		v.Name = n
+		v.Parent = ls
+	end
 	ls.Parent = player
 end
 
--- Loads (or creates) the player's profile. Yields while the DataStore answers.
 function PlayerData.join(player: Player): Profile?
 	setSaveStatus(player, "Loading")
 	local cloud = false
@@ -387,27 +295,14 @@ function PlayerData.join(player: Player): Profile?
 		end
 	end
 	if not player.Parent then
-		-- left while loading
 		if cloud then
 			Persistence.release(player.UserId)
 		end
 		return nil
 	end
 	local p = PlayerData.sanitize(data)
-	-- offline shelf income (only for real saves: a fresh or failed load has no lastSeen)
-	if cloud and p.lastSeen > 0 then
-		local D = Config.Tuning.Display
-		local minutes = math.clamp((os.time() - p.lastSeen) / 60, 0, D.OfflineCapMinutes)
-		local before = p.jar
-		p.jar = math.min(PlayerData.jarCap(p), p.jar + PlayerData.incomeRate(p) * minutes)
-		local earned = math.floor(p.jar - before)
-		if earned >= 1 then
-			player:SetAttribute("OfflineEarned", earned)
-			player:SetAttribute("OfflineMinutes", math.floor(minutes))
-		end
-	end
 	profiles[player] = p
-	meta[player] = { cloud = cloud, dirty = false, saveQueued = false, leaving = false }
+	meta[player] = { cloud = cloud, dirty = data == nil, saveQueued = false, leaving = false }
 	makeLeaderstats(player)
 	if cloud then
 		setSaveStatus(player, "Cloud")
@@ -417,7 +312,6 @@ function PlayerData.join(player: Player): Profile?
 	return p
 end
 
--- Final save + lock release. Safe to call more than once.
 function PlayerData.leave(player: Player)
 	local m = meta[player]
 	if not m or m.leaving then
@@ -435,15 +329,23 @@ function PlayerData.get(player: Player): Profile?
 	return profiles[player]
 end
 
+function PlayerData.isCloud(player: Player): boolean
+	local m = meta[player]
+	return m ~= nil and m.cloud
+end
 
-function PlayerData.speciesFound(p: Profile): number
+function PlayerData.indexCount(p: Profile): number
 	local n = 0
-	for _ in p.collection do
+	for _ in p.index do
 		n += 1
 	end
 	return n
 end
 
+-- Optional hook (set by Main): called after every push, e.g. to refresh the team in the world.
+PlayerData.onPush = nil :: ((Player) -> ())?
+
+-- Send the profile to the client and refresh replicated attributes.
 function PlayerData.push(player: Player)
 	local p = profiles[player]
 	if not p then
@@ -456,368 +358,21 @@ function PlayerData.push(player: Player)
 	local ls = player:FindFirstChild("leaderstats")
 	if ls then
 		ls.Coins.Value = p.coins
-		ls.Found.Value = PlayerData.speciesFound(p)
-		ls.Overtime.Value = p.overtime
+		ls.Index.Value = PlayerData.indexCount(p)
+		ls.Defeated.Value = p.kills
 	end
-	player:SetAttribute("Buddy", p.buddy)
-	player:SetAttribute("PaddedShoes", p.upgrades.PaddedShoes == true)
-	player:SetAttribute("Sneakers", p.tracks.Sneakers)
-	player:SetAttribute("SteadyHands", p.tracks.SteadyHands)
-	-- highest unlocked wing decides which gates the character passes through
-	local top = nil
-	for _, w in Config.wingList() do
-		if p.wings[w.Id] and w.Price > 0 then
-			top = w.Id
-		end
-	end
-	player:SetAttribute("PassWing", top)
-	player:SetAttribute("IncomeRate", PlayerData.incomeRate(p))
-	player:SetAttribute("Trail", p.trail)
-	player:SetAttribute("NudgeShield", p.rescues < Config.Tuning.Nudge.NewbieRescues)
-	local claimable = 0
-	for wing, list in Config.Tuning.IndexRewards do
-		for _, r in list do
-			local have, total = Config.pageProgress(p, Creatures.Species, wing, r.Tier)
-			if have >= total and not p.pages[wing .. ":" .. r.Tier] then
-				claimable += 1
-			end
-		end
-	end
-	player:SetAttribute("PagesClaimable", claimable)
-	player:SetAttribute("Jar", math.floor(p.jar))
+	player:SetAttribute("Weapon", p.weapon.type)
+	player:SetAttribute("WeaponLevel", p.weapon.lv)
 	if PlayerData.onPush then
 		PlayerData.onPush(player)
 	end
 	remote:FireClient(player, p)
 end
 
--- Adds a creature to the collection. Returns true if the species is new.
-function PlayerData.record(p: Profile, species: string, form: string): boolean
-	local entry = p.collection[species]
-	local isNew = entry == nil
-	if not entry then
-		entry = { count = 0, forms = {} }
-		p.collection[species] = entry
-	end
-	entry.count += 1
-	entry.forms[form] = true
-	return isNew
-end
-
--- Buys a shop item, the next level of an upgrade track, or a wing unlock.
-function PlayerData.buy(player: Player, item: string): (boolean, string)
-	local p = profiles[player]
-	if not p or typeof(item) ~= "string" then
-		return false, "Unknown item"
-	end
-	local track = Config.Tuning.Tracks[item]
-	if track then
-		local lvl = p.tracks[item] or 0
-		local price = track.Costs[lvl + 1]
-		if not price then
-			return false, `{track.Name} is maxed out`
-		end
-		if p.coins < price then
-			return false, `Need {price - p.coins} more coins`
-		end
-		p.coins -= price
-		p.tracks[item] = lvl + 1
-		PlayerData.push(player)
-		PlayerData.saveSoon(player)
-		return true, `{track.Name} level {lvl + 1}!`
-	end
-	if item == "ShelfSlot" then
-		local idx = p.slots - Config.Tuning.Display.StartSlots + 1
-		local price = Config.Tuning.Display.SlotCosts[idx]
-		if not price then
-			return false, "All shelves are unlocked"
-		end
-		if p.coins < price then
-			return false, `Need {price - p.coins} more coins`
-		end
-		p.coins -= price
-		p.slots += 1
-		p.display[p.slots] = {}
-		PlayerData.push(player)
-		PlayerData.saveSoon(player)
-		return true, `Shelf {p.slots} unlocked!`
-	end
-	local wing = Config.Wings[item]
-	if wing then
-		if p.wings[item] then
-			return false, `{wing.Name} is already open`
-		end
-		for _, w in Config.wingList() do
-			if w.Order < wing.Order and not p.wings[w.Id] then
-				return false, `Unlock {w.Name} first`
-			end
-		end
-		if p.coins < wing.Price then
-			return false, `Need {wing.Price - p.coins} more coins`
-		end
-		p.coins -= wing.Price
-		p.wings[item] = true
-		PlayerData.push(player)
-		PlayerData.saveSoon(player)
-		return true, `{wing.Name} unlocked! Walk through the gate`
-	end
-	local def = Config.Tuning.Shop[item]
-	if not def then
-		return false, "Unknown item"
-	end
-	if p.upgrades[item] then
-		return false, "Already owned"
-	end
-	if p.coins < def.Price then
-		return false, `Need {def.Price - p.coins} more coins`
-	end
-	p.coins -= def.Price
-	p.upgrades[item] = true
+-- Debug: replace a profile wholesale (Studio tests).
+function PlayerData.debugReplace(player: Player, raw: any)
+	profiles[player] = PlayerData.sanitize(raw)
 	PlayerData.push(player)
-	PlayerData.saveSoon(player)
-	return true, `{def.Name} equipped!`
-end
-
--- Overtime (rebirth) + perks ---------------------------------------------------------------
-
-function PlayerData.clockIn(player: Player): (boolean, string)
-	local p = profiles[player]
-	if not p then
-		return false, "No profile"
-	end
-	local O = Config.Tuning.Overtime
-	if not p.wings[O.NeedsWing] then
-		return false, `Unlock the {Config.Wings[O.NeedsWing].Name} first`
-	end
-	local cost = Config.overtimeCost(p.overtime)
-	if p.coins < cost then
-		return false, `Need {cost - p.coins} more coins`
-	end
-	p.overtime += 1
-	p.tokens += 1
-	p.coins = 0
-	p.jar = 0
-	p.tracks.Sneakers = math.min(#Config.Tuning.Tracks.Sneakers.Costs, Config.perk(p, "HeadStart"))
-	p.tracks.SteadyHands = math.min(#Config.Tuning.Tracks.SteadyHands.Costs, Config.perk(p, "SteadyStart"))
-	PlayerData.push(player)
-	PlayerData.saveSoon(player)
-	return true, string.format("Overtime %d! Coins +%d%% forever, and you got a token", p.overtime, math.floor((Config.coinMult(p) - 1) * 100 + 0.5))
-end
-
-function PlayerData.buyPerk(player: Player, id: any): (boolean, string)
-	local p = profiles[player]
-	local d = p and typeof(id) == "string" and Config.perkDef(id)
-	if not d then
-		return false, "Unknown perk"
-	end
-	local lvl = Config.perk(p, id)
-	if lvl >= d.Max then
-		return false, `{d.Name} is maxed out`
-	end
-	local cost = lvl + 1
-	if p.tokens < cost then
-		return false, `Need {cost - p.tokens} more Overtime token{cost - p.tokens == 1 and "" or "s"}`
-	end
-	p.tokens -= cost
-	p.perks[id] = lvl + 1
-	-- head starts apply right away if they beat the current level
-	if id == "HeadStart" then
-		p.tracks.Sneakers = math.max(p.tracks.Sneakers, p.perks[id])
-	elseif id == "SteadyStart" then
-		p.tracks.SteadyHands = math.max(p.tracks.SteadyHands, p.perks[id])
-	end
-	PlayerData.push(player)
-	PlayerData.saveSoon(player)
-	return true, `{d.Name} level {lvl + 1}!`
-end
-
--- Index pages + trails ----------------------------------------------------------------------
-
-function PlayerData.claimPage(player: Player, wing: any, tier: any): (boolean, string)
-	local p = profiles[player]
-	local r = p and typeof(wing) == "string" and typeof(tier) == "string" and Config.pageReward(wing, tier)
-	if not r then
-		return false, "Unknown page"
-	end
-	local key = wing .. ":" .. tier
-	if p.pages[key] then
-		return false, "Already claimed"
-	end
-	local have, total = Config.pageProgress(p, Creatures.Species, wing, tier)
-	if have < total then
-		return false, `{have}/{total} so far`
-	end
-	p.pages[key] = true
-	p.coins += r.Coins
-	local msg = `{Config.Wings[wing].Name} page complete! +{r.Coins} coins`
-	if r.Trail then
-		p.trails[r.Trail] = true
-		if not p.trail then
-			p.trail = r.Trail
-		end
-		msg ..= ` and the {Config.Tuning.Trails[r.Trail].Name} trail`
-	end
-	PlayerData.push(player)
-	PlayerData.saveSoon(player)
-	return true, msg
-end
-
-function PlayerData.equipTrail(player: Player, id: any): (boolean, string)
-	local p = profiles[player]
-	if not p then
-		return false, "No profile"
-	end
-	if id == nil then
-		p.trail = nil
-		PlayerData.push(player)
-		return true, "Trail off"
-	end
-	if typeof(id) ~= "string" or not p.trails[id] then
-		return false, "You haven't unlocked that trail"
-	end
-	p.trail = id
-	PlayerData.push(player)
-	PlayerData.saveSoon(player)
-	return true, `{Config.Tuning.Trails[id].Name} trail on`
-end
-
--- Shelves ---------------------------------------------------------------------------------
-
-local function displayedCount(p: Profile, species: string, except: number?): number
-	local n = 0
-	for i = 1, p.slots do
-		local e = p.display[i]
-		if i ~= except and e and e.s == species then
-			n += 1
-		end
-	end
-	return n
-end
-
--- Put a creature (species + form) on a shelf slot, or clear it (species nil).
-function PlayerData.setDisplay(player: Player, slot: number, species: string?, form: string?): (boolean, string)
-	local p = profiles[player]
-	if not p or typeof(slot) ~= "number" or slot ~= slot or slot < 1 or slot > p.slots or slot % 1 ~= 0 then
-		return false, "That shelf isn't yours yet"
-	end
-	if species == nil then
-		p.display[slot] = {}
-		PlayerData.push(player)
-		return true, "Shelf cleared"
-	end
-	local entry = typeof(species) == "string" and p.collection[species]
-	if not entry or typeof(form) ~= "string" or not entry.forms[form] then
-		return false, "You haven't rescued that one yet"
-	end
-	if displayedCount(p, species, slot) >= entry.count then
-		return false, `All your {Creatures.Species[species].Name}s are already on shelves`
-	end
-	p.display[slot] = { s = species, f = form }
-	PlayerData.push(player)
-	PlayerData.saveSoon(player)
-	return true, `{Creatures.Species[species].Name} is on display`
-end
-
--- Fill every slot with the best-earning creatures the player owns.
-function PlayerData.autoFill(player: Player): (boolean, string)
-	local p = profiles[player]
-	if not p then
-		return false, "No profile"
-	end
-	-- each copy of a species can show its best owned form (forms are per species, not per copy)
-	local options = {}
-	for id, entry in p.collection do
-		local sp = Creatures.Species[id]
-		local best, bestRate = nil, -1
-		for form in entry.forms do
-			local r = Config.displayRate(sp, form)
-			if r > bestRate then
-				best, bestRate = form, r
-			end
-		end
-		if best then
-			for _ = 1, entry.count do
-				table.insert(options, { s = id, f = best, r = bestRate })
-			end
-		end
-	end
-	table.sort(options, function(a, b)
-		return a.r > b.r
-	end)
-	for i = 1, p.slots do
-		local o = options[i]
-		p.display[i] = o and { s = o.s, f = o.f } or {}
-	end
-	PlayerData.push(player)
-	PlayerData.saveSoon(player)
-	return true, string.format("Shelves filled: %s coins a minute", PlayerData.fmtRate(PlayerData.incomeRate(p)))
-end
-
-function PlayerData.fmtRate(r: number): string
-	return r >= 10 and tostring(math.floor(r + 0.5)) or string.format("%.1f", r)
-end
-
--- Move the tip jar into coins.
-function PlayerData.collect(player: Player): (boolean, string, number)
-	local p = profiles[player]
-	if not p then
-		return false, "No profile", 0
-	end
-	local n = math.floor(p.jar)
-	if n < 1 then
-		return false, "The tip jar is empty", 0
-	end
-	p.jar -= n
-	p.coins += n
-	PlayerData.push(player)
-	PlayerData.saveSoon(player)
-	return true, `+{n} coins from your shelves`, n
-end
-
--- Called every few seconds by the server: shelves earn into the jar.
-function PlayerData.tick(dt: number)
-	for player, p in profiles do
-		local rate = PlayerData.incomeRate(p)
-		if rate > 0 then
-			p.jar = math.min(PlayerData.jarCap(p), p.jar + rate * dt / 60)
-			local m = meta[player]
-			if m then
-				m.dirty = true
-				-- Auto Collect perk: jar coins go straight to the player (pushed every ~10 s)
-				if Config.perk(p, "AutoCollect") > 0 and p.jar >= 1 and os.clock() - (m.lastAuto or 0) > 10 then
-					m.lastAuto = os.clock()
-					local n = math.floor(p.jar)
-					p.jar -= n
-					p.coins += n
-					PlayerData.push(player)
-				end
-			end
-		end
-		player:SetAttribute("Jar", math.floor(p.jar))
-		player:SetAttribute("JarFull", p.jar >= PlayerData.jarCap(p) - 0.5)
-		player:SetAttribute("IncomeRate", rate)
-	end
-end
-
-function PlayerData.equip(player: Player, species: string?): (boolean, string)
-	local p = profiles[player]
-	if not p then
-		return false, "No profile"
-	end
-	if species == nil then
-		p.buddy = nil
-		PlayerData.push(player)
-		return true, "Buddy unequipped"
-	end
-	if typeof(species) ~= "string" or not Creatures.Species[species] then
-		return false, "Unknown creature"
-	end
-	if not p.collection[species] then
-		return false, "You haven't rescued one yet"
-	end
-	p.buddy = species
-	PlayerData.push(player)
-	return true, `{Creatures.Species[species].Name} is your buddy!`
 end
 
 return PlayerData

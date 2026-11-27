@@ -13,7 +13,7 @@ local Persistence = {}
 
 local SCHEMA = 1
 -- Studio sessions use their own store so test runs never touch live players' saves.
-local STORE_NAME = "BrainrotProfiles_v1" .. (RunService:IsStudio() and "_Studio" or "")
+local STORE_NAME = "Wildbound_v1" .. (RunService:IsStudio() and "_Studio" or "")
 local LOCK_TIMEOUT = 300 -- seconds; a lock older than this is treated as abandoned (crashed server)
 local LOAD_ATTEMPTS = 4
 local LOAD_RETRY_WAITS = { 2, 3, 4 } -- seconds; a server releasing on leave finishes in ~1 s

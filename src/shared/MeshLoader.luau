@@ -224,4 +224,24 @@ end
 
 MeshLoader.b64decode = b64decode
 
+-- Raw RGBA texture of a baked mesh (for recolouring), cached: (buffer, width, height) or nil.
+local texCache: { [string]: any } = {}
+function MeshLoader.texture(name: string): (buffer?, number, number)
+	local c = texCache[name]
+	if c == nil then
+		local mod = MeshData and MeshData:FindFirstChild(name)
+		if mod then
+			local data = require(mod)
+			if data.Texture then
+				c = { b64decode(data.Texture), data.TextureSize[1], data.TextureSize[2] }
+			end
+		end
+		texCache[name] = c or false
+	end
+	if not c then
+		return nil, 0, 0
+	end
+	return c[1], c[2], c[3]
+end
+
 return MeshLoader

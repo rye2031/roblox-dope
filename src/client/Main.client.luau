@@ -1,78 +1,108 @@
 -- Runs on each player's device when they join.
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Config = require(ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"))
 local Remotes = ReplicatedStorage:WaitForChild("Remotes")
 
-local CreatureView = require(script.Parent.CreatureView)
-local WorldFx = require(script.Parent.WorldFx)
+local Ui = require(script.Parent.Ui)
+local UnitView = require(script.Parent.UnitView)
+local Controls = require(script.Parent.Controls)
 local Hud = require(script.Parent.Hud)
-local Shelves = require(script.Parent.Shelves)
-local Nudge = require(script.Parent.Nudge)
+local Panels = require(script.Parent.Panels)
+local ServerFeed = require(script.Parent.ServerFeed)
 
-WorldFx.start()
-CreatureView.start()
+UnitView.start()
+Controls.start()
 Hud.start()
-task.spawn(Shelves.start)
-Nudge.start()
+ServerFeed.start()
 
-Remotes.Fx.OnClientEvent:Connect(function(kind, pos, a, b, c)
-	WorldFx.onFx(kind, pos, a, b, c)
-	if kind == "RareSpawn" then
-		local wing = Config.Wings[b or "FoodCourt"]
-		local p = Hud.getProfile()
-		if wing and (not p or p.wings[wing.Id]) then
-			Hud.toast("A rare sleeper is napping on " .. wing.RareStageName .. "!", "good")
-		end
+Remotes:WaitForChild("Combat").OnClientEvent:Connect(function(events)
+	UnitView.onEvents(events)
+	Controls.onEvents(events)
+end)
+Remotes:WaitForChild("Profile").OnClientEvent:Connect(function(p)
+	Ui.setProfile(p)
+end)
+task.spawn(function()
+	local ok, p = pcall(function()
+		return (Remotes:WaitForChild("GetProfile") :: RemoteFunction):InvokeServer()
+	end)
+	if ok and p and not Ui.profile then
+		Ui.setProfile(p)
 	end
 end)
 
 -- Debug bridge for Studio MCP playtests (Studio only).
 if game:GetService("RunService"):IsStudio() then
-	local Players = game:GetService("Players")
 	local bf = Instance.new("BindableFunction")
-	bf.Name = "BrainrotClientDebug"
-	bf.OnInvoke = function(cmd, a)
-		local gui = Players.LocalPlayer.PlayerGui:FindFirstChild("BrainrotHud")
-		if cmd == "hud" then
-			local m = gui.WakeMeter
+	bf.Name = "WildClientDebug"
+	bf.OnInvoke = function(cmd, a, b)
+		if cmd == "open" then
+			Ui.open(a)
+			return "ok"
+		elseif cmd == "panel" then
+			-- visible text of an open panel
+			local p = Ui.panels[a]
 			local out = {}
-			table.insert(out, "meter=" .. tostring(m.Visible))
-			for _, d in m:GetDescendants() do
-				if d:IsA("TextLabel") and d.Text ~= "" then
-					table.insert(out, "meterText=" .. d.Text)
-				end
-			end
-			table.insert(out, "hint=" .. (gui.Hint.Visible and gui.Hint.Text.Text or ""))
-			table.insert(out, "rare=" .. gui.Top.Rare.Card.Value.Text)
-			table.insert(out, "coins=" .. gui.Top.Coins.Card.Value.Text)
-			table.insert(out, "shop=" .. tostring(gui.Shop.Visible) .. " index=" .. tostring(gui.Collection.Visible))
-			table.insert(out, "reveal=" .. tostring(gui.Reveal.Visible))
-			for _, d in gui.Reveal:GetDescendants() do
-				if d:IsA("TextLabel") and gui.Reveal.Visible then
-					table.insert(out, "revealText=" .. d.Text)
+			for _, d in (p and p:GetDescendants() or {}) do
+				if (d:IsA("TextLabel") or d:IsA("TextButton")) and d.Text ~= "" and d.Visible then
+					table.insert(out, d.Text)
 				end
 			end
 			return table.concat(out, " | ")
+		elseif cmd == "views" then
+			local out = {}
+			for part, v in UnitView.views do
+				table.insert(out, part.Name .. ":" .. tostring(part:GetAttribute("Species")) .. ":" .. tostring(part:GetAttribute("State")) .. ":" .. v.body.ClassName)
+			end
+			return table.concat(out, ", ")
 		elseif cmd == "meshes" then
 			local n, list = require(ReplicatedStorage.Shared.MeshLoader).stats()
 			return n .. " | " .. list
-		elseif cmd == "open" then
-			Hud.openPanel(a)
+		elseif cmd == "attack" then
+			Controls.attack()
 			return "ok"
-		elseif cmd == "sprint" then
-			Hud.setSprint(a == true)
+		elseif cmd == "team" then
+			Controls.team(a)
 			return "ok"
-		elseif cmd == "views" then
-			local out = {}
-			for part, v in CreatureView.views do
-				table.insert(out, part.Name .. ":" .. tostring(part:GetAttribute("State")) .. ":" .. tostring(v.c.body.ClassName))
+		elseif cmd == "skill" then
+			Controls.skill()
+			return "ok"
+		elseif cmd == "dodge" then
+			Controls.dodge()
+			return "ok"
+		elseif cmd == "reveal" then
+			Panels.reveal(a)
+			return "ok"
+		elseif cmd == "feedhover" then
+			return tostring(ServerFeed.debugHover())
+		elseif cmd == "feed5" then
+			ServerFeed.add(a)
+			return "ok"
+		elseif cmd == "hidereveal" then
+			require(script.Parent.SummonReveal).hide()
+			return "ok"
+		elseif cmd == "detail" then
+			Panels.showMonster(a)
+			return "ok"
+		elseif cmd == "feed" then
+			Panels.startFeed(a, b)
+			return "ok"
+		elseif cmd == "swing" then
+			local TamerAnim = require(script.Parent.TamerAnim)
+			if a then
+				TamerAnim.play(Players.LocalPlayer, a, b == "skill", true)
 			end
-			return table.concat(out, ", ")
+			return TamerAnim.debugState(Players.LocalPlayer)
+		elseif cmd == "target" then
+			return Controls.target and Controls.target.Name or "none"
 		end
+		local _ = b
 		return "unknown"
 	end
-	bf.Parent = game:GetService("ReplicatedStorage")
+	bf.Parent = ReplicatedStorage
 end
 
+local _ = Players
 print(`[client] {Config.GameName} loaded`)

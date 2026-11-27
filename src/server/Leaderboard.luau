@@ -1,7 +1,7 @@
 -- Global "Top Keepers" leaderboards in OrderedDataStores (Studio uses its own _Studio stores so
 -- tests never touch the real boards):
---   Overtime: overtime * 1e7 + rescues (Overtime first, rescues break ties)
---   Rescues:  total rescues
+--   Index:    distinct species+element entries collected
+--   Defeated: wild monsters defeated
 -- Scores are submitted every minute and when a player leaves (only for real, cloud-saved
 -- profiles). The top 10 of each is published as JSON in ReplicatedStorage.Leaderboard.
 local HttpService = game:GetService("HttpService")
@@ -26,20 +26,19 @@ local names: { [number]: string } = {}
 local published: StringValue
 
 local function scores(p): { [string]: number }
-	local r = math.min(p.rescues, 9999999)
-	return { Overtime = p.overtime * 10000000 + r, Rescues = r }
+	return { Index = PlayerData.indexCount(p), Defeated = math.min(p.kills, 999999999) }
 end
 
 -- Submit one player's scores (only values that changed since the last submit).
 function Leaderboard.submit(userId: number, p, cloud: boolean)
-	if not cloud or not p or not stores.Rescues then
+	if not cloud or not p or not stores.Index then
 		return
 	end
 	local sc = scores(p)
 	local sent = lastSent[userId] or {}
 	lastSent[userId] = sent
 	for board, value in sc do
-		local eligible = value > 0 and (board ~= "Overtime" or p.overtime > 0)
+		local eligible = value > 0
 		if sent[board] ~= value and eligible then
 			local ok = pcall(function()
 				stores[board]:SetAsync(tostring(userId), value)
@@ -79,10 +78,10 @@ local function resolveNames(ids: { number })
 end
 
 function Leaderboard.refresh()
-	if not stores.Rescues then
+	if not stores.Index then
 		return
 	end
-	local out = { updated = os.time(), Overtime = {}, Rescues = {} }
+	local out = { updated = os.time(), Index = {}, Defeated = {} }
 	local ids = {}
 	local raw = {}
 	for board, store in stores do
@@ -98,11 +97,7 @@ function Leaderboard.refresh()
 	for board, list in raw do
 		for _, e in list do
 			local id = tonumber(e.key) :: number
-			if board == "Overtime" then
-				table.insert(out.Overtime, { id = id, n = names[id], ot = e.value // 10000000, r = e.value % 10000000 })
-			else
-				table.insert(out.Rescues, { id = id, n = names[id], r = e.value })
-			end
+			table.insert(out[board], { id = id, n = names[id], v = e.value })
 		end
 	end
 	published.Value = HttpService:JSONEncode(out)
@@ -122,9 +117,9 @@ function Leaderboard.init()
 	if not Persistence.available then
 		return -- no DataStores (e.g. Studio without API access): the board stays empty
 	end
-	for _, board in { "Overtime", "Rescues" } do
+	for _, board in { "Index", "Defeated" } do
 		local ok, store = pcall(function()
-			return DataStoreService:GetOrderedDataStore("Leaderboard_" .. board .. SUFFIX)
+			return DataStoreService:GetOrderedDataStore("Wildbound_" .. board .. SUFFIX)
 		end)
 		if ok then
 			stores[board] = store
@@ -145,7 +140,7 @@ function Leaderboard.onLeave(player: Player)
 	local p = PlayerData.get(player)
 	if p then
 		local cloud = player:GetAttribute("SaveMode") == "Cloud"
-		local snapshot = { rescues = p.rescues, overtime = p.overtime }
+		local snapshot = { kills = p.kills, index = p.index }
 		task.spawn(Leaderboard.submit, player.UserId, snapshot, cloud)
 	end
 	lastSent[player.UserId] = nil
