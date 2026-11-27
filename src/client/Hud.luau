@@ -81,6 +81,7 @@ local RAIL = {
 local questDot: Frame
 local monDot: Frame -- overflow waiting
 local expDot: Frame -- an expedition is back
+local shrineDot: Frame -- a sealed scroll is ready
 for i, r in RAIL do
 	local b = button({ LayoutOrder = i, Size = UDim2.fromOffset(px(64), px(64)), BackgroundColor3 = C.Card, Text = "", ZIndex = 2, Parent = rail, Radius = 18 })
 	Ui.stroke(Ui.Theme.tint(r[3], 0.4), 2).Parent = b
@@ -93,6 +94,9 @@ for i, r in RAIL do
 			Ui.open(r[1])
 		end
 	end)
+	if r[1] == "Shrine" then
+		shrineDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(px(16), px(16)), BackgroundColor3 = C.Sun, Visible = false, ZIndex = 4, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	end
 	if r[1] == "Expeditions" then
 		expDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(px(16), px(16)), BackgroundColor3 = C.Mint, Visible = false, ZIndex = 4, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 	end
@@ -289,6 +293,8 @@ local function onReward(drops, ups)
 	end
 	if drops.legendary then
 		Ui.toast("A Legendary scroll dropped! 🌟", "good")
+	elseif drops.sealed and Config.Sealed.Tiers[drops.sealed] then
+		Ui.toast(string.format("A %s dropped! Attune it at the Shrine 📜", Config.Sealed.Tiers[drops.sealed].Name), "good")
 	elseif drops.scroll then
 		Ui.toast("A Regular scroll dropped! Open it at the Shrine 📜", "good")
 	end
@@ -367,6 +373,14 @@ function Hud.setProfile(p)
 		end
 	end
 	expDot.Visible = back
+	local sealReady = false
+	for _, sl in (p.sealed and p.sealed.slots) or {} do
+		local t = Config.Sealed.Tiers[sl.tier]
+		if t and os.time() >= sl.start + t.Minutes * 60 then
+			sealReady = true
+		end
+	end
+	shrineDot.Visible = sealReady
 	if not p.tutorial.intro and not Hud.introShown then
 		Hud.introShown = true
 		howTo.Visible = true

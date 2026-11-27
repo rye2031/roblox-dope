@@ -606,14 +606,98 @@ renderShrine = function()
 			end
 		end)
 	end
-	Ui.section(shrineBody, 4, "PITY")
+	-- Sealed Scrolls: satchel + attuning slots
+	do
+		local SE = Config.Sealed
+		local sealed = p.sealed or { bag = {}, slots = {} }
+		Ui.section(shrineBody, 4, "SEALED SCROLLS  ·  attune them here, then open them")
+		local slotRow = new("Frame", { LayoutOrder = 5, Size = UDim2.new(1, 0, 0, px(86)), BackgroundTransparency = 1, ZIndex = 12, Parent = shrineBody }, {
+			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
+		})
+		local now = os.time()
+		for i = 1, SE.Slots do
+			local sl = sealed.slots[tostring(i)]
+			local cell = new("Frame", { LayoutOrder = i, Size = UDim2.new(1 / SE.Slots, -7, 1, 0), BackgroundColor3 = C.Soft, ZIndex = 12, Parent = slotRow }, { corner(16) })
+			if not sl then
+				label(cell, { Size = UDim2.fromScale(1, 1), Text = "Empty slot", TextColor3 = C.Sub, TextSize = px(15), TextXAlignment = Enum.TextXAlignment.Center }, "Bold")
+			else
+				local t = SE.Tiers[sl.tier]
+				local endsAt = sl.start + t.Minutes * 60
+				cell.BackgroundColor3 = Ui.Theme.tint(t.Color, 0.82)
+				label(cell, { Position = UDim2.fromOffset(px(12), px(8)), Size = UDim2.new(1, -px(24), 0, px(20)), Text = "📜 " .. t.Name, TextSize = px(16), TextXAlignment = Enum.TextXAlignment.Left }, "Title")
+				if endsAt <= now then
+					local claim = pill(cell, { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -px(8)), Size = UDim2.new(1, -px(24), 0, px(36)), Text = "Open!" }, C.Mint)
+					claim.Activated:Connect(function()
+						local ok, _, res = Ui.call("Sealed", "claim", i)
+						if ok and res then
+							Ui.toast(string.format("%s opened: %s", t.Name, res.legendary > 0 and "a Legendary scroll! 🌟" or (res.regular .. " Regular scroll" .. (res.regular > 1 and "s" or ""))), "good")
+						end
+					end)
+				else
+					local back = new("Frame", { Position = UDim2.new(0, px(12), 1, -px(30)), Size = UDim2.new(1, -px(24), 0, px(10)), BackgroundColor3 = Color3.fromRGB(255, 255, 255), ZIndex = 13, Parent = cell }, { corner(5) })
+					local fill = new("Frame", { Size = UDim2.fromScale(math.clamp((now - sl.start) / (t.Minutes * 60), 0, 1), 1), BackgroundColor3 = t.Color, ZIndex = 14, Parent = back }, { corner(5) })
+					fill:SetAttribute("SealStart", sl.start)
+					fill:SetAttribute("SealLen", t.Minutes * 60)
+					local tl = label(cell, { Position = UDim2.fromOffset(px(12), px(32)), Size = UDim2.new(1, -px(24), 0, px(18)), Text = "", TextSize = px(14), TextColor3 = C.Sub, TextXAlignment = Enum.TextXAlignment.Left }, "Bold")
+					tl:SetAttribute("SealEnds", endsAt)
+				end
+			end
+		end
+		local bag = new("Frame", { LayoutOrder = 6, Size = UDim2.new(1, 0, 0, px(44)), BackgroundTransparency = 1, ZIndex = 12, Parent = shrineBody }, {
+			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), VerticalAlignment = Enum.VerticalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }),
+		})
+		local any = false
+		for oi, tier in SE.Order do
+			local n = sealed.bag[tier] or 0
+			if n > 0 then
+				any = true
+				local t = SE.Tiers[tier]
+				local b = pill(bag, { LayoutOrder = oi, Size = UDim2.fromOffset(px(200), px(40)), Text = string.format("%s ×%d · Attune (%dm)", t.Name, n, t.Minutes) }, t.Color)
+				b.Activated:Connect(function()
+					Ui.call("Sealed", "attune", tier)
+				end)
+			end
+		end
+		if not any then
+			label(bag, { LayoutOrder = 1, Size = UDim2.new(1, 0, 1, 0), Text = "No sealed scrolls. Elites, bosses and Wandering Legends drop them.", TextColor3 = C.Sub, TextSize = px(14) }, "Bold")
+		end
+	end
+	Ui.section(shrineBody, 7, "PITY")
 	local four = T.Scrolls.PityFourStar - (p.pity.four or 0)
 	local ld = T.Scrolls.PityLightDark - (p.pity.ld or 0)
-	label(shrineBody, { LayoutOrder = 5, Size = UDim2.new(1, 0, 0, px(40)), Text = string.format("A 4★ or better is guaranteed within %d Regular scrolls.\nA Light or Dark monster is guaranteed within %d scrolls.", four, ld), TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
-	Ui.section(shrineBody, 6, "WHERE SCROLLS COME FROM")
-	label(shrineBody, { LayoutOrder = 7, Size = UDim2.new(1, 0, 0, px(40)), Text = "Wild monsters sometimes drop Regular scrolls (elites often). Bosses always drop 3, sometimes a Legendary. Every daily quest gives Regular scrolls, and so does your login streak.", TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
+	label(shrineBody, { LayoutOrder = 8, Size = UDim2.new(1, 0, 0, px(40)), Text = string.format("A 4★ or better is guaranteed within %d Regular scrolls.\nA Light or Dark monster is guaranteed within %d scrolls.", four, ld), TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
+	Ui.section(shrineBody, 9, "WHERE SCROLLS COME FROM")
+	label(shrineBody, { LayoutOrder = 10, Size = UDim2.new(1, 0, 0, px(40)), Text = "Wild monsters sometimes drop Regular scrolls (elites often). Bosses always drop 3, sometimes a Legendary. Every daily quest gives Regular scrolls, and so does your login streak.", TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
 end
 Ui.onOpen.Shrine = renderShrine
+
+-- tick the sealed-scroll countdowns while the Shrine is open
+task.spawn(function()
+	while true do
+		task.wait(1)
+		if Ui.isOpen("Shrine") then
+			local now = os.time()
+			local ready = false
+			for _, d in shrineBody:GetDescendants() do
+				local ends = d:GetAttribute("SealEnds")
+				if ends and d:IsA("TextLabel") then
+					local left = ends - now
+					d.Text = left > 0 and string.format("Ready in %d:%02d", left // 60, left % 60) or "Ready!"
+					if left <= 0 then
+						ready = true
+					end
+				end
+				local st = d:GetAttribute("SealStart")
+				if st and d:IsA("Frame") then
+					d.Size = UDim2.fromScale(math.clamp((now - st) / d:GetAttribute("SealLen"), 0, 1), 1)
+				end
+			end
+			if ready then
+				renderShrine()
+			end
+		end
+	end
+end)
 
 -- Full-screen reveal (single scroll or ten): see SummonReveal.
 reveal = function(res, kind)

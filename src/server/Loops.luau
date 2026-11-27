@@ -196,6 +196,85 @@ function Loops.expedition(player: Player, action: any, slot: any, place: any, du
 end
 
 ----------------------------------------------------------------------------------------------
+-- Sealed Scrolls
+
+local SE = Config.Sealed
+
+-- Roll a sealed-scroll drop for a kill; adds it to the satchel. Returns the tier or nil.
+function Loops.rollSealed(p, kind: string): string?
+	local d = SE.Drops[kind]
+	if not d or rng:NextNumber() >= d.chance then
+		return nil
+	end
+	local total = 0
+	for _, n in p.sealed.bag do
+		total += n
+	end
+	if total >= SE.BagCap then
+		return nil
+	end
+	local tier = Config.pickWeighted(d.weights, rng:NextNumber())
+	p.sealed.bag[tier] = (p.sealed.bag[tier] or 0) + 1
+	return tier
+end
+
+function Loops.sealed(player: Player, action: any, a: any): (boolean, string, any)
+	local p = PlayerData.get(player)
+	if not p then
+		return false, "No profile"
+	end
+	local function done(msg: string, data: any?)
+		PlayerData.push(player)
+		PlayerData.saveSoon(player)
+		return true, msg, data
+	end
+	if action == "attune" then
+		local tier = typeof(a) == "string" and SE.Tiers[a] and a
+		if not tier or (p.sealed.bag[tier] or 0) <= 0 then
+			return false, "You don't have that seal"
+		end
+		for i = 1, SE.Slots do
+			local k = tostring(i)
+			if not p.sealed.slots[k] then
+				p.sealed.bag[tier] -= 1
+				if p.sealed.bag[tier] <= 0 then
+					p.sealed.bag[tier] = nil
+				end
+				p.sealed.slots[k] = { tier = tier, start = os.time() }
+				return done(string.format("Attuning a %s: ready in %d min", SE.Tiers[tier].Name, SE.Tiers[tier].Minutes))
+			end
+		end
+		return false, "All attuning slots are busy"
+	elseif action == "claim" then
+		local k = tostring(a)
+		local sl = p.sealed.slots[k]
+		if not sl then
+			return false, "Nothing in that slot"
+		end
+		local t = SE.Tiers[sl.tier]
+		if os.time() < sl.start + t.Minutes * 60 then
+			return false, "Still attuning"
+		end
+		p.sealed.slots[k] = nil
+		local reg, leg = t.scrolls or 0, t.legendary or 0
+		if t.legendaryChance and rng:NextNumber() < t.legendaryChance then
+			reg, leg = 0, leg + 1
+		end
+		p.scrolls.Regular += reg
+		p.scrolls.Legendary += leg
+		local parts = {}
+		if reg > 0 then
+			table.insert(parts, "+" .. reg .. " Regular scroll" .. (reg > 1 and "s" or ""))
+		end
+		if leg > 0 then
+			table.insert(parts, "+" .. leg .. " Legendary scroll")
+		end
+		return done(t.Name .. " opened! " .. table.concat(parts, ", "), { regular = reg, legendary = leg, tier = sl.tier })
+	end
+	return false, "Unknown action"
+end
+
+----------------------------------------------------------------------------------------------
 -- Index rewards
 
 local function grant(p, r)

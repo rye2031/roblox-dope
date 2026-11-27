@@ -360,6 +360,8 @@ local function rewardKill(u)
 					p.scrolls.Regular += 1
 					drops.scroll = "Regular"
 				end
+				local sealKind = legend and "legend" or u.boss and "boss" or u.elite and "elite" or "common"
+				drops.sealed = Loops.rollSealed(p, sealKind)
 				Quests.onKill(player, u.el, u.elite)
 				Story.event(player, "defeat", { region = u.camp and u.camp.region })
 				if levels > 0 then

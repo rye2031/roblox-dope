@@ -203,6 +203,26 @@ Config.Loops = {
 	SpeciesComplete = { legendary = 1 }, -- all 5 elements of one species
 }
 
+-- Sealed Scrolls (the "egg hatch" timer): drops that must attune at the Shrine before they
+-- open into real scrolls. Longer seals give more.
+Config.Sealed = {
+	Order = { "Bronze", "Silver", "Gold", "Prismatic" },
+	Tiers = {
+		Bronze = { Name = "Bronze Seal", Minutes = 2, Color = Color3.fromRGB(205, 140, 90), scrolls = 1 },
+		Silver = { Name = "Silver Seal", Minutes = 5, Color = Color3.fromRGB(170, 184, 206), scrolls = 2 },
+		Gold = { Name = "Gold Seal", Minutes = 15, Color = Color3.fromRGB(255, 198, 58), scrolls = 3, legendaryChance = 0.35 },
+		Prismatic = { Name = "Prismatic Seal", Minutes = 60, Color = Color3.fromRGB(190, 120, 255), legendary = 1 },
+	},
+	Slots = 3,
+	BagCap = 20,
+	Drops = {
+		common = { chance = 0.01, weights = { Bronze = 100 } },
+		elite = { chance = 0.15, weights = { Bronze = 60, Silver = 35, Gold = 5 } },
+		boss = { chance = 0.5, weights = { Silver = 50, Gold = 40, Prismatic = 10 } },
+		legend = { chance = 1, weights = { Gold = 60, Prismatic = 40 } },
+	},
+}
+
 -- Day and night: a 20-minute cycle on server time (every server agrees). The last 6 minutes
 -- are night (more Dark monsters and elites, double Dark Essence); the first 2 minutes of day
 -- are dawn (more Light monsters).

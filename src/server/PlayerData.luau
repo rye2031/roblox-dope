@@ -36,7 +36,8 @@ export type Profile = {
 	campfires: { [string]: boolean }, -- lit campfires (fast travel)
 	expeditions: { [string]: any }, -- slot "1".."3" -> { place, dur, start, uids, reward }
 	indexClaims: { m: { [string]: boolean }, s: { [string]: boolean } }, -- Index milestones / complete species claimed
-	arena: { tokens: number, day: number, attacks: number }, -- Arena tokens and today's fights (rating lives in the Arena store)
+	arena: { tokens: number, day: number, attacks: number },
+	sealed: { bag: { [string]: number }, slots: { [string]: { tier: string, start: number } } }, -- sealed scrolls: satchel + attuning slots "1".."3" -- Arena tokens and today's fights (rating lives in the Arena store)
 	lastSeen: number,
 }
 
@@ -76,6 +77,7 @@ local function defaults(): Profile
 		expeditions = {},
 		indexClaims = { m = {}, s = {} },
 		arena = { tokens = 0, day = 0, attacks = 0 },
+		sealed = { bag = {}, slots = {} },
 		lastSeen = 0,
 	}
 end
@@ -195,6 +197,27 @@ function PlayerData.sanitize(raw: any): Profile
 						coins = int(r.coins, 0), essence = int(r.essence, 0), element = validElement(r.element) and r.element or nil,
 						scrolls = int(r.scrolls, 0), scrollChance = typeof(r.scrollChance) == "number" and math.clamp(r.scrollChance, 0, 1) or 0, xp = int(r.xp, 0),
 					} }
+				end
+			end
+		end
+	end
+	if typeof(raw.sealed) == "table" then
+		local S = Config.Sealed
+		if typeof(raw.sealed.bag) == "table" then
+			local total = 0
+			for tier, n in raw.sealed.bag do
+				local c = math.min(int(n, 0), S.BagCap - total)
+				if S.Tiers[tier] and c > 0 then
+					p.sealed.bag[tier] = c
+					total += c
+				end
+			end
+		end
+		if typeof(raw.sealed.slots) == "table" then
+			for k, sl in raw.sealed.slots do
+				local i = tonumber(k)
+				if i and i >= 1 and i <= S.Slots and typeof(sl) == "table" and S.Tiers[sl.tier] then
+					p.sealed.slots[tostring(i)] = { tier = sl.tier, start = int(sl.start, 0) }
 				end
 			end
 		end

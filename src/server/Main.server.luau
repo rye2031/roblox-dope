@@ -37,7 +37,7 @@ for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce"
 	r.Parent = remoteFolder
 	remotes[n] = r
 end
-for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow", "Travel", "Expedition", "IndexReward", "Arena" } do
+for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow", "Travel", "Expedition", "IndexReward", "Arena", "Sealed" } do
 	local r = Instance.new("RemoteFunction")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -72,6 +72,9 @@ remotes.GetProfile.OnServerInvoke = function(player)
 end
 remotes.Summon.OnServerInvoke = function(player, kind, count)
 	return Summon.openMany(player, kind, count)
+end
+remotes.Sealed.OnServerInvoke = function(player, action, a)
+	return Loops.sealed(player, action, a)
 end
 remotes.Arena.OnServerInvoke = function(player, action, a, b)
 	return Arena.handle(player, action, a, b)
@@ -392,6 +395,16 @@ if game:GetService("RunService"):IsStudio() then
 		elseif cmd == "unlock" then
 			p.bosses[a] = true
 			Regions.refreshRegions(player)
+			PlayerData.push(player)
+			return "ok"
+		elseif cmd == "seal" then
+			p.sealed.bag[a] = (p.sealed.bag[a] or 0) + (b or 1)
+			PlayerData.push(player)
+			return "ok"
+		elseif cmd == "sealfast" then
+			for _, sl in p.sealed.slots do
+				sl.start -= 2 * 3600
+			end
 			PlayerData.push(player)
 			return "ok"
 		elseif cmd == "legend" then
