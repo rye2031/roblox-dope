@@ -287,7 +287,7 @@ end)
 ----------------------------------------------------------------------------------------------
 -- Pads: stepping on one opens its menu
 
-local PAD_PANEL = { Storage = "Monsters", Shrine = "Shrine", Smith = "Weapons", Quests = "Quests", Expeditions = "Expeditions", Arena = "Arena" }
+local PAD_PANEL = { Storage = "Monsters", Shrine = "Shrine", Smith = "Weapons", Quests = "Quests", Expeditions = "Expeditions", Arena = "Arena", Dungeons = "Dungeons" }
 local pads: { BasePart } = {}
 local onPad: string? = nil
 

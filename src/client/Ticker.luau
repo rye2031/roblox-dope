@@ -90,6 +90,14 @@ local function gather(now: number): { Entry }
 				table.insert(out, { key = "exp" .. tostring(x.start), icon = "🧭", text = at <= now and "Expedition is back!" or "Expedition back", at = at, active = at <= now, color = C.Mint })
 			end
 		end
+		if p.dungeon then
+			local DD = require(Shared.DungeonData)
+			local copy = { keys = p.dungeon.keys, keyAt = p.dungeon.keyAt }
+			local keys, nextAt = DD.refill(copy, now)
+			if nextAt and keys < DD.KeyCap then
+				table.insert(out, { key = "dkey", icon = "🗝", text = string.format("Dungeon key (%d/%d)", keys, DD.KeyCap), at = nextAt })
+			end
+		end
 		local sealed = p.sealed
 		for _, sl in (sealed and sealed.slots) or {} do
 			local tier = Config.Sealed and Config.Sealed.Tiers[sl.tier]
@@ -167,6 +175,10 @@ function Ticker.start(journey)
 				Journey.pointTo(e.pos, e.at)
 				Sfx.play("select")
 				Ui.toast("Waypoint set: " .. e.text, "info")
+			elseif e and e.key == "dkey" and Journey and Journey.pointTo then
+				Journey.pointTo(Vector3.new(-24, 0, 58), os.time() + 180)
+				Sfx.play("select")
+				Ui.toast("Waypoint set: the Dungeon Gate in Haven", "info")
 			elseif e and (e.key:sub(1, 3) == "exp") then
 				Ui.open("Expeditions")
 			elseif e and e.key:sub(1, 4) == "seal" then

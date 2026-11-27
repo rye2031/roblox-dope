@@ -321,6 +321,7 @@ local function rewardKill(u)
 			if p then
 				local stars = Monsters.Species[u.sp].Stars
 				local legend = u.camp and u.camp.legend
+				local dungeon = u.camp and u.camp.dungeon
 				local mult = u.boss and 8 or legend and 6 or u.elite and 3 or 1
 				local auto = player:GetAttribute("AutoHunt") == true
 				local am = auto and Config.AutoHunt.RewardMult or 1
@@ -350,7 +351,9 @@ local function rewardKill(u)
 					drops.essence = n
 				end
 				local scrollChance = (u.elite and R.EliteScrollChance or R.RegularScrollChance) * am
-				if u.boss then
+				if dungeon then
+					-- dungeon loot comes from the chest at the end
+				elseif u.boss then
 					p.scrolls.Regular += R.BossScrolls
 					drops.scroll = "Regular"
 					if rng:NextNumber() < 0.25 then
@@ -371,17 +374,19 @@ local function rewardKill(u)
 					drops.scroll = "Regular"
 				end
 				local sealKind = legend and "legend" or u.boss and "boss" or u.elite and "elite" or "common"
-				drops.sealed = Loops.rollSealed(p, sealKind)
-				local runeMult = auto and Config.AutoHunt.RewardMult or 1
-				if math.random() < runeMult then
-					drops.rune = RuneBag.rollDrop(p, sealKind)
+				if not dungeon then
+					drops.sealed = Loops.rollSealed(p, sealKind)
+					local runeMult = auto and Config.AutoHunt.RewardMult or 1
+					if math.random() < runeMult then
+						drops.rune = RuneBag.rollDrop(p, sealKind)
+					end
 				end
 				Quests.onKill(player, u.el, u.elite)
 				Story.event(player, "defeat", { region = u.camp and u.camp.region })
 				if levels > 0 then
 					Quests.progress(player, "LevelUp", levels)
 				end
-				if u.boss and Combat.onBossDefeated then
+				if u.boss and not dungeon and Combat.onBossDefeated then
 					Combat.onBossDefeated(player, u)
 				end
 				PlayerData.push(player)
@@ -414,12 +419,12 @@ local function die(u)
 		if Combat.onLegendDied then
 			Combat.onLegendDied(u)
 		end
-	elseif camp and not u.boss then
+	elseif camp and not u.boss and not camp.once then
 		task.delay(u.elite and 90 or CT.CommonRespawn, function()
 			Combat.spawnWild(camp)
 		end)
 	end
-	if u.boss and Combat.onBossDied then
+	if u.boss and not (camp and camp.dungeon) and Combat.onBossDied then
 		Combat.onBossDied(u)
 	end
 end
@@ -926,11 +931,11 @@ function Combat.spawnWild(camp)
 		local a = rng:NextNumber() * math.pi * 2
 		local r = rng:NextNumber() * camp.radius
 		local pos = camp.pos + Vector3.new(math.cos(a) * r, 0, math.sin(a) * r)
-		local sp = camp.species or pickWildSpecies(region)
-		local el = camp.element or Config.pickWeighted(Loops.surgeWeights(region.Elements), rng:NextNumber())
+		local sp = camp.species or (camp.stars and Monsters.byStars(camp.stars)[rng:NextInteger(1, #Monsters.byStars(camp.stars))]) or pickWildSpecies(region)
+		local el = camp.element or Config.pickWeighted(camp.elements or Loops.surgeWeights(region.Elements), rng:NextNumber())
 		local lv = rng:NextInteger(camp.lv[1], camp.lv[2])
 		local nightBonus = Loops.phase() == "night" and Config.DayNight.NightEliteBonus or 0
-		local elite = camp.elite or (not camp.boss and rng:NextNumber() < (region.EliteChance or 0) + nightBonus)
+		local elite = camp.elite or (not camp.boss and not camp.noElite and rng:NextNumber() < (region.EliteChance or 0) + nightBonus)
 		makeUnit("wild", sp, el, lv, false, { 1, 1, 1 }, { pos = pos, camp = camp, elite = elite, boss = camp.boss, hpMult = camp.hpMult, legend = camp.legend })
 	end
 end
@@ -945,6 +950,16 @@ function Combat.campUnits(camp): { any }
 	end
 	return out
 end
+-- Dungeon waves: every unit of the camp goes straight for the player.
+function Combat.aggroCamp(camp, player: Player)
+	local t = tamerOf(player)
+	for _, u in Combat.campUnits(camp) do
+		u.threat[t.key] = 1
+		u.target = t
+		u.lastCombat = now()
+	end
+end
+
 function Combat.despawnCamp(camp)
 	for _, u in Combat.campUnits(camp) do
 		emit({ "die", u.id })

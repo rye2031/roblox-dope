@@ -18,11 +18,11 @@ local function count(p): number
 end
 
 -- Adds a rune of a rarity to the bag (nil if the bag is full). Returns the rune.
-function RuneBag.give(p, rarity: string)
+function RuneBag.give(p, rarity: string, set: string?)
 	if not Runes.Rarities[rarity] or count(p) >= Runes.BagCap then
 		return nil
 	end
-	local rune = Runes.make(rng, rarity)
+	local rune = Runes.make(rng, rarity, set)
 	local id = "r" .. p.nextRune
 	p.nextRune += 1
 	p.runes[id] = rune
@@ -37,6 +37,8 @@ function RuneBag.rollDrop(p, kind: string): string?
 	end
 	return nil
 end
+
+RuneBag.count = count
 
 -- A monster left the save (fed, sold, swapped): its runes go back to the bag.
 function RuneBag.release(p, uid: string)
@@ -113,7 +115,7 @@ function RuneBag.action(player: Player, action: any, a: any, b: any): (boolean, 
 		end
 		p.coins -= cost
 		local old = rune.rolls[i]
-		rune.rolls[i] = Runes.rollOne(rng)
+		rune.rolls[i] = Runes.rollOne(rng, rune.set)
 		rune.rf = (rune.rf or 0) + 1
 		local new = rune.rolls[i]
 		return done(string.format("Reforged: %s T%d → %s T%d", Runes.Stats[old.s].Short, old.t, Runes.Stats[new.s].Short, new.t), { roll = new })
@@ -152,7 +154,7 @@ function RuneBag.sanitize(raw, p)
 						on = nil
 					end
 				end
-				p.runes[id] = { r = r.r, rolls = rolls, on = on, lock = r.lock == true or nil, rf = math.max(0, math.floor(tonumber(r.rf) or 0)) }
+				p.runes[id] = { r = r.r, rolls = rolls, on = on, lock = r.lock == true or nil, rf = math.max(0, math.floor(tonumber(r.rf) or 0)), set = typeof(r.set) == "string" and Runes.Sets[r.set] and r.set or nil }
 				n += 1
 				maxId = math.max(maxId, num)
 			end

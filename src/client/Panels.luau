@@ -463,7 +463,7 @@ renderDetail = function(uid: string)
 		Ui.stroke(rar and rar.Color or C.Line, 2).Parent = s
 		if e then
 			local _, perfect = Runes.quality(e.r)
-			label(s, { Position = UDim2.fromOffset(px(10), px(6)), Size = UDim2.new(1, -px(16), 0, px(18)), Text = "💠 " .. e.r.r .. (perfect and "  ✨" or ""), TextColor3 = rar.Color:Lerp(Color3.new(0, 0, 0), 0.4), TextSize = px(14), ZIndex = 23 }, "Title")
+			label(s, { Position = UDim2.fromOffset(px(10), px(6)), Size = UDim2.new(1, -px(16), 0, px(18)), Text = "💠 " .. e.r.r .. (e.r.set and (" · " .. e.r.set) or "") .. (perfect and "  ✨" or ""), TextColor3 = rar.Color:Lerp(Color3.new(0, 0, 0), 0.4), TextSize = px(14), ZIndex = 23 }, "Title")
 			label(s, { Position = UDim2.fromOffset(px(10), px(26)), Size = UDim2.new(1, -px(16), 0, px(32)), Text = Runes.describe(e.r), TextSize = px(12), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 23 }, "Bold")
 			s.Activated:Connect(function()
 				Ui.open("Runes")

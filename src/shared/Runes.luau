@@ -27,6 +27,16 @@ Runes.Rarities = {
 	Epic = { Rolls = 3, Color = Color3.fromRGB(186, 112, 255), Sell = 400, Reforge = 1200 },
 	Legendary = { Rolls = 4, Color = Color3.fromRGB(255, 186, 58), Sell = 1200, Reforge = 3000 },
 }
+-- Dungeon runes belong to a set: their rolls lean to the set's two stats (60% per roll, also
+-- when reforged), and two runes of one set on the same monster add the set bonus.
+Runes.SetFocusChance = 0.6
+Runes.Sets = {
+	Grove = { Name = "Grove", Focus = { "hp", "def" }, Bonus = { hp = 10 }, Desc = "+10% HP" },
+	Forge = { Name = "Forge", Focus = { "atk", "critDmg" }, Bonus = { atk = 8 }, Desc = "+8% ATK" },
+	Grotto = { Name = "Grotto", Focus = { "def", "crit" }, Bonus = { def = 12 }, Desc = "+12% DEF" },
+	Aerie = { Name = "Aerie", Focus = { "spd", "crit" }, Bonus = { spd = 4, crit = 3 }, Desc = "+4 SPD · +3% crit" },
+}
+Runes.SetPieces = 2
 Runes.Slots = 3
 Runes.BagCap = 60
 Runes.Drops = {
@@ -56,18 +66,29 @@ local function pick(weights: { [any]: number }, r: number): any
 	return any
 end
 
-function Runes.rollOne(rng: Random): { s: string, t: number }
-	local s = Runes.StatOrder[rng:NextInteger(1, #Runes.StatOrder)]
+function Runes.rollOne(rng: Random, set: string?): { s: string, t: number }
+	local focus = set and Runes.Sets[set] and Runes.Sets[set].Focus
+	local s
+	if focus and rng:NextNumber() < Runes.SetFocusChance then
+		s = focus[rng:NextInteger(1, #focus)]
+	else
+		s = Runes.StatOrder[rng:NextInteger(1, #Runes.StatOrder)]
+	end
 	local t = pick({ [1] = Runes.TierWeights[1], [2] = Runes.TierWeights[2], [3] = Runes.TierWeights[3], [4] = Runes.TierWeights[4] }, rng:NextNumber())
 	return { s = s, t = t }
 end
 
-function Runes.make(rng: Random, rarity: string)
+function Runes.make(rng: Random, rarity: string, set: string?)
 	local rolls = {}
 	for _ = 1, Runes.Rarities[rarity].Rolls do
-		table.insert(rolls, Runes.rollOne(rng))
+		table.insert(rolls, Runes.rollOne(rng, set))
 	end
-	return { r = rarity, rolls = rolls, rf = 0 }
+	return { r = rarity, rolls = rolls, rf = 0, set = set and Runes.Sets[set] and set or nil }
+end
+
+-- Rarity from a weights table (dungeon chests).
+function Runes.pickRarity(rng: Random, weights): string
+	return pick(weights, rng:NextNumber())
 end
 
 function Runes.rollRarity(rng: Random, kind: string): string?
@@ -81,11 +102,22 @@ end
 -- Summed bonus of a set of runes: percentages for hp/atk/def/crit/critDmg, flat spd.
 function Runes.bonus(list: { any }): { [string]: number }
 	local b = { hp = 0, atk = 0, def = 0, spd = 0, crit = 0, critDmg = 0 }
+	local sets = {}
 	for _, rune in list do
 		for _, roll in rune.rolls or {} do
 			local st = Runes.Stats[roll.s]
 			if st then
 				b[roll.s] += st.Tiers[roll.t] or 0
+			end
+		end
+		if rune.set and Runes.Sets[rune.set] then
+			sets[rune.set] = (sets[rune.set] or 0) + 1
+		end
+	end
+	for set, n in sets do
+		if n >= Runes.SetPieces then
+			for k, v in Runes.Sets[set].Bonus do
+				b[k] += v
 			end
 		end
 	end

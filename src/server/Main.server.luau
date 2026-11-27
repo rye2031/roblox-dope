@@ -13,6 +13,7 @@ local Summon = require(script.Parent.Summon)
 local Story = require(script.Parent.Story)
 local Loops = require(script.Parent.Loops)
 local RuneBag = require(script.Parent.RuneBag)
+local Dungeons = require(script.Parent.Dungeons)
 local Arena = require(script.Parent.Arena)
 local Quests = require(script.Parent.Quests)
 local Combat = require(script.Parent.Combat)
@@ -32,13 +33,13 @@ end
 local remoteFolder = Instance.new("Folder")
 remoteFolder.Name = "Remotes"
 local remotes = {}
-for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce", "Story" } do
+for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce", "Story", "DungeonRun" } do
 	local r = Instance.new("RemoteEvent")
 	r.Name = n
 	r.Parent = remoteFolder
 	remotes[n] = r
 end
-for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow", "Travel", "Expedition", "IndexReward", "Arena", "Sealed", "Runes" } do
+for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow", "Travel", "Expedition", "IndexReward", "Arena", "Sealed", "Runes", "Dungeon" } do
 	local r = Instance.new("RemoteFunction")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -58,6 +59,7 @@ Story.init(remotes)
 Loops.init(remotes)
 Arena.init()
 Combat.init(remotes)
+Dungeons.init(remotes, Combat)
 Regions.init(remotes, Combat)
 Leaderboard.init()
 
@@ -76,6 +78,9 @@ remotes.Summon.OnServerInvoke = function(player, kind, count)
 end
 remotes.Sealed.OnServerInvoke = function(player, action, a)
 	return Loops.sealed(player, action, a)
+end
+remotes.Dungeon.OnServerInvoke = function(player, action, a, b)
+	return Dungeons.handle(player, action, a, b)
 end
 remotes.Runes.OnServerInvoke = function(player, action, a, b)
 	return RuneBag.action(player, action, a, b)
@@ -206,6 +211,9 @@ remotes.Travel.OnServerInvoke = function(player, region)
 	local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
 	if not p or not hrp or typeof(region) ~= "string" then
 		return false, "Can't travel right now"
+	end
+	if Dungeons.inRun(player) then
+		return false, "Leave the dungeon first"
 	end
 	if not p.campfires[region] then
 		return false, "Light that campfire first"
@@ -437,6 +445,24 @@ if game:GetService("RunService"):IsStudio() then
 			end
 			PlayerData.push(player)
 			return "ok"
+		elseif cmd == "dungeon" then
+			-- dungeon start <id> <mode> | skip | state | leave | keys <n> | open (beat every boss)
+			if a == "start" then
+				local ok, msg = Dungeons.start(player, b, c or "Normal")
+				return tostring(ok) .. " " .. tostring(msg)
+			elseif a == "skip" then
+				return Dungeons.debugSkip(player)
+			elseif a == "leave" then
+				return tostring((Dungeons.leave(player)))
+			elseif a == "keys" then
+				p.dungeon.keys = b or 5
+				PlayerData.push(player)
+				return "ok"
+			elseif a == "info" then
+				local _, _, data = Dungeons.info(player)
+				return HttpService:JSONEncode(data)
+			end
+			return Dungeons.debugState(player)
 		elseif cmd == "runeact" then
 			local ok, msg = RuneBag.action(player, a, b, c)
 			return tostring(ok) .. " " .. tostring(msg)

@@ -107,7 +107,7 @@ local function runeCard(parent: Instance, p, id: string, order: number)
 	Ui.stroke(rar.Color, id == selected and 3 or 2).Parent = b
 	b.Name = "Rune_" .. id
 	new("Frame", { Position = UDim2.fromOffset(0, 0), Size = UDim2.new(0, px(6), 1, 0), BackgroundColor3 = rar.Color, ZIndex = 14, Parent = b }, { corner(3) })
-	label(b, { Position = UDim2.fromOffset(px(14), px(6)), Size = UDim2.new(1, -px(20), 0, px(18)), Text = string.format("💠 %s%s%s", r.r, r.lock and "  🔒" or "", perfect and "  ✨ PERFECT" or ""), TextColor3 = rar.Color:Lerp(Color3.new(0, 0, 0), 0.35), TextSize = px(15), ZIndex = 14 }, "Title")
+	label(b, { Position = UDim2.fromOffset(px(14), px(6)), Size = UDim2.new(1, -px(20), 0, px(18)), Text = string.format("💠 %s%s%s%s", r.r, r.set and (" · " .. r.set) or "", r.lock and "  🔒" or "", perfect and "  ✨ PERFECT" or ""), TextColor3 = rar.Color:Lerp(Color3.new(0, 0, 0), 0.35), TextSize = px(15), ZIndex = 14 }, "Title")
 	label(b, { Position = UDim2.fromOffset(px(14), px(26)), Size = UDim2.new(1, -px(20), 0, px(34)), Text = Runes.describe(r), TextSize = px(13), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 14 }, "Bold")
 	local on = monsterName(p, r.on)
 	label(b, { AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, px(14), 1, -px(6)), Size = UDim2.new(1, -px(20), 0, px(16)), Text = string.format("Quality %d%%%s", math.floor(q * 100 + 0.5), on and ("  ·  on " .. on) or ""), TextColor3 = C.Sub, TextSize = px(12), TextTruncate = Enum.TextTruncate.AtEnd, ZIndex = 14 }, "Bold")
@@ -133,6 +133,9 @@ local function detailCard(p, id: string)
 	Ui.stroke(rar.Color, 2).Parent = card
 	local on = monsterName(p, r.on)
 	label(card, { LayoutOrder = 1, Size = UDim2.new(1, 0, 0, px(24)), Text = string.format("💠 %s rune%s", r.r, perfect and "  ✨ PERFECT" or ""), TextColor3 = rar.Color:Lerp(Color3.new(0, 0, 0), 0.4), TextSize = px(20) }, "Title")
+	if r.set and Runes.Sets[r.set] then
+		label(card, { LayoutOrder = 3, Size = UDim2.new(1, 0, 0, px(18)), Text = string.format("%s set: rolls lean to %s %s; 2 on one monster = %s", r.set, Runes.Stats[Runes.Sets[r.set].Focus[1]].Name, Runes.Stats[Runes.Sets[r.set].Focus[2]].Name, Runes.Sets[r.set].Desc), TextColor3 = rar.Color:Lerp(Color3.new(0, 0, 0), 0.4), TextSize = px(13) }, "Title")
+	end
 	label(card, { LayoutOrder = 2, Size = UDim2.new(1, 0, 0, px(18)), Text = string.format("%d roll%s · quality %d%% · %s%s", #r.rolls, #r.rolls > 1 and "s" or "", math.floor(q * 100 + 0.5), on and ("equipped on " .. on) or "in your bag", (r.rf or 0) > 0 and string.format(" · reforged %d×", r.rf) or ""), TextColor3 = C.Sub, TextSize = px(13) }, "Bold")
 	local cost = Runes.reforgeCost(r)
 	for i, roll in r.rolls do

@@ -39,7 +39,8 @@ export type Profile = {
 	arena: { tokens: number, day: number, attacks: number },
 	sealed: { bag: { [string]: number }, slots: { [string]: { tier: string, start: number } } }, -- sealed scrolls: satchel + attuning slots "1".."3"
 	runes: { [string]: any }, -- rune bag: id -> { r, rolls, on, lock, rf } (see Shared/Runes)
-	nextRune: number, -- Arena tokens and today's fights (rating lives in the Arena store)
+	nextRune: number,
+	dungeon: { keys: number, keyAt: number, clears: { [string]: number }, best: { [string]: number } }, -- dungeon keys and records (see Dungeons) -- Arena tokens and today's fights (rating lives in the Arena store)
 	lastSeen: number,
 }
 
@@ -82,6 +83,7 @@ local function defaults(): Profile
 		sealed = { bag = {}, slots = {} },
 		runes = {},
 		nextRune = 1,
+		dungeon = { keys = 5, keyAt = os.time(), clears = {}, best = {} },
 		lastSeen = 0,
 	}
 end
@@ -206,6 +208,7 @@ function PlayerData.sanitize(raw: any): Profile
 		end
 	end
 	require(script.Parent.RuneBag).sanitize(raw, p)
+	require(script.Parent.Dungeons).sanitize(raw, p)
 	if typeof(raw.sealed) == "table" then
 		local S = Config.Sealed
 		if typeof(raw.sealed.bag) == "table" then

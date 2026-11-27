@@ -504,6 +504,34 @@ local function buildGuides()
 	end
 end
 
+-- Extra floors units stand on (dungeon arenas float off the map, away from the terrain).
+function World.addGround(inst: Instance)
+	local list = rayParams.FilterDescendantsInstances
+	table.insert(list, inst)
+	rayParams.FilterDescendantsInstances = list
+end
+
+-- Dungeon Gate in Haven: a stone arch with a glowing portal and a pad that opens the panel.
+local function buildDungeonGate()
+	local f = Instance.new("Folder")
+	f.Name = "DungeonGate"
+	f.Parent = root
+	local c = Vector3.new(-30, 0, 58)
+	local y = World.groundY(c.X, c.Z)
+	local stone = Color3.fromRGB(176, 170, 196)
+	local look = CFrame.lookAt(Vector3.new(c.X, y, c.Z), Vector3.new(0, y, c.Z))
+	for _, side in { -1, 1 } do
+		part({ Name = "GatePillar", Size = Vector3.new(2.4, 13, 2.4), CFrame = look * CFrame.new(side * 6, 6.5, 0), Color = stone }, f)
+		part({ Name = "GateCap", Size = Vector3.new(3.2, 1.2, 3.2), CFrame = look * CFrame.new(side * 6, 13.4, 0), Color = TC.Lilac }, f)
+	end
+	part({ Name = "GateLintel", Size = Vector3.new(15.6, 2, 2.6), CFrame = look * CFrame.new(0, 14.4, 0), Color = stone }, f)
+	local portal = part({ Name = "GatePortal", Size = Vector3.new(9.4, 12, 0.4), CFrame = look * CFrame.new(0, 6.6, 0), Color = TC.Lilac, Material = Enum.Material.Neon, Transparency = 0.35, CanCollide = false }, f)
+	portal:SetAttribute("NoLod", true)
+	World.Points.Dungeons = Vector3.new(c.X, 0, c.Z) + look.LookVector * 6
+	pad("Dungeons", World.Points.Dungeons, TC.Lilac, f)
+	float("Dungeons", Vector3.new(c.X, 18, c.Z), "DUNGEONS", TC.Lilac, 9, { Icon = "🗝", Sub = "short runs for runes", Height = 2.4 })
+end
+
 function World.build(): Folder
 	root = Instance.new("Folder")
 	root.Name = "World"
@@ -513,6 +541,7 @@ function World.build(): Folder
 	terrainBase()
 	rayParams.FilterDescendantsInstances = { terrain }
 	buildHaven()
+	buildDungeonGate()
 	buildSproutMeadow()
 	if World.extraRegions then
 		World.extraRegions(World, { part = part, box = box, decor = decor, tree = tree, rock = rock, flowers = flowers, hill = hill, pathStrip = pathStrip, campfire = campfire, float = float, root = root })

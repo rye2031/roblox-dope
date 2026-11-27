@@ -20,6 +20,7 @@ local AmbientFx = require(script.Parent.AmbientFx)
 local Ticker = require(script.Parent.Ticker)
 local DayNight = require(script.Parent.DayNight)
 local AutoHunt = require(script.Parent.AutoHunt)
+local DungeonUi = require(script.Parent.DungeonUi)
 
 Sfx.start(Ui)
 UnitView.start()
@@ -29,6 +30,7 @@ ServerFeed.start()
 Journey.start()
 LoopsUi.start()
 ArenaUi.start()
+DungeonUi.start()
 PropView.start()
 AmbientFx.start()
 Ticker.start(Journey)
@@ -115,6 +117,11 @@ if game:GetService("RunService"):IsStudio() then
 		elseif cmd == "hidereveal" then
 			require(script.Parent.SummonReveal).hide()
 			return "ok"
+		elseif cmd == "dungeonui" then
+			if a == "open" then
+				Ui.open("Dungeons")
+			end
+			return DungeonUi.debugState()
 		elseif cmd == "runes" then
 			local RunesUi = require(script.Parent.RunesUi)
 			if a == "pick" then
