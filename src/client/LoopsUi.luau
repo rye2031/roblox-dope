@@ -61,7 +61,7 @@ local function updateChip()
 		chip.Visible = false
 		return
 	end
-	chip.Visible = true
+	chip.Visible = false -- shown in the Next-up ticker (Ticker.luau)
 	chipText.Text = string.format("%s %s Surge · %s", info.Icon, el, fmtTime(untilT - os.time()))
 	chipText.TextColor3 = info.Color:Lerp(Color3.new(0, 0, 0), 0.25)
 	local stroke = chip:FindFirstChildOfClass("UIStroke")

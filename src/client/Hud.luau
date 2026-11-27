@@ -52,6 +52,7 @@ wallet.AutomaticSize = Enum.AutomaticSize.X
 -- World boss chip (under the wallet)
 local bossChip = Ui.card({ Position = UDim2.fromOffset(px(70), 10 + px(52)), Size = UDim2.fromOffset(px(250), px(32)), ZIndex = 2, Shadow = false, Parent = gui }, 16)
 local bossText = label(bossChip, { Size = UDim2.fromScale(1, 1), Text = "", TextSize = px(14), TextXAlignment = Enum.TextXAlignment.Center }, "Title")
+bossChip.Visible = false -- the Next-up ticker (Ticker.luau) shows the titan now
 
 local REGION_NAMES = { Haven = "Haven", SproutMeadow = "Sprout Meadow", EmberCanyon = "Ember Canyon", TideCoast = "Tide Coast", GaleHighlands = "Gale Highlands", TitanField = "Titan Field" }
 

@@ -56,6 +56,12 @@ end
 local arrowL, arrowR = arrowPiece(1), arrowPiece(-1)
 
 local target: Vector3? = nil
+local override: { pos: Vector3, untilT: number }? = nil -- a live event the player clicked (ticker)
+
+-- Points the waypoint at a place until os.time() reaches untilT (then back to the story).
+function Journey.pointTo(pos: Vector3, untilT: number)
+	override = { pos = pos, untilT = untilT }
+end
 
 local rayParams = RaycastParams.new()
 rayParams.FilterType = Enum.RaycastFilterType.Include
@@ -286,13 +292,17 @@ function Journey.start()
 	RunService.RenderStepped:Connect(function()
 		local char = player.Character
 		local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
-		if not target or not hrp then
+		if override and os.time() >= override.untilT then
+			override = nil
+		end
+		local goal = override and ground(override.pos) or target
+		if not goal or not hrp then
 			markerGui.Enabled = false
 			ring.Transparency = 1
 			arrowL.Transparency, arrowR.Transparency = 1, 1
 			return
 		end
-		local tgt = target :: Vector3
+		local tgt = goal :: Vector3
 		local flat = Vector3.new(tgt.X - hrp.Position.X, 0, tgt.Z - hrp.Position.Z)
 		local dist = flat.Magnitude
 		markerPart.Position = tgt
