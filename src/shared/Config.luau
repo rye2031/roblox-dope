@@ -41,14 +41,17 @@ Config.Tuning = {
 	StorageCost = { 500, 1200, 2500, 5000, 9000 }, -- coins per +10 slots
 
 	Scrolls = {
-		Regular = { Stars = { 40, 35, 20, 4.5, 0.5 } }, -- 1..5 star weights
-		Legendary = { Stars = { 0, 0, 0, 92, 8 } },
+		-- Percent chances (owner, 2026-11-27). Stars[5] is a 5-star in Fire/Water/Wind; FiveLD is a
+		-- 5-star Light or Dark. 1-4 star results roll their element from Elements below.
+		Regular = { Stars = { 40, 34.4, 20, 4.5, 1 }, FiveLD = 0.1 },
+		Legendary = { Stars = { 0, 0, 0, 89, 10 }, FiveLD = 1 },
 		-- The one Eclipse Scroll: earned once, for finishing the whole story. Always a 5-star,
 		-- always Light or Dark (species random). The only free 5-star Light/Dark in the game.
 		Eclipse = { Stars = { 0, 0, 0, 0, 1 }, Elements = { Light = 50, Dark = 50 } },
-		Elements = { Fire = 33, Water = 33, Wind = 33, Light = 0.5, Dark = 0.5 },
-		PityFourStar = 50, -- Regular scrolls without a 4-star+ before one is guaranteed
-		PityLightDark = 200, -- scrolls without Light/Dark before one is guaranteed
+		Elements = { Fire = 33, Water = 33, Wind = 33, Light = 0.5, Dark = 0.5 }, -- 1-4 star results
+		FiveElements = { Fire = 1, Water = 1, Wind = 1 }, -- a Stars[5] result
+		PityFourStar = 50, -- Regular scrolls without a 4-star+ before one is guaranteed (4-star or Fire/Water/Wind 5-star)
+		PityLightDark = 200, -- scrolls without Light/Dark before a 1-4 star Light/Dark is guaranteed (never a 5-star)
 		Start = { Regular = 4, Legendary = 1 },
 		MultiOpen = 10, -- scrolls opened by the "Open 10" button -- a new Tamer's first scrolls
 	},

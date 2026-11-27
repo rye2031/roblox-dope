@@ -365,6 +365,8 @@ if game:GetService("RunService"):IsStudio() then
 			p.essence[a] += b
 			PlayerData.push(player)
 			return "ok"
+		elseif cmd == "odds" then
+			return HttpService:JSONEncode(Summon.debugOdds(a or "Regular", b or 100000))
 		elseif cmd == "summon" then
 			local ok, msg, res = Summon.openMany(player, a, b)
 			return HttpService:JSONEncode({ ok = ok, msg = msg, res = res })

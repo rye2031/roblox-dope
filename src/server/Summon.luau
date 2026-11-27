@@ -1,8 +1,10 @@
 -- Summoning scrolls: the only way to get monsters.
---   Regular:   1-5 stars (40/35/20/4.5/0.5). Legendary: 4-5 stars (92/8).
---   Element is rolled after the star: Fire/Water/Wind 33 each, Light 0.5, Dark 0.5.
---   Pity: 50 Regular scrolls without a 4-star+ guarantees one; 200 scrolls without
---   Light/Dark guarantees one.
+--   Regular:   1★ 40, 2★ 34.4, 3★ 20, 4★ 4.5, 5★ Fire/Water/Wind 1, 5★ Light/Dark 0.1 (%).
+--   Legendary: 4★ 89, 5★ Fire/Water/Wind 10, 5★ Light/Dark 1 (%).
+--   1-4 star results roll their element: Fire/Water/Wind 33 each, Light 0.5, Dark 0.5.
+--   Pity: 50 Regular scrolls without a 4-star+ guarantees a 4★ or Fire/Water/Wind 5★; 200
+--   scrolls without Light/Dark guarantees a 1-4 star Light/Dark. Pity never gives a 5★ L/D:
+--   that's only ever the FiveLD chance (and the one Eclipse Scroll).
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -22,20 +24,29 @@ local rng = Random.new()
 local toast: RemoteEvent
 local announce: RemoteEvent
 
-local function rollStars(kind: string, p): number
+-- Stars, and whether it's the 5-star Light/Dark outcome.
+local function rollStars(kind: string, p): (number, boolean)
 	local weights = {}
 	for i, w in SC[kind].Stars do
 		weights[i] = w
 	end
+	weights[6] = SC[kind].FiveLD -- 6 = "5-star Light/Dark"
 	if kind == "Regular" and p.pity.four + 1 >= SC.PityFourStar then
 		weights = { [4] = SC.Regular.Stars[4], [5] = SC.Regular.Stars[5] }
 	end
-	return Config.pickWeighted(weights, rng:NextNumber())
+	local r = Config.pickWeighted(weights, rng:NextNumber())
+	if r == 6 then
+		return 5, true
+	end
+	return r, false
 end
 
-local function rollElement(p, kind: string?): string
-	if kind == "Eclipse" then
-		return Config.pickWeighted(SC.Eclipse.Elements, rng:NextNumber())
+local function rollElement(p, kind: string?, stars: number, fiveLD: boolean): string
+	if kind == "Eclipse" or fiveLD then
+		return rng:NextNumber() < 0.5 and "Light" or "Dark"
+	end
+	if stars >= 5 then
+		return Config.pickWeighted(SC.FiveElements, rng:NextNumber())
 	end
 	if p.pity.ld + 1 >= SC.PityLightDark then
 		return rng:NextNumber() < 0.5 and "Light" or "Dark"
@@ -44,9 +55,25 @@ local function rollElement(p, kind: string?): string
 end
 
 -- Rolls one scroll for a profile (no checks, no push). Returns the result table.
+Summon.debugOdds = function(kind: string, n: number)
+	-- Studio: roll n scrolls on a throwaway profile (pity off) and count outcomes
+	local out = {}
+	for _ = 1, n do
+		local p = { pity = { four = 0, ld = 0 } }
+		local stars, fiveLD = rollStars(kind, p)
+		local el = rollElement(p, kind, stars, fiveLD)
+		local key = stars .. ((el == "Light" or el == "Dark") and "LD" or "")
+		out[key] = (out[key] or 0) + 1
+	end
+	return out
+end
+
 local function rollOne(p, kind: string)
-	local stars = rollStars(kind, p)
-	local el = rollElement(p, kind)
+	local stars, fiveLD = 5, true
+	if kind ~= "Eclipse" then
+		stars, fiveLD = rollStars(kind, p)
+	end
+	local el = rollElement(p, kind, stars, fiveLD)
 	local pool = Monsters.byStars(stars)
 	local sp = pool[rng:NextInteger(1, #pool)]
 	p.scrolls[kind] -= 1

@@ -56,6 +56,8 @@ function DayNight.start()
 		ambient = Lighting.Ambient,
 		outdoor = Lighting.OutdoorAmbient,
 	}
+	local EVENING, MORNING = 17.0, 6.9
+	local EVENING_TINT = { ambient = Color3.fromRGB(200, 170, 196), outdoor = Color3.fromRGB(214, 180, 196) }
 	local NIGHT = { brightness = 0.9, ambient = Color3.fromRGB(70, 76, 120), outdoor = Color3.fromRGB(84, 92, 146) }
 	-- Twilight Vale zones: the Dawnfield is always sunlit and warm, the Gloamwood always dusky
 	local GLOAM = { ambient = Color3.fromRGB(96, 70, 140), outdoor = Color3.fromRGB(110, 86, 160) }
@@ -78,6 +80,14 @@ function DayNight.start()
 				want = hrp.Position.Z > D.TwilightSeam and -1 or 1
 			end
 			zone += (want - zone) * 0.12
+			-- Night is an event, not darkness (owner, 2026-11-27): the sun holds at golden hour and
+			-- the light only takes a soft evening tint; lamps still come on.
+			local night = dark
+			local evening = night
+			dark *= 0.18
+			if zone <= 0 and (clock >= EVENING or clock < MORNING) then
+				clock = EVENING
+			end
 			if zone > 0 then
 				dark = math.max(dark, 0.7 * zone)
 				-- the Gloamwood sits in a permanent dusk: the sun sinks toward the horizon
@@ -93,6 +103,10 @@ function DayNight.start()
 			Lighting.Brightness = base.brightness + (NIGHT.brightness - base.brightness) * dark
 			Lighting.Ambient = base.ambient:Lerp(NIGHT.ambient, dark)
 			Lighting.OutdoorAmbient = base.outdoor:Lerp(NIGHT.outdoor, dark)
+			if evening > 0.01 and zone <= 0.5 then
+				Lighting.Ambient = Lighting.Ambient:Lerp(EVENING_TINT.ambient, evening * 0.35)
+				Lighting.OutdoorAmbient = Lighting.OutdoorAmbient:Lerp(EVENING_TINT.outdoor, evening * 0.35)
+			end
 			if atm and atmBase then
 				local to, k = zone > 0 and ATM_GLOAM or ATM_DAWN, math.abs(zone)
 				atm.Color = atmBase.color:Lerp(to.color, k)
@@ -101,7 +115,7 @@ function DayNight.start()
 				atm.Haze = atmBase.haze + (to.haze - atmBase.haze) * k
 			end
 			if cc and ccBase then
-				cc.TintColor = ccBase.tint:Lerp(zone > 0 and Color3.fromRGB(222, 208, 255) or Color3.fromRGB(255, 246, 228), math.abs(zone))
+				cc.TintColor = ccBase.tint:Lerp(Color3.fromRGB(255, 232, 224), evening * 0.35):Lerp(zone > 0 and Color3.fromRGB(222, 208, 255) or Color3.fromRGB(255, 246, 228), math.abs(zone))
 				cc.Saturation = ccBase.sat - math.abs(zone) * 0.12
 			end
 			Lighting.ExposureCompensation = base.exposure - math.max(0, zone) * 0.7 - math.max(0, -zone) * 0.15
@@ -116,7 +130,7 @@ function DayNight.start()
 			local props = workspace:FindFirstChild("Props")
 			for _, p in (props and props:GetChildren() or {}) do
 				local spec = LIGHTS[p.Name]
-				local lit = math.max(dark, zone)
+				local lit = math.max(evening, zone)
 				if spec and p:IsA("BasePart") then
 					local l = p:FindFirstChild("NightLight", true) :: PointLight?
 					if not l then

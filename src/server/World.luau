@@ -11,6 +11,9 @@ local Theme = require(ReplicatedStorage.Shared.Theme)
 local Config = require(ReplicatedStorage.Shared.Config)
 
 local TC = Theme.C
+-- Terrain written in World.build settles with its surface at y 2 (groundY can't see it yet
+-- during the build). Flat things laid on the ground use this so they don't sink or z-fight.
+local SURFACE = 2
 local World = {}
 
 local root: Folder
@@ -111,7 +114,7 @@ local function pad(name: string, pos: Vector3, accent: Color3, parent: Instance)
 		Name = name .. "Pad",
 		Shape = Enum.PartType.Cylinder,
 		Size = Vector3.new(0.3, 7, 7),
-		CFrame = CFrame.new(pos + Vector3.new(0, 0.15, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		CFrame = CFrame.new(pos + Vector3.new(0, SURFACE + 0.12, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 		Color = accent,
 		Material = Enum.Material.Neon,
 		CanCollide = false,
@@ -254,8 +257,9 @@ local function buildHaven()
 	pathStrip(Vector3.new(0, 0, 40), Vector3.new(0, 0, 130), 14)
 	float("Haven", Vector3.new(0, 26, 0), "HAVEN", TC.Mint, 16, { Icon = "🏡", Sub = "home of the Tamers", Height = 3.6 })
 	-- fountain-ish centrepiece
-	part({ Name = "Monument", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, 12, 12), CFrame = CFrame.new(0, 1, 18) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(236, 232, 246) }, f)
-	decor(part({ Name = "Crystal", Size = Vector3.new(3, 6, 3), CFrame = CFrame.new(0, 6, 18) * CFrame.Angles(0, math.rad(45), math.rad(10)), Color = TC.Sky, Material = Enum.Material.Neon, Transparency = 0.15 }, f))
+	-- (the plaza surface is at y 2: the disc used to end exactly there and z-fought the pavement)
+	part({ Name = "Monument", Shape = Enum.PartType.Cylinder, Size = Vector3.new(2, 12, 12), CFrame = CFrame.new(0, SURFACE + 0.6, 18) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(236, 232, 246) }, f)
+	decor(part({ Name = "Crystal", Size = Vector3.new(3, 6, 3), CFrame = CFrame.new(0, SURFACE + 4.6, 18) * CFrame.Angles(0, math.rad(45), math.rad(10)), Color = TC.Sky, Material = Enum.Material.Neon, Transparency = 0.15 }, f))
 
 	local _, storageDoor = building("StorageHouse", Vector3.new(-62, 0, 14), TC.Lilac, 18, 16, 10, f)
 	World.Points.Storage = Vector3.new(storageDoor.X, 0, storageDoor.Z)
@@ -264,7 +268,7 @@ local function buildHaven()
 
 	-- Summoning Shrine: a ring of pillars around a floating scroll
 	local sp = Vector3.new(60, 0, 14)
-	part({ Name = "ShrineBase", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.2, 18, 18), CFrame = CFrame.new(sp + Vector3.new(0, 0.6, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(244, 240, 252) }, f)
+	part({ Name = "ShrineBase", Shape = Enum.PartType.Cylinder, Size = Vector3.new(1.2, 18, 18), CFrame = CFrame.new(sp + Vector3.new(0, SURFACE + 0.3, 0)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(244, 240, 252) }, f)
 	for i = 0, 5 do
 		local a = i / 6 * math.pi * 2
 		part({ Name = "Pillar", Shape = Enum.PartType.Cylinder, Size = Vector3.new(10, 1.6, 1.6), CFrame = CFrame.new(sp + Vector3.new(math.cos(a) * 8, 5.6, math.sin(a) * 8)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(236, 230, 250) }, f)

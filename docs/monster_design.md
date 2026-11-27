@@ -183,14 +183,14 @@ Monsters come **only from summoning scrolls**. Fights give XP, coins, Essence an
 
 | Scroll | Stars | Where it comes from |
 |---|---|---|
-| **Regular** | 1★ 40%, 2★ 35%, 3★ 20%, 4★ 4.5%, 5★ 0.5% | wild monster drops (small chance), daily quests, chests, region milestones |
-| **Legendary** | 4★ 92%, 5★ 8% | region and world bosses (rare), weekly quests, big milestones, events |
+| **Regular** | 1★ 40%, 2★ 34.4%, 3★ 20%, 4★ 4.5%, 5★ Fire/Water/Wind 1%, **5★ Light/Dark 0.1%** | wild monster drops (small chance), daily quests, chests, region milestones |
+| **Legendary** | 4★ 89%, 5★ Fire/Water/Wind 10%, **5★ Light/Dark 1%** | region and world bosses (rare), weekly quests, big milestones, events |
 
-- **Elements are rolled after the star**, the same for both scrolls: Fire / Water / Wind 33% each, **Light 0.5%, Dark 0.5%**.
+- Owner odds, 2026-11-27. **1–4★ results roll their element after the star**: Fire / Water / Wind 33% each, **Light 0.5%, Dark 0.5%**. A 5★ is Fire/Water/Wind unless it is the 5★ Light/Dark roll, the only way (besides the one Eclipse Scroll) to get a 5★ Light/Dark.
 - **Species:** a random species of the rolled star, weighted equally within that star (new species can join the pool at any time).
 - **Pity counters** (shown at the Shrine):
   - every 50 Regular scrolls without a 4★+ guarantees one;
-  - every 200 scrolls of any kind without Light/Dark guarantees one.
+  - every 200 scrolls of any kind without Light/Dark guarantees a 1–4★ Light/Dark (pity never gives a 5★ Light/Dark).
 - **Summon reveal** at the Shrine: the scroll unrolls, the star count shows one star at a time, a silhouette appears, then the element flash. Light and Dark get a special gold or violet sequence and a **server-wide announcement**.
 - **Starter:** a new player opens 1 free Legendary scroll in the tutorial, so everyone starts with a 4★ or 5★, plus a few Regular scrolls.
 - **Buying scrolls (later):**
