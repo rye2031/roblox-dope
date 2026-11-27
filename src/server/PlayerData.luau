@@ -89,6 +89,7 @@ local function defaults(): Profile
 		gear = {},
 		nextGear = 1,
 		found = {}, -- discoveries (Shared/Discoveries)
+		pass = { xp = 0, claimed = {}, bonus = 0 }, -- Tamer Pass (Pass.luau)
 		dungeon = { keys = 5, keyAt = os.time(), clears = {}, best = {} },
 		lastSeen = 0,
 	}
@@ -216,6 +217,7 @@ function PlayerData.sanitize(raw: any): Profile
 	require(script.Parent.RuneBag).sanitize(raw, p)
 	require(script.Parent.Dungeons).sanitize(raw, p)
 	require(script.Parent.GearBag).sanitize(raw, p)
+	require(script.Parent.Pass).sanitize(raw, p)
 	if typeof(raw.sealed) == "table" then
 		local S = Config.Sealed
 		if typeof(raw.sealed.bag) == "table" then

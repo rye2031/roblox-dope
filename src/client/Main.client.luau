@@ -25,6 +25,7 @@ local PortalFx = require(script.Parent.PortalFx)
 local Pace = require(script.Parent.Pace)
 local Tips = require(script.Parent.Tips)
 local Landmarks = require(script.Parent.Landmarks)
+local _PassUi = require(script.Parent.PassUi)
 
 Sfx.start(Ui)
 UnitView.start()

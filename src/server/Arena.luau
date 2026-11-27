@@ -326,6 +326,7 @@ local function finish(player: Player, state)
 	local tokens = won and A.WinTokens or A.LossTokens
 	if won then
 		Story.event(player, "arena")
+		require(script.Parent.Pass).add(player, "arena")
 	end
 	local coins = won and A.WinCoins or 0
 	if p then

@@ -70,7 +70,7 @@ end)
 -- Menu rail (left)
 
 -- starts under the Next-up ticker (wallet + 3 rows)
-local rail = new("Frame", { AnchorPoint = Vector2.new(0, 0), Position = UDim2.new(0, 10, 0, 10 + px(52) + px(100) + 12), Size = UDim2.fromOffset(px(64), px(64) * 7 + 56), BackgroundTransparency = 1, Parent = gui }, { new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
+local rail = new("Frame", { AnchorPoint = Vector2.new(0, 0), Position = UDim2.new(0, 10, 0, 10 + px(52) + px(100) + 12), Size = UDim2.fromOffset(px(64), px(64) * 8 + 64), BackgroundTransparency = 1, Parent = gui }, { new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
 local RAIL = {
 	{ "Monsters", "🐾", C.Lilac },
 	{ "Shrine", "📜", C.Sun },
@@ -79,11 +79,13 @@ local RAIL = {
 	{ "Weapons", "⚔", C.Peach },
 	{ "Expeditions", "🧭", C.Sun },
 	{ "Runes", "💠", C.Sky },
+	{ "Pass", "🎖", C.Sun },
 }
 local questDot: Frame
 local monDot: Frame -- overflow waiting
 local expDot: Frame -- an expedition is back
 local shrineDot: Frame -- a sealed scroll is ready
+local passDot: Frame -- a Tamer Pass reward is ready
 for i, r in RAIL do
 	local b = button({ LayoutOrder = i, Size = UDim2.fromOffset(px(64), px(64)), BackgroundColor3 = C.Card, Text = "", ZIndex = 2, Parent = rail, Radius = 18 })
 	Ui.stroke(Ui.Theme.tint(r[3], 0.4), 2).Parent = b
@@ -98,6 +100,9 @@ for i, r in RAIL do
 	end)
 	if r[1] == "Shrine" then
 		shrineDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(px(16), px(16)), BackgroundColor3 = C.Sun, Visible = false, ZIndex = 4, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	end
+	if r[1] == "Pass" then
+		passDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(px(16), px(16)), BackgroundColor3 = C.Coral, Visible = false, ZIndex = 4, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 	end
 	if r[1] == "Expeditions" then
 		expDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(px(16), px(16)), BackgroundColor3 = C.Mint, Visible = false, ZIndex = 4, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
@@ -416,6 +421,7 @@ function Hud.setProfile(p)
 		end
 	end
 	shrineDot.Visible = sealReady
+	passDot.Visible = require(script.Parent.PassUi).ready(p) > 0
 	if not p.tutorial.intro and not Hud.introShown then
 		Hud.introShown = true
 		howTo.Visible = true

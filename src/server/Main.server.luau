@@ -40,7 +40,7 @@ for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce"
 	r.Parent = remoteFolder
 	remotes[n] = r
 end
-for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow", "Travel", "Expedition", "IndexReward", "Arena", "Sealed", "Runes", "Dungeon", "Gear" } do
+for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow", "Travel", "Expedition", "IndexReward", "Arena", "Sealed", "Runes", "Dungeon", "Gear", "Pass" } do
 	local r = Instance.new("RemoteFunction")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -62,10 +62,13 @@ Arena.init()
 Combat.init(remotes)
 Dungeons.init(remotes, Combat)
 require(script.Parent.Landmarks).init(remotes)
+require(script.Parent.Pass).init(remotes)
 require(script.Parent.Landmarks).onFound = function(player)
+	require(script.Parent.Pass).add(player, "discovery")
 	Story.check(player)
 end
-Dungeons.onClear = function(player)
+Dungeons.onClear = function(player, _id, mode)
+	require(script.Parent.Pass).add(player, mode == "Hard" and "dungeonHard" or "dungeon")
 	task.defer(Story.check, player)
 end
 Regions.init(remotes, Combat)
@@ -145,7 +148,14 @@ remotes.UpgradeWeapon.OnServerInvoke = function(player)
 	return ok, msg
 end
 remotes.ClaimQuest.OnServerInvoke = function(player, index)
-	return Quests.claim(player, index)
+	local ok, msg = Quests.claim(player, index)
+	if ok then
+		require(script.Parent.Pass).add(player, "quest")
+	end
+	return ok, msg
+end
+remotes.Pass.OnServerInvoke = function(player, tier)
+	return require(script.Parent.Pass).claim(player, tier)
 end
 remotes.ClaimStreak.OnServerInvoke = function(player)
 	return Quests.claimStreak(player)
@@ -528,6 +538,12 @@ if game:GetService("RunService"):IsStudio() then
 		elseif cmd == "gearact" then
 			local ok, msg = GearBag.action(player, a, b)
 			return tostring(ok) .. " " .. tostring(msg)
+		elseif cmd == "pass" then
+			if a == "xp" then
+				p.pass.xp += b or 400
+				PlayerData.push(player)
+			end
+			return HttpService:JSONEncode(p.pass)
 		elseif cmd == "relock" then
 			p.regions[a] = nil -- until the next push re-checks it (Studio test of locked portals)
 			return "ok"

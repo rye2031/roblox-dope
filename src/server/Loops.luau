@@ -190,6 +190,7 @@ function Loops.expedition(player: Player, action: any, slot: any, place: any, du
 		if levels > 0 then
 			table.insert(parts, levels .. " level-up" .. (levels > 1 and "s" or ""))
 		end
+		require(script.Parent.Pass).add(player, "expedition")
 		return true, "Expedition back! " .. table.concat(parts, ", "), { coins = r.coins, essence = r.essence, element = el, scrolls = scrolls, levels = levels }
 	end
 	return false, "Unknown action"

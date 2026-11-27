@@ -26,6 +26,7 @@ local TIPS = {
 	Weapons = { "⚔", "Your weapons", "Rarer weapons hit harder and have bonus perks. Tap one to equip it. Weapon level makes every weapon stronger." },
 	Expeditions = { "🧭", "Expeditions", "Send monsters you aren't using on a trip. They come back with coins and Essence, even while you're offline." },
 	Arena = { "🏟", "The Arena", "Battle other Tamers' teams, turn by turn. Pick a move for each monster, or press Auto." },
+	Pass = { "🎖", "Tamer Pass", "Everything you do fills this bar. Each tier has a free reward: tap to claim. There's no time limit." },
 	Travel = { "🔥", "Travel", "Jump to any campfire you've lit, from anywhere. Just not in the middle of a fight." },
 	rune = { "💠", "You found a rune!", "Open a monster and tap one of its 3 sockets to put the rune on. It makes that monster stronger." },
 	gear = { "⚔", "New weapon!", "Open Weapons (the Smithy) and tap it to equip it. Rarer ones glow." },
@@ -45,6 +46,7 @@ local PANEL_TIPS = {
 	Expeditions = { "Expeditions" },
 	Arena = { "Arena" },
 	Travel = { "Travel" },
+	Pass = { "Pass" },
 }
 
 local queue: { string } = {}

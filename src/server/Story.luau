@@ -76,6 +76,7 @@ local function stateDone(player: Player, p, s): boolean
 end
 
 local function grant(player: Player, p, s)
+	require(script.Parent.Pass).add(player, "story")
 	local r = s.reward or {}
 	p.coins += r.coins or 0
 	p.scrolls.Regular += r.scrolls or 0

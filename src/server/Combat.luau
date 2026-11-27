@@ -404,6 +404,8 @@ local function rewardKill(u)
 					end
 				end
 				Quests.onKill(player, u.el, u.elite)
+				local Pass = require(script.Parent.Pass)
+				Pass.add(player, (u.camp and u.camp.world) and "titan" or legend and "legend" or u.boss and "boss" or u.elite and "elite" or "kill", am)
 				Story.event(player, "defeat", { region = u.camp and u.camp.region })
 				if levels > 0 then
 					Quests.progress(player, "LevelUp", levels)
