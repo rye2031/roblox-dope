@@ -155,12 +155,58 @@ def log(msg):
     print('[%6.1fs] %s' % (time.time() - T0, msg), flush=True)
 
 
+# Every sound in the test client goes into a muted SoundGroup (game SFX, footsteps, anything
+# added later), so nothing from a background playtest plays through the owner's speakers.
+MUTE_LUAU = """
+local SS = game:GetService("SoundService")
+local g = SS:FindFirstChild("TestMute") or Instance.new("SoundGroup")
+g.Name = "TestMute"
+g.Volume = 0
+g.Parent = SS
+local n = 0
+for _, d in game:GetDescendants() do
+    pcall(function()
+        if d:IsA("Sound") and d.SoundGroup ~= g then d.SoundGroup = g n += 1 end
+        if d:IsA("SoundGroup") and d ~= g then d.Volume = 0 end
+    end)
+end
+if not _G.__wildMuteHook then
+    _G.__wildMuteHook = game.DescendantAdded:Connect(function(d)
+        pcall(function()
+            if d:IsA("Sound") then d.SoundGroup = g end
+            if d:IsA("SoundGroup") and d ~= g then d.Volume = 0 end
+        end)
+    end)
+end
+return n
+"""
+_last_mute = [0.0]
+
+
+def mute():
+    _last_mute[0] = time.time()
+    try:
+        return luau(MUTE_LUAU, 'Client')
+    except Exception as e:
+        return 'mute failed: %s' % e
+
+
 def wait(s):
-    time.sleep(s)
+    # re-apply the mute every few seconds while a test waits (cheap; catches new sounds even
+    # if the client's hook was lost)
+    end = time.time() + s
+    while True:
+        if time.time() - _last_mute[0] > 4:
+            mute()
+        left = end - time.time()
+        if left <= 0:
+            break
+        time.sleep(min(left, 1.0))
 
 
 if __name__ == '__main__':
     try:
+        mute()
         exec(open(sys.argv[1]).read(), globals())
     finally:
         c.close()

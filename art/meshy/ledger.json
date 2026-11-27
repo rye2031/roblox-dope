@@ -1872,5 +1872,109 @@
       "art/meshy/props/models/prop_ruined_arch/model_base_color.png",
       "art/meshy/props/models/prop_ruined_arch/thumb.png"
     ]
+  },
+  {
+    "name": "lanternpup",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "116335855732944",
+    "roblox_mesh": "rbxassetid://124696429535269",
+    "roblox_texture": "rbxassetid://119128749618173",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/lanternpup/model.glb"
+    ]
+  },
+  {
+    "name": "prop_moon_lantern",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "91157740422759",
+    "roblox_mesh": "rbxassetid://116751828646412",
+    "roblox_texture": "rbxassetid://97043171281911",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_moon_lantern/model.glb"
+    ]
+  },
+  {
+    "name": "prop_ruined_arch",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "71368510898634",
+    "roblox_mesh": "rbxassetid://73448578811504",
+    "roblox_texture": "rbxassetid://139812615621373",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_ruined_arch/model.glb"
+    ]
+  },
+  {
+    "name": "prop_shadow_crystals",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "72248347810334",
+    "roblox_mesh": "rbxassetid://94757195841006",
+    "roblox_texture": "rbxassetid://112272038774528",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_shadow_crystals/model.glb"
+    ]
+  },
+  {
+    "name": "prop_sun_obelisk",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "117411316045176",
+    "roblox_mesh": "rbxassetid://94727646016412",
+    "roblox_texture": "rbxassetid://121255842015634",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/prop_sun_obelisk/model.glb"
+    ]
+  },
+  {
+    "name": "seraphawk",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "109843857875737",
+    "roblox_mesh": "rbxassetid://119383404609775",
+    "roblox_texture": "rbxassetid://116228795854316",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/seraphawk/model.glb"
+    ]
+  },
+  {
+    "name": "solmora",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "87151112278693",
+    "roblox_mesh": "rbxassetid://132530997364598",
+    "roblox_texture": "rbxassetid://88631803002861",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/solmora/model.glb"
+    ]
+  },
+  {
+    "name": "umbracat",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "119375259219080",
+    "roblox_mesh": "rbxassetid://115472559010424",
+    "roblox_texture": "rbxassetid://108175793105015",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/umbracat/model.glb"
+    ]
   }
 ]

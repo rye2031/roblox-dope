@@ -20,4 +20,8 @@ return {
 	PropFloatingRocks = { Model = 99333199729232, Mesh = "rbxassetid://124605417650302", Texture = "rbxassetid://102931194816083", Height = 1.899 },
 	PropWatchtower = { Model = 76497131544197, Mesh = "rbxassetid://81965799810618", Texture = "rbxassetid://134867503056068", Height = 1.899 },
 	PropWindShrine = { Model = 99525195193661, Mesh = "rbxassetid://94079925524449", Texture = "rbxassetid://140677442003430", Height = 1.899 },
+	PropMoonLantern = { Model = 91157740422759, Mesh = "rbxassetid://116751828646412", Texture = "rbxassetid://97043171281911", Height = 1.901 },
+	PropRuinedArch = { Model = 71368510898634, Mesh = "rbxassetid://73448578811504", Texture = "rbxassetid://139812615621373", Height = 1.898 },
+	PropShadowCrystals = { Model = 72248347810334, Mesh = "rbxassetid://94757195841006", Texture = "rbxassetid://112272038774528", Height = 1.902 },
+	PropSunObelisk = { Model = 117411316045176, Mesh = "rbxassetid://94727646016412", Texture = "rbxassetid://121255842015634", Height = 1.901 },
 }

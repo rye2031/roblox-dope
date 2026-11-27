@@ -36,4 +36,8 @@ return {
 	Stormstag = { Model = 101949996472302, Mesh = "rbxassetid://86648853797101", Texture = "rbxassetid://110154858853034", Height = 1.901 },
 	Zephkit = { Model = 84118700399377, Mesh = "rbxassetid://95033739360360", Texture = "rbxassetid://138105805048399", Height = 1.381 },
 	Zephyrion = { Model = 121427312172659, Mesh = "rbxassetid://89479439401696", Texture = "rbxassetid://138807908727008", Height = 1.533 },
+	Lanternpup = { Model = 116335855732944, Mesh = "rbxassetid://124696429535269", Texture = "rbxassetid://119128749618173", Height = 1.602 },
+	Seraphawk = { Model = 109843857875737, Mesh = "rbxassetid://119383404609775", Texture = "rbxassetid://116228795854316", Height = 1.347 },
+	Solmora = { Model = 87151112278693, Mesh = "rbxassetid://132530997364598", Texture = "rbxassetid://88631803002861", Height = 1.245 },
+	Umbracat = { Model = 119375259219080, Mesh = "rbxassetid://115472559010424", Texture = "rbxassetid://108175793105015", Height = 1.468 },
 }
