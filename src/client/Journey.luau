@@ -181,7 +181,7 @@ end
 ----------------------------------------------------------------------------------------------
 -- Travel panel
 
-local _, travelBody, travelSub = Ui.panel("Travel", "Campfires", "Travel to any campfire you've lit. Not during a fight.", C.Peach, "🔥")
+local _, travelBody, travelSub = Ui.panel("Travel", "Campfires", "Travel to any campfire you've lit, from anywhere. Not during a fight or a dungeon.", C.Peach, "🔥")
 local function renderTravel()
 	local p = Ui.profile
 	if not p then
@@ -366,7 +366,12 @@ function Journey.start()
 					end
 				end
 			end
-			travelB.Visible = near
+			-- travel from anywhere (owner, 2026-11-27): the button is always there outside dungeons
+			local _ = near
+			travelB.Visible = Ui.profile ~= nil and player:GetAttribute("Dungeon") == nil
+			local fighting = player:GetAttribute("InCombat") == true
+			travelB.BackgroundColor3 = fighting and C.Line or C.Peach
+			travelB.Text = fighting and "🔥 Travel (in a fight)" or "🔥 Travel"
 		end
 	end)
 end

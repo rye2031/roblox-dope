@@ -760,7 +760,7 @@ local function updateTeamUnit(u, dt: number)
 		if (goal - u.pos).Magnitude > 90 then
 			u.pos = goal
 		end
-		if moveToward(u, goal, CT.FollowSpeed, dt, 1.5) then
+		if moveToward(u, goal, player:GetAttribute("Travelling") and CT.FollowSpeed * 1.45 or CT.FollowSpeed, dt, 1.5) then
 			u.state = "idle"
 			u.facing = cf.LookVector
 		end
@@ -1048,9 +1048,45 @@ function Combat.warpTeam(player: Player, pos: Vector3)
 end
 
 -- True while the player has fought in the last few seconds.
+-- Fighting: you hit or were hit in the last 6 s, or one of your monsters is busy with a target.
 function Combat.inCombat(player: Player): boolean
 	local t = tamers[player]
-	return t ~= nil and now() - (t.lastCombat or 0) < 6
+	if t ~= nil and now() - (t.lastCombat or 0) < 6 then
+		return true
+	end
+	for _, u in teams[player] or {} do
+		if u.target and alive(u.target) and now() - (u.lastCombat or 0) < 4 then
+			return true
+		end
+	end
+	return false
+end
+
+-- Travel pace (2026-11-27, owner: move faster when not fighting): after a few calm seconds
+-- you run at TravelSpeed and your team keeps up; the first hit drops you back at once.
+local calmSince: { [Player]: number } = {}
+local function updatePace(player: Player)
+	local hum = player.Character and player.Character:FindFirstChildOfClass("Humanoid")
+	if not hum or hum.Health <= 0 then
+		return
+	end
+	local fighting = Combat.inCombat(player) or player:GetAttribute("Dungeon") ~= nil
+	if fighting then
+		calmSince[player] = nil
+	elseif not calmSince[player] then
+		calmSince[player] = now()
+	end
+	local fast = not fighting and now() - (calmSince[player] or now()) >= CT.TravelDelay
+	local speed = fast and CT.TravelSpeed or CT.WalkSpeed
+	if hum.WalkSpeed ~= speed then
+		hum.WalkSpeed = speed
+	end
+	if player:GetAttribute("Travelling") ~= fast then
+		player:SetAttribute("Travelling", fast)
+	end
+	if player:GetAttribute("InCombat") ~= fighting then
+		player:SetAttribute("InCombat", fighting)
+	end
 end
 
 -- Full heal for the player's team (campfires, respawn).
@@ -1278,6 +1314,9 @@ local function step(dt: number)
 			placePart(u)
 			syncAttrs(u)
 		end
+	end
+	for _, pl in Players:GetPlayers() do
+		updatePace(pl)
 	end
 	for player, list in teams do
 		for _, u in list do

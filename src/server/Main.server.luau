@@ -224,28 +224,36 @@ remotes.Travel.OnServerInvoke = function(player, region)
 	if os.clock() - (lastTravel[player] or 0) < 6 then
 		return false, "Catch your breath first"
 	end
-	local near, dest = false, nil
+	-- from anywhere (owner, 2026-11-27), just not mid-fight or in a dungeon
+	local dest = nil
 	for _, c in World.Campfires do
-		if (c.pos - hrp.Position).Magnitude < 16 then
-			near = true
-		end
 		if c.region == region then
 			dest = c
 		end
-	end
-	if not near then
-		return false, "Stand next to a campfire to travel"
 	end
 	if not dest then
 		return false, "Unknown campfire"
 	end
 	lastTravel[player] = os.clock()
-	local to = dest.pos + Vector3.new(0, 4, -6)
-	char:PivotTo(CFrame.lookAt(to, dest.pos + Vector3.new(0, 4, 0)))
-	player.RespawnLocation = dest.part
-	Combat.warpTeam(player, dest.pos + Vector3.new(0, 0, -6))
-	Combat.healTeam(player)
-	return true, "Travelled to the " .. (World.Regions[region] and World.Regions[region].Name or region) .. " campfire"
+	local name = (World.Regions[region] and World.Regions[region].Name or region)
+	remotes.Portal:FireClient(player, { kind = "go", name = name })
+	task.delay(0.35, function()
+		local c = player.Character
+		if not c then
+			return
+		end
+		local to = dest.pos + Vector3.new(0, 4, -6)
+		pcall(function()
+			player:RequestStreamAroundAsync(to)
+		end)
+		c:PivotTo(CFrame.lookAt(to, dest.pos + Vector3.new(0, 4, 0)))
+		player.RespawnLocation = dest.part
+		Combat.warpTeam(player, dest.pos + Vector3.new(0, 0, -6))
+		Combat.healTeam(player)
+		player:SetAttribute("Region", World.regionAt(to))
+		remotes.Portal:FireClient(player, { kind = "arrive", name = name })
+	end)
+	return true, "Travelled to the " .. name .. " campfire"
 end
 
 local function onCharacter(player: Player, char: Model)
@@ -256,7 +264,7 @@ local function onCharacter(player: Player, char: Model)
 		hum.MaxHealth = max
 		hum.Health = max
 	end
-	hum.WalkSpeed = 20
+	hum.WalkSpeed = Config.Tuning.Combat.WalkSpeed
 	task.defer(function()
 		Combat.healTeam(player)
 		Combat.syncTeam(player)
