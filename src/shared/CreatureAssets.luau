@@ -20,7 +20,7 @@ return {
 	MallGobstopper = { Model = 94207375656236, Mesh = "rbxassetid://137988585837491", Texture = "rbxassetid://98969184357175", Height = 1.549 },
 	Owlsage = { Model = 130037695288590, Mesh = "rbxassetid://134719851231872", Texture = "rbxassetid://104972370909571", Height = 1.849 },
 	Pebblit = { Model = 79241923567079, Mesh = "rbxassetid://86677574075096", Texture = "rbxassetid://98081458869841", Height = 1.012 },
-	Phoenara = { Model = 100836201025667, Mesh = "rbxassetid://89506742985788", Texture = "rbxassetid://96114193835712", Height = 1.490 },
+	Phoenara = { Model = 83539222075893, Mesh = "rbxassetid://87237217232049", Texture = "rbxassetid://96114193835712", Height = 1.292 },
 	Runegolem = { Model = 110809632572093, Mesh = "rbxassetid://114537140303574", Texture = "rbxassetid://112573488015710", Height = 1.838 },
 	Shellotl = { Model = 73847322457364, Mesh = "rbxassetid://110765303214557", Texture = "rbxassetid://81356590099649", Height = 0.924 },
 	Sproutknight = { Model = 78302283323470, Mesh = "rbxassetid://105208371806354", Texture = "rbxassetid://77783295968700", Height = 1.902 },

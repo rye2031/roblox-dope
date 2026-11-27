@@ -1976,5 +1976,18 @@
     "files": [
       "art/meshy/models/umbracat/model.glb"
     ]
+  },
+  {
+    "name": "phoenara",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "83539222075893",
+    "roblox_mesh": "rbxassetid://87237217232049",
+    "roblox_texture": "rbxassetid://96114193835712",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/models/phoenara/model.glb"
+    ]
   }
 ]

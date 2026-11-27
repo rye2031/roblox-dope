@@ -117,6 +117,8 @@ if game:GetService("RunService"):IsStudio() then
 		elseif cmd == "hidereveal" then
 			require(script.Parent.SummonReveal).hide()
 			return "ok"
+		elseif cmd == "gallery" then
+			return require(script.Parent.DebugGallery).show(tonumber(a) or 1)
 		elseif cmd == "dungeonui" then
 			if a == "party" then
 				DungeonUi.debugParty()
