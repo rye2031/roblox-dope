@@ -19,6 +19,8 @@ local Inventory = require(script.Parent.Inventory)
 local Quests = require(script.Parent.Quests)
 local Story = require(script.Parent.Story)
 local Loops = require(script.Parent.Loops)
+local RuneBag = require(script.Parent.RuneBag)
+local Runes = require(Shared.Runes)
 local World = require(script.Parent.World)
 
 local T = Config.Tuning
@@ -243,6 +245,12 @@ local function makeUnit(side: string, sp: string, el: string, lv: number, aw: bo
 	nextId += 1
 	local id = (side == "team" and "t" or "w") .. nextId
 	local stats = Monsters.stats(sp, lv, aw)
+	if side == "team" and opts.owner and opts.uid then
+		local pd = PlayerData.get(opts.owner)
+		if pd then
+			stats = Runes.apply(stats, Runes.bonus(Runes.on(pd, opts.uid)))
+		end
+	end
 	local hpMult = 1
 	if side == "wild" then
 		hpMult = CT.WildHpMult * (opts.hpMult or (opts.boss and 22 or opts.elite and 3.5 or 1))
@@ -364,6 +372,10 @@ local function rewardKill(u)
 				end
 				local sealKind = legend and "legend" or u.boss and "boss" or u.elite and "elite" or "common"
 				drops.sealed = Loops.rollSealed(p, sealKind)
+				local runeMult = auto and Config.AutoHunt.RewardMult or 1
+				if math.random() < runeMult then
+					drops.rune = RuneBag.rollDrop(p, sealKind)
+				end
 				Quests.onKill(player, u.el, u.elite)
 				Story.event(player, "defeat", { region = u.camp and u.camp.region })
 				if levels > 0 then
@@ -971,10 +983,17 @@ function Combat.refreshTeamStats(player: Player)
 	local p = PlayerData.get(player)
 	for _, u in teams[player] or {} do
 		local m = p and p.monsters[u.uid]
-		if m and (m.lv ~= u.lv or m.aw ~= u.aw or m.sk[1] ~= u.sk[1] or m.sk[2] ~= u.sk[2] or m.sk[3] ~= u.sk[3]) then
+		local runeKey = ""
+		if m then
+			for _, rn in Runes.on(p, u.uid) do
+				runeKey ..= Runes.describe(rn) .. ";"
+			end
+		end
+		if m and (m.lv ~= u.lv or m.aw ~= u.aw or m.sk[1] ~= u.sk[1] or m.sk[2] ~= u.sk[2] or m.sk[3] ~= u.sk[3] or runeKey ~= (u.runeKey or "")) then
 			local ratio = u.maxHp > 0 and u.hp / u.maxHp or 1
 			u.lv, u.aw, u.sk = m.lv, m.aw, table.clone(m.sk)
-			u.stats = Monsters.stats(u.sp, u.lv, u.aw)
+			u.runeKey = runeKey
+			u.stats = Runes.apply(Monsters.stats(u.sp, u.lv, u.aw), Runes.bonus(Runes.on(p, u.uid)))
 			u.maxHp, u.baseMaxHp = u.stats.hp, u.stats.hp
 			u.hp = u.maxHp * ratio
 			u.part:SetAttribute("Level", u.lv)

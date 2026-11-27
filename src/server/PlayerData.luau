@@ -37,7 +37,9 @@ export type Profile = {
 	expeditions: { [string]: any }, -- slot "1".."3" -> { place, dur, start, uids, reward }
 	indexClaims: { m: { [string]: boolean }, s: { [string]: boolean } }, -- Index milestones / complete species claimed
 	arena: { tokens: number, day: number, attacks: number },
-	sealed: { bag: { [string]: number }, slots: { [string]: { tier: string, start: number } } }, -- sealed scrolls: satchel + attuning slots "1".."3" -- Arena tokens and today's fights (rating lives in the Arena store)
+	sealed: { bag: { [string]: number }, slots: { [string]: { tier: string, start: number } } }, -- sealed scrolls: satchel + attuning slots "1".."3"
+	runes: { [string]: any }, -- rune bag: id -> { r, rolls, on, lock, rf } (see Shared/Runes)
+	nextRune: number, -- Arena tokens and today's fights (rating lives in the Arena store)
 	lastSeen: number,
 }
 
@@ -78,6 +80,8 @@ local function defaults(): Profile
 		indexClaims = { m = {}, s = {} },
 		arena = { tokens = 0, day = 0, attacks = 0 },
 		sealed = { bag = {}, slots = {} },
+		runes = {},
+		nextRune = 1,
 		lastSeen = 0,
 	}
 end
@@ -201,6 +205,7 @@ function PlayerData.sanitize(raw: any): Profile
 			end
 		end
 	end
+	require(script.Parent.RuneBag).sanitize(raw, p)
 	if typeof(raw.sealed) == "table" then
 		local S = Config.Sealed
 		if typeof(raw.sealed.bag) == "table" then

@@ -115,6 +115,15 @@ if game:GetService("RunService"):IsStudio() then
 		elseif cmd == "hidereveal" then
 			require(script.Parent.SummonReveal).hide()
 			return "ok"
+		elseif cmd == "runes" then
+			local RunesUi = require(script.Parent.RunesUi)
+			if a == "pick" then
+				RunesUi.pick(b)
+			else
+				Ui.open("Runes")
+				RunesUi.debugSelect(a)
+			end
+			return "ok"
 		elseif cmd == "detail" then
 			Panels.showMonster(a)
 			return "ok"

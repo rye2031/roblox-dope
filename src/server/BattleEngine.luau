@@ -15,6 +15,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config)
 local Monsters = require(Shared.Monsters)
+local Runes = require(Shared.Runes)
 
 local BattleEngine = {}
 
@@ -38,6 +39,9 @@ end
 
 local function makeUnit(side: string, slot: number, spec)
 	local st = Monsters.stats(spec.sp, spec.lv, spec.aw)
+	if typeof(spec.bonus) == "table" then
+		st = Runes.apply(st, spec.bonus)
+	end
 	local skills = Monsters.skills(spec.sp, spec.el)
 	return {
 		side = side,

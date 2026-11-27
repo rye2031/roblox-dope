@@ -221,6 +221,7 @@ function Inventory.overflow(player: Player, action: any, key: any, uid: any): (b
 		local value = Inventory.sellValue(old)
 		local oldName = Monsters.Species[old.sp].Name
 		p.monsters[uid] = nil
+		require(script.Parent.RuneBag).release(p, uid)
 		p.coins += value
 		local sp, el = takeOne(p, key)
 		Inventory.addMonster(p, sp :: string, el :: string)
@@ -272,6 +273,7 @@ function Inventory.feed(player: Player, target: any, foods: any): (boolean, stri
 			end
 		end
 		p.monsters[f] = nil
+		require(script.Parent.RuneBag).release(p, f)
 	end
 	local levels = Inventory.grantXp(p, target, xp)
 	Quests.progress(player, "Feed", #foods)
@@ -343,6 +345,7 @@ function Inventory.sell(player: Player, uids: any): (boolean, string)
 	for _, u in uids do
 		total += Inventory.sellValue(p.monsters[u])
 		p.monsters[u] = nil
+		require(script.Parent.RuneBag).release(p, u)
 	end
 	p.coins += total
 	PlayerData.push(player)

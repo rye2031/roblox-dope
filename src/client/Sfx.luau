@@ -257,6 +257,9 @@ function Sfx.start(Ui)
 		if drops.sealed then
 			task.delay(0.35, Sfx.play, "scroll_get", { pitch = drops.sealed == "Prismatic" and 1.25 or drops.sealed == "Gold" and 1.12 or 0.95 })
 		end
+		if drops.rune then
+			task.delay(0.45, Sfx.play, "scroll_get", { pitch = drops.rune == "Legendary" and 1.3 or drops.rune == "Epic" and 1.18 or 1.05 })
+		end
 		if drops.scroll or drops.legendary then
 			task.delay(0.4, Sfx.play, "scroll_get", { pitch = drops.legendary and 1.12 or 1 })
 		end

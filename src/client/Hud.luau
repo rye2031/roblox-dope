@@ -69,7 +69,8 @@ end)
 ----------------------------------------------------------------------------------------------
 -- Menu rail (left)
 
-local rail = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.new(0, 10, 0.45, 0), Size = UDim2.fromOffset(px(64), px(64) * 6 + 48), BackgroundTransparency = 1, Parent = gui }, { new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
+-- starts under the Next-up ticker (wallet + 3 rows)
+local rail = new("Frame", { AnchorPoint = Vector2.new(0, 0), Position = UDim2.new(0, 10, 0, 10 + px(52) + px(100) + 12), Size = UDim2.fromOffset(px(64), px(64) * 7 + 56), BackgroundTransparency = 1, Parent = gui }, { new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
 local RAIL = {
 	{ "Monsters", "🐾", C.Lilac },
 	{ "Shrine", "📜", C.Sun },
@@ -77,6 +78,7 @@ local RAIL = {
 	{ "Quests", "✓", C.Sky },
 	{ "Weapons", "⚔", C.Peach },
 	{ "Expeditions", "🧭", C.Sun },
+	{ "Runes", "💠", C.Sky },
 }
 local questDot: Frame
 local monDot: Frame -- overflow waiting
@@ -322,6 +324,9 @@ local function onReward(drops, ups)
 		Ui.toast(string.format("A %s dropped! Attune it at the Shrine 📜", Config.Sealed.Tiers[drops.sealed].Name), "good")
 	elseif drops.scroll then
 		Ui.toast("A Regular scroll dropped! Open it at the Shrine 📜", "good")
+	end
+	if drops.rune then
+		require(script.Parent.RunesUi).dropped(drops.rune)
 	end
 	local p = Ui.profile
 	for _, uid in ups or {} do

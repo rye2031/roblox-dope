@@ -269,6 +269,7 @@ Config.Arena = {
 		regular = { name = "a Regular scroll", cost = 40, scrolls = 1, order = 1 },
 		essence = { name = "10 Essence", cost = 25, essence = 10, order = 2 },
 		legendary = { name = "a Legendary scroll", cost = 300, legendary = 1, order = 3 },
+		rune = { name = "a rune (Rare 70% · Epic 25% · Legendary 5%)", cost = 60, rune = true, order = 4 },
 	},
 }
 

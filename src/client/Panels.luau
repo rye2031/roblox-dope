@@ -8,6 +8,8 @@ local Config = require(Shared.Config)
 local Monsters = require(Shared.Monsters)
 local Ui = require(script.Parent.Ui)
 local SummonReveal = require(script.Parent.SummonReveal)
+local RunesUi = require(script.Parent.RunesUi)
+local Runes = require(Shared.Runes)
 
 local T = Config.Tuning
 local C = Ui.C
@@ -405,7 +407,17 @@ renderDetail = function(uid: string)
 	clear(detailScroll)
 	local sp = Monsters.Species[m.sp]
 	local info = EI[m.el]
-	local st = Monsters.stats(m.sp, m.lv, m.aw)
+	local base = Monsters.stats(m.sp, m.lv, m.aw)
+	local myRunes = {}
+	for id, r in p.runes or {} do
+		if r.on == uid then
+			table.insert(myRunes, { id = id, r = r })
+		end
+	end
+	table.sort(myRunes, function(a, b)
+		return a.id < b.id
+	end)
+	local st = Runes.apply(base, Runes.bonus(Runes.on(p, uid)))
 
 	-- header
 	local head = new("Frame", { LayoutOrder = 1, Size = UDim2.new(1, 0, 0, px(150)), BackgroundTransparency = 1, ZIndex = 21, Parent = detailScroll })
@@ -428,17 +440,48 @@ renderDetail = function(uid: string)
 
 	-- stats
 	local statRow = new("Frame", { LayoutOrder = 2, Size = UDim2.new(1, 0, 0, px(52)), BackgroundTransparency = 1, ZIndex = 21, Parent = detailScroll }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
-	for i, s in { { "HP", st.hp, C.Mint }, { "ATK", st.atk, C.Coral }, { "DEF", st.def, C.Sky }, { "SPD", st.spd, C.Sun }, { "POWER", Monsters.power(m.sp, m.lv, m.aw), C.Lilac } } do
+	local basePower = Monsters.power(m.sp, m.lv, m.aw)
+	local power = #myRunes > 0 and Runes.power(p, uid) or basePower
+	for i, s in { { "HP", st.hp, C.Mint, base.hp }, { "ATK", st.atk, C.Coral, base.atk }, { "DEF", st.def, C.Sky, base.def }, { "SPD", st.spd, C.Sun, base.spd }, { "POWER", power, C.Lilac, basePower } } do
 		local f = new("Frame", { LayoutOrder = i, Size = UDim2.new(0.2, -7, 1, 0), BackgroundColor3 = Ui.Theme.tint(s[3], 0.85), ZIndex = 21, Parent = statRow }, { corner(12) })
 		label(f, { Position = UDim2.fromOffset(0, px(6)), Size = UDim2.new(1, 0, 0, px(14)), Text = s[1], TextColor3 = C.Sub, TextSize = px(12), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 22 }, "Title")
 		label(f, { Position = UDim2.fromOffset(0, px(22)), Size = UDim2.new(1, 0, 0, px(22)), Text = Ui.fmt(s[2]), TextSize = px(20), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 22 }, "Title")
+		if s[2] > s[4] then
+			label(f, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(6), 0, px(4)), Size = UDim2.fromOffset(px(60), px(14)), Text = "+" .. Ui.fmt(s[2] - s[4]), TextColor3 = Color3.fromRGB(40, 150, 90), TextSize = px(12), TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 22 }, "Title")
+		end
+	end
+	if st.crit > base.crit or st.critDmg > base.critDmg then
+		label(detailScroll, { LayoutOrder = 3, Size = UDim2.new(1, 0, 0, px(16)), Text = string.format("Crit rate %d%% (+%d)  ·  Crit damage %d%% (+%d)", math.floor(st.crit * 100 + 0.5), math.floor((st.crit - base.crit) * 100 + 0.5), math.floor(st.critDmg * 100 + 0.5), math.floor((st.critDmg - base.critDmg) * 100 + 0.5)), TextColor3 = Color3.fromRGB(40, 150, 90), TextSize = px(13), ZIndex = 22 }, "Bold")
+	end
+
+	-- rune sockets
+	local sockets = new("Frame", { Name = "Sockets", LayoutOrder = 4, Size = UDim2.new(1, 0, 0, px(64)), BackgroundTransparency = 1, ZIndex = 21, Parent = detailScroll }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
+	for i = 1, Runes.Slots do
+		local e = myRunes[i]
+		local rar = e and Runes.Rarities[e.r.r]
+		local s = button({ Name = "Socket" .. i, LayoutOrder = i, Size = UDim2.new(1 / 3, -6, 1, 0), BackgroundColor3 = rar and Ui.Theme.tint(rar.Color, 0.82) or C.Soft, Text = "", ZIndex = 22, Parent = sockets, Radius = 14 })
+		Ui.stroke(rar and rar.Color or C.Line, 2).Parent = s
+		if e then
+			local _, perfect = Runes.quality(e.r)
+			label(s, { Position = UDim2.fromOffset(px(10), px(6)), Size = UDim2.new(1, -px(16), 0, px(18)), Text = "💠 " .. e.r.r .. (perfect and "  ✨" or ""), TextColor3 = rar.Color:Lerp(Color3.new(0, 0, 0), 0.4), TextSize = px(14), ZIndex = 23 }, "Title")
+			label(s, { Position = UDim2.fromOffset(px(10), px(26)), Size = UDim2.new(1, -px(16), 0, px(32)), Text = Runes.describe(e.r), TextSize = px(12), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 23 }, "Bold")
+			s.Activated:Connect(function()
+				Ui.open("Runes")
+				RunesUi.debugSelect(e.id)
+			end)
+		else
+			label(s, { Size = UDim2.fromScale(1, 1), Text = "+  Rune socket " .. i, TextColor3 = C.Sub, TextSize = px(14), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 23 }, "Title")
+			s.Activated:Connect(function()
+				RunesUi.pick(uid)
+			end)
+		end
 	end
 
 	-- skills
 	local kit = Monsters.skills(m.sp, m.el)
 	local tags = { "Signature", "Auto skill", "Ultimate" }
 	for i, s in kit do
-		local r = new("Frame", { LayoutOrder = 2 + i, Size = UDim2.new(1, 0, 0, px(58)), BackgroundColor3 = C.Soft, ZIndex = 21, Parent = detailScroll }, { corner(12) })
+		local r = new("Frame", { LayoutOrder = 4 + i, Size = UDim2.new(1, 0, 0, px(58)), BackgroundColor3 = C.Soft, ZIndex = 21, Parent = detailScroll }, { corner(12) })
 		local lvl = m.sk[i] or 1
 		label(r, { Position = UDim2.fromOffset(12, px(6)), Size = UDim2.new(1, -24, 0, px(20)), Text = string.format("%s  ·  %s  ·  Lv %d/%d  ·  %ss", s.Name, tags[i], lvl, T.Feed.MaxSkillLevel, tostring(math.floor(Monsters.skillCooldown(s.Cooldown, lvl) * 10) / 10)), TextSize = px(16), ZIndex = 22 }, "Title")
 		label(r, { Position = UDim2.fromOffset(12, px(28)), Size = UDim2.new(1, -24, 0, px(26)), Text = s.Desc or "", TextColor3 = C.Sub, TextSize = px(13), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 22 }, "Bold")
@@ -515,6 +558,7 @@ Panels.showMonster = function(uid: string)
 	Ui.open("Monsters")
 	renderDetail(uid)
 end
+RunesUi.onPicked = Panels.showMonster
 -- Debug helpers (Studio playtests)
 Panels.startFeed = function(uid: string, foods: { string }?)
 	Ui.open("Monsters")

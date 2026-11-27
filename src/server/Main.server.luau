@@ -12,6 +12,7 @@ local Inventory = require(script.Parent.Inventory)
 local Summon = require(script.Parent.Summon)
 local Story = require(script.Parent.Story)
 local Loops = require(script.Parent.Loops)
+local RuneBag = require(script.Parent.RuneBag)
 local Arena = require(script.Parent.Arena)
 local Quests = require(script.Parent.Quests)
 local Combat = require(script.Parent.Combat)
@@ -37,7 +38,7 @@ for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce"
 	r.Parent = remoteFolder
 	remotes[n] = r
 end
-for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow", "Travel", "Expedition", "IndexReward", "Arena", "Sealed" } do
+for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow", "Travel", "Expedition", "IndexReward", "Arena", "Sealed", "Runes" } do
 	local r = Instance.new("RemoteFunction")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -75,6 +76,9 @@ remotes.Summon.OnServerInvoke = function(player, kind, count)
 end
 remotes.Sealed.OnServerInvoke = function(player, action, a)
 	return Loops.sealed(player, action, a)
+end
+remotes.Runes.OnServerInvoke = function(player, action, a, b)
+	return RuneBag.action(player, action, a, b)
 end
 remotes.Arena.OnServerInvoke = function(player, action, a, b)
 	return Arena.handle(player, action, a, b)
@@ -302,7 +306,7 @@ if game:GetService("RunService"):IsStudio() then
 		if cmd == "state" then
 			local out = { units = {}, profile = nil }
 			for id, u in Combat.debug.units do
-				out.units[id] = { side = u.side, sp = u.sp, el = u.el, lv = u.lv, hp = math.floor(u.hp), max = math.floor(u.maxHp), st = u.state, pos = vec(u.pos), tgt = u.target and (u.target.id or u.target.key) or nil, camp = u.camp and u.camp.id, elite = u.elite, boss = u.boss, slot = u.slot }
+				out.units[id] = { side = u.side, sp = u.sp, el = u.el, lv = u.lv, hp = math.floor(u.hp), max = math.floor(u.maxHp), st = u.state, pos = vec(u.pos), tgt = u.target and (u.target.id or u.target.key) or nil, camp = u.camp and u.camp.id, elite = u.elite, boss = u.boss, slot = u.slot, atk = u.stats and u.stats.atk, crit = u.stats and u.stats.crit }
 			end
 			if p then
 				local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -405,6 +409,37 @@ if game:GetService("RunService"):IsStudio() then
 			p.sealed.bag[a] = (p.sealed.bag[a] or 0) + (b or 1)
 			PlayerData.push(player)
 			return "ok"
+		elseif cmd == "rune" then
+			-- rune <rarity> [n] | rune perfect <stat> | rune drop <kind> [n] | rune list
+			if a == "list" then
+				local HttpService = game:GetService("HttpService")
+				return HttpService:JSONEncode(p.runes)
+			elseif a == "perfect" then
+				local id = "r" .. p.nextRune
+				p.nextRune += 1
+				local s = b or "atk"
+				p.runes[id] = { r = "Legendary", rolls = { { s = s, t = 4 }, { s = s, t = 4 }, { s = s, t = 4 }, { s = s, t = 4 } }, rf = 0 }
+				PlayerData.push(player)
+				return id
+			elseif a == "drop" then
+				local got = {}
+				for _ = 1, b or 1 do
+					local r = RuneBag.rollDrop(p, c or "boss")
+					if r then
+						got[r] = (got[r] or 0) + 1
+					end
+				end
+				PlayerData.push(player)
+				return game:GetService("HttpService"):JSONEncode(got)
+			end
+			for _ = 1, b or 1 do
+				RuneBag.give(p, a or "Rare")
+			end
+			PlayerData.push(player)
+			return "ok"
+		elseif cmd == "runeact" then
+			local ok, msg = RuneBag.action(player, a, b, c)
+			return tostring(ok) .. " " .. tostring(msg)
 		elseif cmd == "sealfast" then
 			for _, sl in p.sealed.slots do
 				sl.start -= 2 * 3600

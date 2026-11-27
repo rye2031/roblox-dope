@@ -17,7 +17,9 @@ local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage.Shared
 local Config = require(Shared.Config)
 local Monsters = require(Shared.Monsters)
+local Runes = require(Shared.Runes)
 local PlayerData = require(script.Parent.PlayerData)
+local RuneBag = require(script.Parent.RuneBag)
 local Persistence = require(script.Parent.Persistence)
 local BattleEngine = require(script.Parent.BattleEngine)
 local Story = require(script.Parent.Story)
@@ -44,7 +46,7 @@ local function teamSnapshot(p, uids: { string }?): { any }
 	for _, u in uids or p.team do
 		local m = u ~= "" and p.monsters[u]
 		if m then
-			table.insert(list, { sp = m.sp, el = m.el, lv = m.lv, aw = m.aw, sk = table.clone(m.sk) })
+			table.insert(list, { sp = m.sp, el = m.el, lv = m.lv, aw = m.aw, sk = table.clone(m.sk), bonus = Runes.compact(Runes.bonus(Runes.on(p, u))) })
 		end
 	end
 	return list
@@ -53,7 +55,7 @@ end
 local function teamPower(team): number
 	local n = 0
 	for _, m in team do
-		n += Monsters.power(m.sp, m.lv, m.aw)
+		n += Runes.statPower(Runes.apply(Monsters.stats(m.sp, m.lv, m.aw), typeof(m.bonus) == "table" and m.bonus or nil))
 	end
 	return n
 end
@@ -475,12 +477,19 @@ function Arena.shop(player: Player, item: any, el: any)
 		end
 		p.essence[el] = (p.essence[el] or 0) + it.essence
 	end
+	local rune
+	if it.rune then
+		rune = RuneBag.rollDrop(p, "shop")
+		if not rune then
+			return false, "Your rune bag is full (" .. Runes.BagCap .. "): sell some first"
+		end
+	end
 	p.arena.tokens -= it.cost
 	p.scrolls.Regular += it.scrolls or 0
 	p.scrolls.Legendary += it.legendary or 0
 	PlayerData.push(player)
 	PlayerData.saveSoon(player)
-	return true, "Bought " .. it.name
+	return true, rune and ("Bought a " .. rune .. " rune") or ("Bought " .. it.name)
 end
 
 function Arena.handle(player: Player, action: any, a: any, b: any)

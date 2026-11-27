@@ -146,8 +146,8 @@ local function render()
 
 	-- token shop
 	Ui.section(body, 9, "TOKEN SHOP  ·  🎟 " .. info.tokens)
-	local shop = new("Frame", { LayoutOrder = 10, Size = UDim2.new(1, 0, 0, px(50)), BackgroundTransparency = 1, ZIndex = 12, Parent = body }, {
-		new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+	local shop = new("Frame", { LayoutOrder = 10, Size = UDim2.new(1, 0, 0, px(44)), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 12, Parent = body }, {
+		new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Wraps = true, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
 	local items = {}
 	for id, it in A.Shop do
@@ -158,7 +158,7 @@ local function render()
 	end)
 	for _, e in items do
 		local id, it = e.id, e.it
-		local text = it.essence and string.format("%s 10 %s Essence · 🎟%d", EI[Config.Elements[essenceEl]].Icon, Config.Elements[essenceEl], it.cost) or string.format("%s · 🎟%d", it.legendary and "🌟 Legendary scroll" or "📜 Regular scroll", it.cost)
+		local text = it.essence and string.format("%s 10 %s Essence · 🎟%d", EI[Config.Elements[essenceEl]].Icon, Config.Elements[essenceEl], it.cost) or string.format("%s · 🎟%d", it.legendary and "🌟 Legendary scroll" or it.rune and "💠 Rune (Rare+)" or "📜 Regular scroll", it.cost)
 		local b = pill(shop, { LayoutOrder = it.order, Size = UDim2.fromOffset(px(it.essence and 250 or 220), px(44)), Text = text }, info.tokens >= it.cost and C.Sun or C.Line)
 		b.Activated:Connect(function()
 			if call("shop", id, Config.Elements[essenceEl]) then
