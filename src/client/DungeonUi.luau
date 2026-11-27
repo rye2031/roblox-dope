@@ -204,7 +204,7 @@ render = function()
 			end)
 		end
 	end
-	label(body, { LayoutOrder = 30, Size = UDim2.new(1, 0, 0, px(50)), Text = string.format("Parties: up to 3 at the gate; more monsters and HP for each extra player; everyone with a key gets their own chest (no key: coins and Essence as a helper). Normal: 1 rune (Rare 60%% · Epic 32%% · Legendary 8%%). Hard: 2 runes (Rare 25%% · Epic 50%% · Legendary 25%%). First clear: 2 Regular scrolls on Normal, a Legendary scroll on Hard. %d minutes per run.", DD.TimeLimit // 60), TextColor3 = C.Sub, TextSize = px(12), TextWrapped = true }, "Bold")
+	label(body, { LayoutOrder = 30, Size = UDim2.new(1, 0, 0, px(50)), Text = string.format("Parties: up to 3 at the gate; more monsters and HP for each extra player; everyone with a key gets their own chest (no key: coins and Crystals as a helper). Normal: 1 rune (Rare 60%% · Epic 32%% · Legendary 8%%). Hard: 2 runes (Rare 25%% · Epic 50%% · Legendary 25%%). First clear: 2 Regular scrolls on Normal, a Legendary scroll on Hard. %d minutes per run.", DD.TimeLimit // 60), TextColor3 = C.Sub, TextSize = px(12), TextWrapped = true }, "Bold")
 end
 
 function DungeonUi.refresh()
@@ -261,7 +261,7 @@ local function showResults(msg)
 	local d = DD.List[msg.id]
 	label(resBody, { LayoutOrder = 1, Size = UDim2.new(1, 0, 0, px(30)), Text = d.Icon .. " " .. d.Name .. " cleared!", TextSize = px(24), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 42 }, "Title")
 	label(resBody, { LayoutOrder = 2, Size = UDim2.new(1, 0, 0, px(18)), Text = string.format("%s  ·  ⏱ %s%s", msg.mode, fmt(r.time), r.best and "  ·  new best!" or ""), TextColor3 = C.Sub, TextSize = px(14), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 42 }, "Bold")
-	local line = string.format("+%s 💰   +%d %s Essence", Ui.fmt(r.coins), r.essence, EI[r.el] and EI[r.el].Icon or "")
+	local line = string.format("+%s 💰   +%d %s Crystals", Ui.fmt(r.coins), r.essence, EI[r.el] and EI[r.el].Icon or "")
 	if r.first then
 		line ..= (r.firstLegendary and ("   +%d 🌟 first clear"):format(r.firstLegendary) or r.firstScrolls and ("   +%d 📜 first clear"):format(r.firstScrolls) or "")
 	end
@@ -313,7 +313,7 @@ function DungeonUi.start()
 			results.Visible = false
 			Ui.toast(DD.List[msg.id].Icon .. " " .. DD.List[msg.id].Name .. ": defeat 3 waves and the boss!" .. (run.n > 1 and (" Party: " .. table.concat(msg.names, ", ")) or ""), "info")
 			if msg.helper then
-				Ui.toast("No key (or a full rune bag): you're helping this run for coins and Essence", "info")
+				Ui.toast("No key (or a full rune bag): you're helping this run for coins and Crystals", "info")
 			end
 			Sfx.play("region")
 		elseif msg.kind == "wave" and run then

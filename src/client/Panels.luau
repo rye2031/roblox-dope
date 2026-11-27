@@ -289,7 +289,7 @@ renderMonsters = function()
 			local tm = p2.monsters[feedTarget]
 			local xp, ups = feedXp(p2)
 			local to = tm and previewLevel(tm, xp) or 0
-			msg = string.format("Feeding %s: %d picked · +%s XP%s%s", tm and Monsters.Species[tm.sp].Name or "?", nSel, Ui.fmt(xp), tm and to > tm.lv and (" → Lv " .. to) or "", ups > 0 and (" · " .. ups .. " skill-up" .. (ups > 1 and "s" or "")) or "")
+			msg = string.format("Training %s: %d picked · +%s XP%s%s", tm and Monsters.Species[tm.sp].Name or "?", nSel, Ui.fmt(xp), tm and to > tm.lv and (" → Lv " .. to) or "", ups > 0 and (" · " .. ups .. " skill-up" .. (ups > 1 and "s" or "")) or "")
 		else
 			local coins = 0
 			for uid in selected do
@@ -301,7 +301,7 @@ renderMonsters = function()
 			msg = string.format("Selling %d · +%s coins", nSel, Ui.fmt(coins))
 		end
 		label(bar, { LayoutOrder = 1, Size = UDim2.new(1, -px(250), 1, 0), Text = msg, TextSize = px(15), TextTruncate = Enum.TextTruncate.AtEnd }, "Title")
-		local go = pill(bar, { LayoutOrder = 2, Size = UDim2.fromOffset(px(110), px(36)), Text = mode == "feed" and "Feed" or mode == "swap" and "Pick one" or "Sell" }, nSel > 0 and (mode == "feed" and C.Mint or C.Coral) or C.Line)
+		local go = pill(bar, { LayoutOrder = 2, Size = UDim2.fromOffset(px(110), px(36)), Text = mode == "feed" and "Train" or mode == "swap" and "Pick one" or "Sell" }, nSel > 0 and (mode == "feed" and C.Mint or C.Coral) or C.Line)
 		go.Visible = mode ~= "swap"
 		go.Activated:Connect(function()
 			if nSel == 0 then
@@ -428,7 +428,7 @@ renderDetail = function(uid: string)
 	label(head, { Position = UDim2.fromOffset(x, px(36)), Size = UDim2.new(1, -x, 0, px(20)), Text = string.format("%s %s  ·  %s  ·  %s %s", info.Icon, m.el, stars(sp.Stars), sp.Role, sp.Range == "ranged" and "(ranged)" or "(melee)"), TextColor3 = info.Color, TextSize = px(16), ZIndex = 22 }, "Bold")
 	local cap = m.aw and T.MaxLevel or T.AwakenLevel
 	local need = T.XpToNext(m.lv)
-	label(head, { Position = UDim2.fromOffset(x, px(60)), Size = UDim2.new(1, -x, 0, px(20)), Text = string.format("Level %d / %d%s", m.lv, cap, m.aw and "  ✦ Awakened" or ""), TextSize = px(17), ZIndex = 22 }, "Title")
+	label(head, { Position = UDim2.fromOffset(x, px(60)), Size = UDim2.new(1, -x, 0, px(20)), Text = string.format("Level %d / %d%s", m.lv, cap, m.aw and "  ✦ Evolved" or ""), TextSize = px(17), ZIndex = 22 }, "Title")
 	local xpBack = new("Frame", { Position = UDim2.fromOffset(x, px(84)), Size = UDim2.new(1, -x - 8, 0, px(10)), BackgroundColor3 = C.Soft, ZIndex = 22, Parent = head }, { corner(5) })
 	new("Frame", { Size = UDim2.fromScale(m.lv >= cap and 1 or math.clamp(m.xp / need, 0, 1), 1), BackgroundColor3 = C.Sky, ZIndex = 23, Parent = xpBack }, { corner(5) })
 	label(head, { Position = UDim2.fromOffset(x, px(98)), Size = UDim2.new(1, -x, 0, px(40)), Text = sp.Blurb, TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 22 }, "Bold")
@@ -517,7 +517,7 @@ renderDetail = function(uid: string)
 			renderDetail(uid)
 		end
 	end)
-	local feedB = pill(acts, { LayoutOrder = 6, Text = m.lv >= cap and "Feed (skills)" or "Feed", ZIndex = 22 }, C.Sky)
+	local feedB = pill(acts, { LayoutOrder = 6, Text = m.lv >= cap and "Train (skills)" or "Train", ZIndex = 22 }, C.Sky)
 	feedB.Activated:Connect(function()
 		mode, selected, feedTarget = "feed", {}, uid
 		detail.Visible = false
@@ -527,14 +527,14 @@ renderDetail = function(uid: string)
 		local ess, coins = T.Awaken.Essence(sp.Stars), T.Awaken.Coins(sp.Stars)
 		local ready = m.lv >= T.AwakenLevel and (p.essence[m.el] or 0) >= ess and p.coins >= coins
 		local awB = pill(acts, { LayoutOrder = 7, Text = "", ZIndex = 22 }, C.Sun)
-		Ui.setBuy(awB, m.lv < T.AwakenLevel and ("Awaken at Lv " .. T.AwakenLevel) or "Awaken", ready and "afford" or "poor", C.Sun)
+		Ui.setBuy(awB, m.lv < T.AwakenLevel and ("Evolve at Lv " .. T.AwakenLevel) or "✨ Evolve", ready and "afford" or "poor", C.Sun)
 		awB.Activated:Connect(function()
 			if Ui.call("Awaken", uid) then
 				task.wait(0.15)
 				renderDetail(uid)
 			end
 		end)
-		label(detailScroll, { LayoutOrder = 11, Size = UDim2.new(1, 0, 0, px(18)), Text = string.format("Awakening: Lv %d, %d %s Essence (have %d), %s coins. +15%% stats and max level %d.", T.AwakenLevel, ess, m.el, p.essence[m.el] or 0, Ui.fmt(coins), T.MaxLevel), TextColor3 = C.Sub, TextSize = px(13), TextWrapped = true, ZIndex = 22 }, "Bold")
+		label(detailScroll, { LayoutOrder = 11, Size = UDim2.new(1, 0, 0, px(18)), Text = string.format("Evolving: Lv %d, %d %s Crystals (have %d), %s coins. +15%% stats and max level %d.", T.AwakenLevel, ess, m.el, p.essence[m.el] or 0, Ui.fmt(coins), T.MaxLevel), TextColor3 = C.Sub, TextSize = px(13), TextWrapped = true, ZIndex = 22 }, "Bold")
 	end
 	if not slot and not m.lock then
 		local value = Config.sellValue(sp.Stars, m.lv)
@@ -661,7 +661,7 @@ renderShrine = function()
 	do
 		local SE = Config.Sealed
 		local sealed = p.sealed or { bag = {}, slots = {} }
-		Ui.section(shrineBody, 4, "SEALED SCROLLS  ·  attune them here, then open them")
+		Ui.section(shrineBody, 4, "MYSTERY EGGS  ·  hatch them here, then open them")
 		local slotRow = new("Frame", { LayoutOrder = 5, Size = UDim2.new(1, 0, 0, px(86)), BackgroundTransparency = 1, ZIndex = 12, Parent = shrineBody }, {
 			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
 		})
@@ -703,14 +703,14 @@ renderShrine = function()
 			if n > 0 then
 				any = true
 				local t = SE.Tiers[tier]
-				local b = pill(bag, { LayoutOrder = oi, Size = UDim2.fromOffset(px(200), px(40)), Text = string.format("%s ×%d · Attune (%dm)", t.Name, n, t.Minutes) }, t.Color)
+				local b = pill(bag, { LayoutOrder = oi, Size = UDim2.fromOffset(px(200), px(40)), Text = string.format("%s ×%d · Hatch (%dm)", t.Name, n, t.Minutes) }, t.Color)
 				b.Activated:Connect(function()
 					Ui.call("Sealed", "attune", tier)
 				end)
 			end
 		end
 		if not any then
-			label(bag, { LayoutOrder = 1, Size = UDim2.new(1, 0, 1, 0), Text = "No sealed scrolls. Elites, bosses and Wandering Legends drop them.", TextColor3 = C.Sub, TextSize = px(14) }, "Bold")
+			label(bag, { LayoutOrder = 1, Size = UDim2.new(1, 0, 1, 0), Text = "No mystery eggs. Elites, bosses and Wandering Legends drop them.", TextColor3 = C.Sub, TextSize = px(14) }, "Bold")
 		end
 	end
 	Ui.section(shrineBody, 7, "PITY")

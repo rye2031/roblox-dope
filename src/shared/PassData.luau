@@ -61,7 +61,7 @@ function PassData.text(r): string
 		table.insert(parts, "🌟 " .. r.legendary .. " Legendary")
 	end
 	if r.essence then
-		table.insert(parts, "✦ " .. r.essence .. " Essence")
+		table.insert(parts, "✦ " .. r.essence .. " Crystals")
 	end
 	if r.rune then
 		table.insert(parts, "💠 " .. r.rune .. " rune")
@@ -70,13 +70,13 @@ function PassData.text(r): string
 		table.insert(parts, "⚔ " .. r.gear .. " weapon")
 	end
 	if r.sealed then
-		table.insert(parts, "📜 " .. r.sealed .. " Seal")
+		table.insert(parts, "🥚 " .. r.sealed .. " Egg")
 	end
 	return table.concat(parts, " · ")
 end
 
 function PassData.icon(r): string
-	return r.gear and "⚔" or r.legendary and "🌟" or r.rune and "💠" or r.sealed and "🎁" or r.scrolls and "📜" or r.essence and "✦" or "💰"
+	return r.gear and "⚔" or r.legendary and "🌟" or r.rune and "💠" or r.sealed and "🥚" or r.scrolls and "📜" or r.essence and "✦" or "💰"
 end
 
 return PassData

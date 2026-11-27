@@ -63,7 +63,7 @@ local function dayNightLoop()
 		workspace:SetAttribute("DayAt", dayAt)
 		if last ~= nil and phase ~= last then
 			if phase == "night" then
-				toast:FireAllClients("🌙 Night falls. Dark monsters and elites roam, and Dark Essence drops double", "info")
+				toast:FireAllClients("🌙 Night falls. Dark monsters and elites roam, and Dark Crystals drop double", "info")
 			elseif phase == "dawn" then
 				toast:FireAllClients("🌅 Dawn breaks. Light monsters are out for a little while", "info")
 			end
@@ -83,7 +83,7 @@ local function surgeLoop()
 			workspace:SetAttribute("SurgeUntil", untilT)
 			local info = Config.ElementInfo[el]
 			local rare = el == "Light" or el == "Dark"
-			toast:FireAllClients(string.format("%s %s Surge! %s for the next hour", info.Icon, el, rare and ("Rare " .. el .. " monsters are out") or ("More " .. el .. " monsters, double " .. el .. " Essence")), "good")
+			toast:FireAllClients(string.format("%s %s Surge! %s for the next hour", info.Icon, el, rare and ("Rare " .. el .. " monsters are out") or ("More " .. el .. " monsters, double " .. el .. " Crystals")), "good")
 		end
 		task.wait(5)
 	end
@@ -183,7 +183,7 @@ function Loops.expedition(player: Player, action: any, slot: any, place: any, du
 		p.expeditions[key] = nil
 		PlayerData.push(player)
 		PlayerData.saveSoon(player)
-		local parts = { "+" .. r.coins .. " coins", "+" .. r.essence .. " " .. el .. " Essence" }
+		local parts = { "+" .. r.coins .. " coins", "+" .. r.essence .. " " .. el .. " Crystals" }
 		if scrolls > 0 then
 			table.insert(parts, "+" .. scrolls .. " 📜")
 		end
@@ -242,10 +242,10 @@ function Loops.sealed(player: Player, action: any, a: any): (boolean, string, an
 					p.sealed.bag[tier] = nil
 				end
 				p.sealed.slots[k] = { tier = tier, start = os.time() }
-				return done(string.format("Attuning a %s: ready in %d min", SE.Tiers[tier].Name, SE.Tiers[tier].Minutes))
+				return done(string.format("Hatching a %s: ready in %d min", SE.Tiers[tier].Name, SE.Tiers[tier].Minutes))
 			end
 		end
-		return false, "All attuning slots are busy"
+		return false, "All hatching slots are busy"
 	elseif action == "claim" then
 		local k = tostring(a)
 		local sl = p.sealed.slots[k]
@@ -254,7 +254,7 @@ function Loops.sealed(player: Player, action: any, a: any): (boolean, string, an
 		end
 		local t = SE.Tiers[sl.tier]
 		if os.time() < sl.start + t.Minutes * 60 then
-			return false, "Still attuning"
+			return false, "Still hatching"
 		end
 		p.sealed.slots[k] = nil
 		local reg, leg = t.scrolls or 0, t.legendary or 0

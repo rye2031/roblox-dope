@@ -150,7 +150,7 @@ Config.Tuning = {
 			{ Id = "Summon", Icon = "📜", Text = "Open %d scrolls", Text1 = "Open a scroll", Targets = { 1, 2, 3 } },
 			{ Id = "LevelUp", Icon = "⬆", Text = "Level up your monsters %d times", Targets = { 3, 6, 10 } },
 			{ Id = "TeamSkill", Icon = "✨", Text = "Use your team's ultimate skills %d times", Targets = { 5, 10, 18 } },
-			{ Id = "Feed", Icon = "🍖", Text = "Feed %d monsters to your team", Targets = { 1, 3, 5 }, MinMonsters = 6 },
+			{ Id = "Feed", Icon = "🍖", Text = "Train your team with %d spare monsters", Targets = { 1, 3, 5 }, MinMonsters = 6 },
 			{ Id = "Elite", Icon = "★", Text = "Defeat %d elite monsters", Text1 = "Defeat an elite monster", Targets = { 1, 1, 2 }, Tiers = { 2, 3 }, NeedsBoss = "SproutMeadow" },
 		},
 		Streak = { 50, 80, 120, 160, 220, 300, 500 },
@@ -218,10 +218,10 @@ Config.Loops = {
 Config.Sealed = {
 	Order = { "Bronze", "Silver", "Gold", "Prismatic" },
 	Tiers = {
-		Bronze = { Name = "Bronze Seal", Minutes = 2, Color = Color3.fromRGB(205, 140, 90), scrolls = 1 },
-		Silver = { Name = "Silver Seal", Minutes = 5, Color = Color3.fromRGB(170, 184, 206), scrolls = 2 },
-		Gold = { Name = "Gold Seal", Minutes = 15, Color = Color3.fromRGB(255, 198, 58), scrolls = 3, legendaryChance = 0.35 },
-		Prismatic = { Name = "Prismatic Seal", Minutes = 60, Color = Color3.fromRGB(190, 120, 255), legendary = 1 },
+		Bronze = { Name = "Bronze Egg", Minutes = 2, Color = Color3.fromRGB(205, 140, 90), scrolls = 1 },
+		Silver = { Name = "Silver Egg", Minutes = 5, Color = Color3.fromRGB(170, 184, 206), scrolls = 2 },
+		Gold = { Name = "Gold Egg", Minutes = 15, Color = Color3.fromRGB(255, 198, 58), scrolls = 3, legendaryChance = 0.35 },
+		Prismatic = { Name = "Prismatic Egg", Minutes = 60, Color = Color3.fromRGB(190, 120, 255), legendary = 1 },
 	},
 	Slots = 3,
 	BagCap = 20,
@@ -279,7 +279,7 @@ Config.Arena = {
 	WinCoins = 150,
 	Shop = {
 		regular = { name = "a Regular scroll", cost = 40, scrolls = 1, order = 1 },
-		essence = { name = "10 Essence", cost = 25, essence = 10, order = 2 },
+		essence = { name = "10 Crystals", cost = 25, essence = 10, order = 2 },
 		legendary = { name = "a Legendary scroll", cost = 300, legendary = 1, order = 3 },
 		rune = { name = "a rune (Rare 70% · Epic 25% · Legendary 5%)", cost = 60, rune = true, order = 4 },
 	},

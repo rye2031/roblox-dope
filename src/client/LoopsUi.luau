@@ -135,7 +135,7 @@ local function slotRow(p, slot: number, order: number)
 		end
 	end
 	local r = x.reward
-	label(row, { Position = UDim2.fromOffset(px(170), px(58)), Size = UDim2.new(1, -px(380), 0, px(30)), Text = string.format("💰 %s  ·  %s Essence %d  ·  📜 %s  ·  XP %s each", Ui.fmt(r.coins), r.element and EI[r.element].Icon or "✨", r.essence, tostring(r.scrolls) .. (r.scrollChance > 0 and "+" or ""), Ui.fmt(r.xp)), TextSize = px(13), TextColor3 = C.Sub, TextXAlignment = Enum.TextXAlignment.Left }, "Bold")
+	label(row, { Position = UDim2.fromOffset(px(170), px(58)), Size = UDim2.new(1, -px(380), 0, px(30)), Text = string.format("💰 %s  ·  %s Crystals %d  ·  📜 %s  ·  XP %s each", Ui.fmt(r.coins), r.element and EI[r.element].Icon or "✨", r.essence, tostring(r.scrolls) .. (r.scrollChance > 0 and "+" or ""), Ui.fmt(r.xp)), TextSize = px(13), TextColor3 = C.Sub, TextXAlignment = Enum.TextXAlignment.Left }, "Bold")
 	if left <= 0 then
 		local b = pill(row, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -px(16), 0.5, 0), Size = UDim2.fromOffset(px(150), px(44)), Text = "Claim!" }, C.Mint)
 		b.Activated:Connect(function()
@@ -203,7 +203,7 @@ local function planner(p)
 	if #ms > 0 then
 		local r = Config.expeditionReward(ms, plan.place, E.Durations[plan.dur].Minutes)
 		local pl = E.Places[plan.place]
-		preview = string.format("%d picked → 💰 %s · %s %d Essence · 📜 %d%s · %s XP each", #ms, Ui.fmt(r.coins), pl.Essence and EI[pl.Essence].Icon or "✨", r.essence, r.scrolls, r.scrollChance > 0 and string.format(" (+%d%% for 1 more)", math.floor(r.scrollChance * 100)) or "", Ui.fmt(r.xp))
+		preview = string.format("%d picked → 💰 %s · %s %d Crystals · 📜 %d%s · %s XP each", #ms, Ui.fmt(r.coins), pl.Essence and EI[pl.Essence].Icon or "✨", r.essence, r.scrolls, r.scrollChance > 0 and string.format(" (+%d%% for 1 more)", math.floor(r.scrollChance * 100)) or "", Ui.fmt(r.xp))
 	end
 	label(bar, { LayoutOrder = 1, Size = UDim2.new(1, -px(260), 1, 0), Text = preview, TextSize = px(14), TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left }, "Bold")
 	local send = pill(bar, { LayoutOrder = 2, Size = UDim2.fromOffset(px(120), px(40)), Text = "Send" }, #ms > 0 and C.Mint or C.Line)
@@ -277,7 +277,7 @@ render = function()
 	end
 	clear(body)
 	if planning then
-		sub.Text = "Longer trips and harder places bring back more. Monsters away can't fight or be fed."
+		sub.Text = "Longer trips and harder places bring back more. Monsters away can't fight or be trained."
 		planner(p)
 		return
 	end
@@ -286,7 +286,7 @@ render = function()
 		slotRow(p, slot, slot)
 	end
 	Ui.section(body, 10, "HOW IT WORKS")
-	label(body, { LayoutOrder = 11, Size = UDim2.new(1, 0, 0, px(44)), Text = "Stronger monsters, longer trips and harder regions bring back more coins, Essence (the region's element), scrolls and XP. Recalling early brings them back empty-handed.", TextSize = px(14), TextColor3 = C.Sub, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
+	label(body, { LayoutOrder = 11, Size = UDim2.new(1, 0, 0, px(44)), Text = "Stronger monsters, longer trips and harder regions bring back more coins, Crystals (the region's element), scrolls and XP. Recalling early brings them back empty-handed.", TextSize = px(14), TextColor3 = C.Sub, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
 end
 Ui.onOpen.Expeditions = render
 

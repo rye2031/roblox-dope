@@ -263,8 +263,8 @@ do
 	local steps = {
 		{ "🐾", "Your team", "Up to 3 monsters follow you and fight on their own. Manage them in Monsters." },
 		{ "⚔", "Fight", Controls.touch and "Tap ⚔ to attack. Q-button: weapon skill. Tap a team card's bar for its ultimate." or "Click to attack (hold to keep swinging). Q: weapon skill. Shift: dodge. 1, 2, 3: team ultimates." },
-		{ "🌱", "Explore", "Head north through the arch to Sprout Meadow. Wild monsters give XP, coins, Essence and sometimes scrolls. Team up with others on big ones!" },
-		{ "📜", "Befriend", "Open scrolls at the Summoning Shrine to get new monsters. Feed extras to your team to level them up." },
+		{ "🌱", "Explore", "Walk through the portal in the north arch to Sprout Meadow. Wild monsters give XP, coins, Crystals and sometimes scrolls. Team up with others on big ones!" },
+		{ "📜", "Befriend", "Open scrolls at the Summoning Shrine to get new monsters. Use extras to train your team." },
 		{ "🔥", "Campfires", "Touch a campfire to heal your team and set your respawn point." },
 	}
 	for i, s in steps do
@@ -319,14 +319,14 @@ local function onReward(drops, ups)
 		end)
 		if drops.essence then
 			task.delay(0.3, function()
-				UnitView.popText(drops.pos + Vector3.new(0, 7, 0), "+" .. drops.essence .. " " .. EI[drops.el].Icon .. " Essence", EI[drops.el].Color)
+				UnitView.popText(drops.pos + Vector3.new(0, 7, 0), "+" .. drops.essence .. " " .. EI[drops.el].Icon .. " Crystals", EI[drops.el].Color)
 			end)
 		end
 	end
 	if drops.legendary then
 		Ui.toast("A Legendary scroll dropped! 🌟", "good")
 	elseif drops.sealed and Config.Sealed.Tiers[drops.sealed] then
-		Ui.toast(string.format("A %s dropped! Attune it at the Shrine 📜", Config.Sealed.Tiers[drops.sealed].Name), "good")
+		Ui.toast(string.format("🥚 A %s dropped! Hatch it at the Shrine", Config.Sealed.Tiers[drops.sealed].Name), "good")
 	elseif drops.scroll then
 		Ui.toast("A Regular scroll dropped! Open it at the Shrine 📜", "good")
 	end

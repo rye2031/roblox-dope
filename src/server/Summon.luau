@@ -115,7 +115,7 @@ function Summon.openMany(player: Player, kind: any, count: any)
 	end
 	local room = (p.storageCap - Inventory.count(p)) + (T.OverflowCap - Inventory.overflowCount(p))
 	if room < n then
-		return false, `Storage and overflow are full ({room} spaces left). Sell or feed monsters first`
+		return false, `Storage and overflow are full ({room} spaces left). Sell or train monsters first`
 	end
 	local results = {}
 	for _ = 1, n do

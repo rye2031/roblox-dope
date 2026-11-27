@@ -104,7 +104,7 @@ function Inventory.setLock(player: Player, uid: any, on: any): (boolean, string)
 	end
 	m.lock = on == true
 	PlayerData.push(player)
-	return true, m.lock and "Locked: it won't be fed or sold" or "Unlocked"
+	return true, m.lock and "Locked: it won't be trained or sold" or "Unlocked"
 end
 
 -- Monster uids that are away on an expedition (uid -> slot).
@@ -127,7 +127,7 @@ local function canConsume(p, uid: string, target: string?): (boolean, string?)
 		return false, "it's away on an expedition"
 	end
 	if uid == target then
-		return false, "can't feed a monster to itself"
+		return false, "a monster can't train itself"
 	end
 	if m.lock then
 		return false, "it's locked"
@@ -252,7 +252,7 @@ function Inventory.feed(player: Player, target: any, foods: any): (boolean, stri
 		seen[f] = true
 		local ok, why = canConsume(p, f, target)
 		if not ok then
-			return false, `Can't feed that one: {why}`
+			return false, `Can't train that one: {why}`
 		end
 	end
 	local xp, skillUps = 0, 0
@@ -300,7 +300,7 @@ function Inventory.awaken(player: Player, uid: any): (boolean, string)
 		return false, "You don't have that monster"
 	end
 	if m.aw then
-		return false, "Already awakened"
+		return false, "Already evolved"
 	end
 	if m.lv < T.AwakenLevel then
 		return false, `Reach level {T.AwakenLevel} first`
@@ -308,7 +308,7 @@ function Inventory.awaken(player: Player, uid: any): (boolean, string)
 	local stars = Monsters.Species[m.sp].Stars
 	local ess, coins = T.Awaken.Essence(stars), T.Awaken.Coins(stars)
 	if (p.essence[m.el] or 0) < ess then
-		return false, `Need {ess - (p.essence[m.el] or 0)} more {m.el} Essence`
+		return false, `Need {ess - (p.essence[m.el] or 0)} more {m.el} Crystals`
 	end
 	if p.coins < coins then
 		return false, `Need {coins - p.coins} more coins`
@@ -318,7 +318,7 @@ function Inventory.awaken(player: Player, uid: any): (boolean, string)
 	m.aw = true
 	PlayerData.push(player)
 	PlayerData.saveSoon(player)
-	return true, `{Monsters.Species[m.sp].Name} awakened! Stats +15% and it can now reach level {T.MaxLevel}`
+	return true, `{Monsters.Species[m.sp].Name} evolved! Stats +15% and it can now reach level {T.MaxLevel}`
 end
 
 function Inventory.sellValue(m): number

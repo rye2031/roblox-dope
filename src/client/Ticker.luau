@@ -103,7 +103,7 @@ local function gather(now: number): { Entry }
 			local tier = Config.Sealed and Config.Sealed.Tiers[sl.tier]
 			if tier then
 				local at = sl.start + tier.Minutes * 60
-				table.insert(out, { key = "seal" .. tostring(sl.start), icon = "📜", text = at <= now and (tier.Name .. " is ready!") or (tier.Name .. " attuning"), at = at, active = at <= now, color = C.Sun })
+				table.insert(out, { key = "seal" .. tostring(sl.start), icon = "🥚", text = at <= now and (tier.Name .. " is ready!") or (tier.Name .. " hatching"), at = at, active = at <= now, color = C.Sun })
 			end
 		end
 	end
