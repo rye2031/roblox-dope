@@ -67,6 +67,16 @@ function DayNight.start()
 	local cc = Lighting:FindFirstChildOfClass("ColorCorrectionEffect")
 	local atmBase = atm and { color = atm.Color, decay = atm.Decay, density = atm.Density, haze = atm.Haze }
 	local ccBase = cc and { tint = cc.TintColor, sat = cc.Saturation }
+	-- each place has its own air (closed valleys, 2026-11-27): colour of the haze, how thick,
+	-- the colour grade and a nudge to the sun so every region feels like somewhere else
+	local LOOKS = {
+		SproutMeadow = { color = Color3.fromRGB(232, 246, 222), decay = Color3.fromRGB(186, 222, 170), density = 0.3, haze = 0.9, tint = Color3.fromRGB(250, 255, 240), sat = 0.04 },
+		EmberCanyon = { color = Color3.fromRGB(255, 214, 172), decay = Color3.fromRGB(226, 140, 92), density = 0.38, haze = 1.8, tint = Color3.fromRGB(255, 236, 218), sat = 0.06, clock = 16.2 },
+		TideCoast = { color = Color3.fromRGB(214, 238, 255), decay = Color3.fromRGB(150, 204, 244), density = 0.26, haze = 0.5, tint = Color3.fromRGB(236, 248, 255), sat = 0.04, clock = 10.5 },
+		GaleHighlands = { color = Color3.fromRGB(238, 246, 255), decay = Color3.fromRGB(204, 222, 246), density = 0.22, haze = 0.2, tint = Color3.fromRGB(244, 250, 255), sat = -0.04, clock = 11.5 },
+	}
+	local look = 0 -- smoothed blend toward the current place's look
+	local lookId: string? = nil
 	local ATM_GLOAM = { color = Color3.fromRGB(150, 120, 200), decay = Color3.fromRGB(90, 60, 140), density = 0.42, haze = 2.2 }
 	local ATM_DAWN = { color = Color3.fromRGB(255, 238, 205), decay = Color3.fromRGB(255, 214, 160), density = 0.32, haze = 1.4 }
 	local player = game:GetService("Players").LocalPlayer
@@ -80,6 +90,20 @@ function DayNight.start()
 				want = hrp.Position.Z > D.TwilightSeam and -1 or 1
 			end
 			zone += (want - zone) * 0.12
+			local region = player:GetAttribute("Region")
+			local L = LOOKS[region]
+			if L then
+				if lookId ~= region then
+					lookId = region
+				end
+				look += (1 - look) * 0.15
+			else
+				look += (0 - look) * 0.15
+			end
+			local LL = lookId and LOOKS[lookId]
+			if LL and LL.clock and math.abs(zone) < 0.01 then
+				clock = clock + (LL.clock - clock) * look * 0.7
+			end
 			-- Night is an event, not darkness (owner, 2026-11-27): the sun holds at golden hour and
 			-- the light only takes a soft evening tint; lamps still come on.
 			local night = dark
@@ -107,7 +131,12 @@ function DayNight.start()
 				Lighting.Ambient = Lighting.Ambient:Lerp(EVENING_TINT.ambient, evening * 0.35)
 				Lighting.OutdoorAmbient = Lighting.OutdoorAmbient:Lerp(EVENING_TINT.outdoor, evening * 0.35)
 			end
-			if atm and atmBase then
+			if atm and atmBase and LL and look > 0.01 and math.abs(zone) < 0.01 then
+				atm.Color = atmBase.color:Lerp(LL.color, look)
+				atm.Decay = atmBase.decay:Lerp(LL.decay, look)
+				atm.Density = atmBase.density + (LL.density - atmBase.density) * look
+				atm.Haze = atmBase.haze + (LL.haze - atmBase.haze) * look
+			elseif atm and atmBase then
 				local to, k = zone > 0 and ATM_GLOAM or ATM_DAWN, math.abs(zone)
 				atm.Color = atmBase.color:Lerp(to.color, k)
 				atm.Decay = atmBase.decay:Lerp(to.decay, k)
@@ -117,6 +146,10 @@ function DayNight.start()
 			if cc and ccBase then
 				cc.TintColor = ccBase.tint:Lerp(Color3.fromRGB(255, 232, 224), evening * 0.35):Lerp(zone > 0 and Color3.fromRGB(222, 208, 255) or Color3.fromRGB(255, 246, 228), math.abs(zone))
 				cc.Saturation = ccBase.sat - math.abs(zone) * 0.12
+				if LL and look > 0.01 and math.abs(zone) < 0.01 then
+					cc.TintColor = cc.TintColor:Lerp(LL.tint, look)
+					cc.Saturation += LL.sat * look
+				end
 			end
 			Lighting.ExposureCompensation = base.exposure - math.max(0, zone) * 0.7 - math.max(0, -zone) * 0.15
 			if zone > 0.01 then

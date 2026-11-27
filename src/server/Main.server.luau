@@ -33,7 +33,7 @@ end
 local remoteFolder = Instance.new("Folder")
 remoteFolder.Name = "Remotes"
 local remotes = {}
-for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce", "Story", "DungeonRun" } do
+for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce", "Story", "DungeonRun", "Portal" } do
 	local r = Instance.new("RemoteEvent")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -485,6 +485,9 @@ if game:GetService("RunService"):IsStudio() then
 			return "ok"
 		elseif cmd == "legend" then
 			return tostring(Regions.spawnLegend(a))
+		elseif cmd == "relock" then
+			p.regions[a] = nil -- until the next push re-checks it (Studio test of locked portals)
+			return "ok"
 		elseif cmd == "unitstats" then
 			local u = a == "tamer" and Combat.debug.tamerOf(player) or Combat.debug.units[a]
 			if not u then

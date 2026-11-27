@@ -305,7 +305,6 @@ local function buildHaven()
 		box("ArchPost", x - 1, 0, 92, x + 1, 14, 94, Color3.fromRGB(236, 230, 250), f)
 	end
 	box("ArchTop", -10, 14, 92, 10, 16, 94, TC.Mint, f)
-	float("ToMeadow", Vector3.new(0, 20, 93), "SPROUT MEADOW", TC.Mint, 11, { Icon = "🌱", Sub = "levels 1-9 · wild monsters", Height = 3 })
 
 	-- festive bunting strung across the plaza between posts
 	local FLAG = { TC.Coral, TC.Sun, TC.Mint, TC.Sky, TC.Lilac }
@@ -506,6 +505,37 @@ local function buildGuides()
 		World.Guides[id] = prompt
 		body:SetAttribute("Guide", id)
 		float("Guide_" .. id, base + Vector3.new(0, 9, 0), string.upper(g.Name), g.Color, 6, { Icon = g.Icon, Sub = g.Title, Height = 1.9 })
+	end
+end
+
+-- A mountain range from a to b (closed valleys, 2026-11-27): a rock core, a crest of peaks
+-- (optionally capped with snow or grass) and an invisible wall so nobody climbs out. High
+-- enough that you can't see the next place from inside a valley.
+function World.mountainRange(a: Vector3, b: Vector3, opts: { [string]: any }?)
+	local o = opts or {}
+	local mat = o.material or Enum.Material.Rock
+	local H = o.height or 72
+	local dir = Vector3.new(b.X - a.X, 0, b.Z - a.Z)
+	local len = dir.Magnitude
+	if len < 1 then
+		return
+	end
+	dir = dir.Unit
+	local side = Vector3.new(-dir.Z, 0, dir.X)
+	local mid = (a + b) / 2
+	local cf = CFrame.lookAt(Vector3.new(mid.X, 0, mid.Z), Vector3.new(b.X, 0, b.Z))
+	part({ Name = "RegionWall", Size = Vector3.new(4, 220, len + 6), CFrame = cf * CFrame.new(0, 110, 0), Transparency = 1, CanQuery = false }, o.parent or root)
+	terrain:FillBlock(cf * CFrame.new(0, H * 0.28, 0), Vector3.new(24, H * 0.56 + 6, len + 24), mat)
+	local rng = Random.new(math.floor(a.X * 7 + a.Z * 13 + b.X * 3 + b.Z))
+	local n = math.max(2, math.floor(len / 15))
+	for i = 0, n do
+		local p = a + dir * (len * i / n) + side * (rng:NextNumber() - 0.5) * 10
+		local r = 13 + rng:NextNumber() * 11
+		local top = H * (0.72 + rng:NextNumber() * 0.42)
+		terrain:FillBall(Vector3.new(p.X, top - r, p.Z), r, mat)
+		if o.cap and top > H * 0.92 then
+			terrain:FillBall(Vector3.new(p.X, top - r * 0.45, p.Z), r * 0.62, o.cap)
+		end
 	end
 end
 

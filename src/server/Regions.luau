@@ -16,6 +16,7 @@ local Monsters = require(ReplicatedStorage.Shared.Monsters)
 local Theme = require(ReplicatedStorage.Shared.Theme)
 local PlayerData = require(script.Parent.PlayerData)
 local Story = require(script.Parent.Story)
+local Places = require(ReplicatedStorage.Shared.Places)
 
 local TC = Theme.C
 local Regions = {}
@@ -50,26 +51,11 @@ local worldActive = false
 
 local terrain = workspace.Terrain
 
--- A rectangular ridge of rock with an invisible wall on top (players can't hop over).
-local function ridge(h, a: Vector3, b: Vector3, gapAt: Vector3?, gapWidth: number?)
-	local function segment(p0: Vector3, p1: Vector3)
-		local mid = (p0 + p1) / 2
-		local len = (p1 - p0).Magnitude
-		if len < 1 then
-			return
-		end
-		local cf = CFrame.lookAt(Vector3.new(mid.X, 0, mid.Z), Vector3.new(p1.X, 0, p1.Z))
-		terrain:FillBlock(cf * CFrame.new(0, 10, 0), Vector3.new(14, 24, len + 14), Enum.Material.Rock)
-		h.part({ Name = "RegionWall", Size = Vector3.new(4, 160, len + 6), CFrame = cf * CFrame.new(0, 80, 0), Transparency = 1, CanQuery = false })
-	end
-	if gapAt then
-		local dir = (b - a).Unit
-		local t = (gapAt - a):Dot(dir)
-		segment(a, a + dir * (t - gapWidth / 2))
-		segment(a + dir * (t + gapWidth / 2), b)
-	else
-		segment(a, b)
-	end
+-- Region borders are mountain ranges now (closed valleys, 2026-11-27); gaps are gone because
+-- portals carry you between places. `ridgeLook` is set by each region builder.
+local ridgeLook: { material: Enum.Material?, cap: Enum.Material? } = {}
+local function ridge(h, a: Vector3, b: Vector3, _gapAt: Vector3?, _gapWidth: number?)
+	World.mountainRange(a, b, { material = ridgeLook.material, cap = ridgeLook.cap })
 end
 
 local function gate(h, region: string, pos: Vector3, facing: Vector3, width: number, accent: Color3, text: string, sub: string)
@@ -182,12 +168,12 @@ local function buildEmberCanyon(h)
 	World.Regions.EmberCanyon.BossArena = ac
 	bossCamp("EmberCanyon", ac)
 	-- walls: enclose the canyon; the only way in is the gate on the meadow side
+	ridgeLook = { material = Enum.Material.Sandstone }
 	local hh = { part = P }
 	ridge(hh, Vector3.new(250, 0, z0 - 10), Vector3.new(250, 0, z1 + 10), Vector3.new(250, 0, 330), 24)
 	ridge(hh, Vector3.new(250, 0, z0 - 10), Vector3.new(x1 + 10, 0, z0 - 10))
 	ridge(hh, Vector3.new(250, 0, z1 + 10), Vector3.new(x1 + 10, 0, z1 + 10))
 	ridge(hh, Vector3.new(x1 + 10, 0, z0 - 10), Vector3.new(x1 + 10, 0, z1 + 10))
-	gate({ part = P, float = h.float }, "EmberCanyon", Vector3.new(250, World.groundY(250, 330), 330), Vector3.new(1, 0, 0), 24, TC.Coral, "EMBER CANYON", "beat the Meadow Guardian or reach Lv 14")
 end
 
 local function buildTideCoast(h)
@@ -240,12 +226,12 @@ local function buildTideCoast(h)
 	arena({ part = P, float = h.float }, "TideCoast", ac, TC.Sky, Color3.fromRGB(200, 226, 240), Regions.Info.TideCoast.Boss.title)
 	World.Regions.TideCoast.BossArena = ac
 	bossCamp("TideCoast", ac)
+	ridgeLook = { material = Enum.Material.Rock, cap = Enum.Material.Grass }
 	local hh = { part = P }
 	ridge(hh, Vector3.new(-250, 0, z0 - 10), Vector3.new(-250, 0, z1 + 10), Vector3.new(-250, 0, 330), 24)
 	ridge(hh, Vector3.new(-250, 0, z0 - 10), Vector3.new(x0 - 10, 0, z0 - 10))
 	ridge(hh, Vector3.new(-250, 0, z1 + 10), Vector3.new(x0 - 10, 0, z1 + 10))
 	ridge(hh, Vector3.new(x0 - 10, 0, z0 - 10), Vector3.new(x0 - 10, 0, z1 + 10))
-	gate({ part = P, float = h.float }, "TideCoast", Vector3.new(-250, World.groundY(-250, 330), 330), Vector3.new(-1, 0, 0), 24, TC.Sky, "TIDE COAST", "beat the Canyon Tyrant or reach Lv 22")
 end
 
 -- Gale Highlands (M8): windswept uplands south of Haven, levels 24-32, Wind 60%.
@@ -303,13 +289,13 @@ local function buildGaleHighlands(h)
 	World.Regions.GaleHighlands.BossArena = ac
 	bossCamp("GaleHighlands", ac)
 	-- walls: ridges all round; the way in is the south gate of Haven
+	ridgeLook = { material = Enum.Material.Slate, cap = Enum.Material.Snow }
 	local hh = { part = P }
 	ridge(hh, Vector3.new(x0 - 10, 0, -100), Vector3.new(x1 + 10, 0, -100), Vector3.new(0, 0, -100), 24)
 	ridge(hh, Vector3.new(x0 - 10, 0, -100), Vector3.new(x0 - 10, 0, z0 - 10))
 	-- east ridge: the Twilight Vale gate sits in it
 	ridge(hh, Vector3.new(x1 + 10, 0, -100), Vector3.new(x1 + 10, 0, z0 - 10), Vector3.new(x1 + 10, 0, -200), 24)
 	ridge(hh, Vector3.new(x0 - 10, 0, z0 - 10), Vector3.new(x1 + 10, 0, z0 - 10))
-	gate({ part = P, float = h.float }, "GaleHighlands", Vector3.new(0, World.groundY(0, -100), -100), Vector3.new(0, 0, -1), 24, TC.Mint, "GALE HIGHLANDS", "beat the Tide Monarch or reach Lv 30")
 end
 
 -- Twilight Vale (M8.2): south-east, through the Gale Highlands' east gate. The north half is
@@ -435,11 +421,70 @@ local function buildTwilightVale(h)
 		return workspace:GetAttribute("IsNight") and "Dark" or "Light"
 	end
 	-- walls (the west side is the Gale Highlands' east ridge, gate in it)
+	ridgeLook = { material = Enum.Material.Basalt }
+	terrain:SetMaterialColor(Enum.Material.Basalt, Color3.fromRGB(104, 92, 130))
 	local hh = { part = P }
 	ridge(hh, Vector3.new(x0 - 10, 0, -100), Vector3.new(x1 + 10, 0, -100))
 	ridge(hh, Vector3.new(x1 + 10, 0, -100), Vector3.new(x1 + 10, 0, z0 - 10))
 	ridge(hh, Vector3.new(x0 - 10, 0, z0 - 10), Vector3.new(x1 + 10, 0, z0 - 10))
-	gate({ part = P, float = h.float }, "TwilightVale", Vector3.new(250, World.groundY(250, -200), -200), Vector3.new(1, 0, 0), 24, TC.Lilac, "TWILIGHT VALE", "beat the Sky Sovereign or reach Lv 38")
+end
+
+-- Haven's own valley (north toward the Meadow, east and west) and the Meadow's far end.
+local function buildValleys()
+	ridgeLook = { material = Enum.Material.Rock, cap = Enum.Material.Grass }
+	ridge(nil, Vector3.new(-250, 0, 112), Vector3.new(250, 0, 112))
+	ridge(nil, Vector3.new(-250, 0, -100), Vector3.new(-250, 0, 112))
+	ridge(nil, Vector3.new(250, 0, -100), Vector3.new(250, 0, 90))
+	ridge(nil, Vector3.new(-250, 0, 580), Vector3.new(250, 0, 580))
+end
+
+-- Portals (Shared/Places.Links): a stone frame with a glowing disc on each side of a mountain
+-- range. Walking in fades you to the other side (Regions.portalLoop).
+local PORTAL_ACCENT = { Haven = TC.Sun, SproutMeadow = TC.Mint, EmberCanyon = TC.Coral, TideCoast = TC.Sky, GaleHighlands = TC.Mint, TwilightVale = TC.Lilac }
+local PORTAL_ICON = { Haven = "🏡", SproutMeadow = "🌱", EmberCanyon = "🔥", TideCoast = "🌊", GaleHighlands = "🍃", TwilightVale = "🌗" }
+Regions.portals = {} -- { pos, face, to = other side, needs?, label }
+local function buildPortals(h)
+	local f = Instance.new("Folder")
+	f.Name = "Portals"
+	f.Parent = h.root
+	local function side(link, here, there, needs)
+		local y = 2
+		local base = Vector3.new(here.pos.X, y, here.pos.Z)
+		local look = CFrame.lookAt(base, base + here.face)
+		local accent = PORTAL_ACCENT[there.place] or TC.Mint
+		if here.frame ~= false then
+			for _, sx in { -1, 1 } do
+				h.part({ Name = "PortalPillar", Size = Vector3.new(2.6, 15, 2.6), CFrame = look * CFrame.new(sx * 8, 7.5, 0), Color = Color3.fromRGB(236, 230, 250) }, f)
+				h.part({ Name = "PortalCap", Size = Vector3.new(3.4, 1.2, 3.4), CFrame = look * CFrame.new(sx * 8, 15.4, 0), Color = accent }, f)
+			end
+			h.part({ Name = "PortalLintel", Size = Vector3.new(19, 2, 3), CFrame = look * CFrame.new(0, 16, 0), Color = Color3.fromRGB(236, 230, 250) }, f)
+		end
+		local disc = h.part({ Name = "PortalDisc", Shape = Enum.PartType.Cylinder, Size = Vector3.new(0.4, 13, 13), CFrame = look * CFrame.new(0, 7.4, 0) * CFrame.Angles(0, math.rad(90), 0), Color = accent, Material = Enum.Material.Neon, Transparency = 0.5, CanCollide = false, CanQuery = false }, f)
+		disc:SetAttribute("NoLod", true)
+		local sparks = Instance.new("ParticleEmitter")
+		sparks.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+		sparks.Color = ColorSequence.new(accent, Color3.new(1, 1, 1))
+		sparks.Rate = 10
+		sparks.Lifetime = NumberRange.new(1, 1.6)
+		sparks.Speed = NumberRange.new(1, 3)
+		sparks.Size = NumberSequence.new(0.45, 0)
+		sparks.LightEmission = 0.7
+		sparks.Parent = disc
+		local name = Places.Names[there.place]
+		local sub = "walk in to travel"
+		if needs then
+			local info = Regions.Info[needs]
+			local i = table.find(Regions.Order, needs) or 2
+			local prev = Regions.Info[Regions.Order[i - 1]]
+			sub = "opens: beat the " .. prev.Boss.title .. " or reach Lv " .. tostring(info.PassLevel)
+		end
+		h.float("Portal_" .. link.id .. "_" .. here.place, base + Vector3.new(0, 22, 0), string.upper(name), accent, 11, { Icon = PORTAL_ICON[there.place], Sub = sub, Height = 3 })
+		table.insert(Regions.portals, { pos = base, face = here.face, place = here.place, to = there, needs = needs, name = name })
+	end
+	for _, link in Places.Links do
+		side(link, link.a, link.b, link.needs)
+		side(link, link.b, link.a, nil)
+	end
 end
 
 local function buildTitanField(h)
@@ -632,6 +677,62 @@ function Regions.register(w)
 		buildGaleHighlands(h)
 		buildTwilightVale(h)
 		buildTitanField(h)
+		buildValleys()
+		buildPortals(h)
+	end
+end
+
+-- Carry a player (and their team) through a portal to the far side, behind a fade.
+function Regions.travel(pl: Player, there, name: string)
+	remotes.Portal:FireClient(pl, { kind = "go", name = name })
+	task.delay(0.35, function()
+		local hrp = pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+		if not hrp then
+			return
+		end
+		local at = Vector3.new(there.arrive.X, 2, there.arrive.Z)
+		pcall(function()
+			pl:RequestStreamAroundAsync(at)
+		end)
+		hrp.AssemblyLinearVelocity = Vector3.zero
+		hrp.CFrame = CFrame.lookAt(at + Vector3.new(0, 3.5, 0), at + Vector3.new(0, 3.5, 0) - there.face)
+		Combat.warpTeam(pl, at)
+		pl:SetAttribute("Region", Places.regionAt(at))
+		remotes.Portal:FireClient(pl, { kind = "arrive", name = name })
+	end)
+end
+
+function Regions.portalLoop()
+	local cooldown: { [Player]: number } = {}
+	local warned: { [Player]: number } = {}
+	while true do
+		task.wait(0.15)
+		for _, pl in Players:GetPlayers() do
+			local hrp = pl.Character and pl.Character:FindFirstChild("HumanoidRootPart") :: BasePart?
+			if hrp and os.clock() >= (cooldown[pl] or 0) and not pl:GetAttribute("Dungeon") then
+				for _, pt in Regions.portals do
+					local d = hrp.Position - pt.pos
+					if Vector3.new(d.X, 0, d.Z).Magnitude < 4.5 and d.Y > -4 and d.Y < 14 then
+						local p = PlayerData.get(pl)
+						if pt.needs and (not p or not p.regions[pt.needs]) then
+							if os.clock() - (warned[pl] or 0) > 3 then
+								warned[pl] = os.clock()
+								local i = table.find(Regions.Order, pt.needs) or 2
+								local prev = Regions.Info[Regions.Order[i - 1]]
+								remotes.Toast:FireClient(pl, `{pt.name} is locked: beat the {prev.Boss.title} in {prev.Name}, or get a monster to Lv {Regions.Info[pt.needs].PassLevel}`, "warn")
+							end
+							local back = pt.pos - pt.face * 9
+							hrp.CFrame = CFrame.lookAt(back + Vector3.new(0, 3.5, 0), back + Vector3.new(0, 3.5, 0) - pt.face)
+							cooldown[pl] = os.clock() + 0.6
+						else
+							cooldown[pl] = os.clock() + 2.5
+							Regions.travel(pl, pt.to, pt.name)
+						end
+						break
+					end
+				end
+			end
+		end
 	end
 end
 
@@ -639,6 +740,7 @@ function Regions.init(r, c)
 	remotes = r
 	Combat = c
 	setupGroups()
+	task.spawn(Regions.portalLoop)
 	Combat.onBossDefeated = onBossDefeated
 	Combat.onBossDied = onBossDied
 	-- the Eclipse Warden changes with the sky: at nightfall and dawn an idle Warden swaps

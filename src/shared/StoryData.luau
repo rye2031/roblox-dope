@@ -33,19 +33,19 @@ local P = {
 	Shrine = Vector3.new(48, 0, 14),
 	Storage = Vector3.new(-52, 0, 14),
 	Smith = Vector3.new(-36, 0, -48),
-	Arch = Vector3.new(0, 0, 100),
+	Arch = Vector3.new(0, 0, 93), -- the Meadow portal in Haven's north arch
 	MeadowCamps = Vector3.new(0, 0, 230),
 	MeadowFire = Vector3.new(14, 0, 300),
 	MeadowBoss = Vector3.new(0, 0, 520),
-	EmberGate = Vector3.new(250, 0, 330),
+	EmberGate = Vector3.new(226, 0, 330), -- portals (Shared/Places)
 	EmberCamps = Vector3.new(420, 0, 380),
 	EmberBoss = Vector3.new(600, 0, 520),
-	TideGate = Vector3.new(-250, 0, 330),
+	TideGate = Vector3.new(-226, 0, 330),
 	TideCamps = Vector3.new(-420, 0, 380),
 	TideBoss = Vector3.new(-560, 0, 520),
 	Titan = Vector3.new(170, 0, -10),
 	Arena = Vector3.new(52, 0, 52),
-	GaleGate = Vector3.new(0, 0, -96),
+	GaleGate = Vector3.new(0, 0, -82),
 	GaleCamps = Vector3.new(0, 0, -300),
 	GaleFire = Vector3.new(20, 0, -140),
 	GaleBoss = Vector3.new(0, 0, -520),
@@ -61,7 +61,7 @@ StoryData.Chapters = {
 			{ id = "first_summon", kind = "summon", n = 1, text = "Open a scroll at the Summoning Shrine", at = P.Shrine, reward = { coins = 150, scrolls = 1 } },
 			{ id = "team", kind = "team", n = 3, text = "Have 3 monsters on your team", at = P.Shrine, reward = { coins = 150 },
 				hint = "Open more scrolls. Your first three monsters join your team on their own." },
-			{ id = "to_meadow", kind = "visit", region = "SproutMeadow", text = "Head north through the arch to Sprout Meadow", at = P.Arch, reward = { coins = 150 } },
+			{ id = "to_meadow", kind = "visit", region = "SproutMeadow", text = "Walk through the portal in Haven's north arch to Sprout Meadow", at = P.Arch, reward = { coins = 150 } },
 		},
 	},
 	{
@@ -83,7 +83,7 @@ StoryData.Chapters = {
 	{
 		Title = "Ember Canyon",
 		Steps = {
-			{ id = "to_ember", kind = "visit", region = "EmberCanyon", text = "Enter Ember Canyon through the east gate", at = P.EmberGate, reward = { coins = 250 } },
+			{ id = "to_ember", kind = "visit", region = "EmberCanyon", text = "Take the east portal in Sprout Meadow to Ember Canyon", at = P.EmberGate, reward = { coins = 250 } },
 			{ id = "cinder", kind = "talk", npc = "Cinder", text = "Talk to Cinder at the canyon campfire", at = StoryData.Npcs.Cinder.Pos, reward = { coins = 200 },
 				lines = { "Hot enough for you? Most monsters here are Fire.", "Fire beats Wind, but Water beats Fire. Bring Water monsters and they'll hit harder.", "And visit the Weapon Smith in Haven. A sharper weapon keeps you standing longer." } },
 			{ id = "ember_hunt", kind = "defeat", n = 12, region = "EmberCanyon", text = "Defeat wild monsters in Ember Canyon", at = P.EmberCamps, reward = { coins = 300, scrolls = 2 } },
@@ -95,7 +95,7 @@ StoryData.Chapters = {
 	{
 		Title = "Tide Coast",
 		Steps = {
-			{ id = "to_tide", kind = "visit", region = "TideCoast", text = "Enter Tide Coast through the west gate", at = P.TideGate, reward = { coins = 300 } },
+			{ id = "to_tide", kind = "visit", region = "TideCoast", text = "Take the west portal in Sprout Meadow to Tide Coast", at = P.TideGate, reward = { coins = 300 } },
 			{ id = "marlo", kind = "talk", npc = "Marlo", text = "Talk to Marlo at the coast campfire", at = StoryData.Npcs.Marlo.Pos, reward = { coins = 250 },
 				lines = { "Ahoy, Tamer! Mind the tide pools.", "At level 20 a monster stops growing until it Awakens. Awakening takes Essence of its element, and the cap jumps to 40.", "Wild monsters drop Essence. Awaken one and you'll feel the difference." } },
 			{ id = "tide_hunt", kind = "defeat", n = 15, region = "TideCoast", text = "Defeat wild monsters in Tide Coast", at = P.TideCamps, reward = { coins = 350, scrolls = 2 } },
@@ -119,7 +119,7 @@ StoryData.Chapters = {
 	{
 		Title = "Gale Highlands",
 		Steps = {
-			{ id = "to_gale", kind = "visit", region = "GaleHighlands", text = "Climb into Gale Highlands through Haven's south gate", at = P.GaleGate, reward = { coins = 400 },
+			{ id = "to_gale", kind = "visit", region = "GaleHighlands", text = "Take the portal at Haven's south edge to Gale Highlands", at = P.GaleGate, reward = { coins = 400 },
 				hint = "The south gate opens once the Tide Monarch falls, or when a monster reaches Lv 30." },
 			{ id = "aeris", kind = "talk", npc = "Aeris", text = "Talk to Aeris at the highland campfire", at = StoryData.Npcs.Aeris.Pos, reward = { coins = 300 },
 				lines = { "You climbed all the way up here? The wind told me you might.", "Wind monsters rule these heights. Fire burns through them, so bring your hottest team.", "At the top sits the Sky Sovereign. Beat it and you'll have walked the whole Tamer's Journey.", "And legend says the journey's end brings a very rare scroll..." } },

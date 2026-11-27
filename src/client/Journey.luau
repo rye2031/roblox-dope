@@ -9,6 +9,7 @@ local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local StoryData = require(Shared.StoryData)
+local Places = require(Shared.Places)
 local Ui = require(script.Parent.Ui)
 local Sfx = require(script.Parent.Sfx)
 
@@ -296,6 +297,19 @@ function Journey.start()
 			override = nil
 		end
 		local goal = override and ground(override.pos) or target
+		-- in another place: point at the portal that leads there instead (valleys are closed)
+		local via = false
+		if goal and hrp then
+			local here = Places.regionAt(hrp.Position)
+			local there = Places.regionAt(goal)
+			if here ~= there then
+				local side = Places.nextPortal(here, there)
+				if side then
+					goal = ground(side.pos)
+					via = true
+				end
+			end
+		end
 		if not goal or not hrp then
 			markerGui.Enabled = false
 			ring.Transparency = 1
@@ -307,7 +321,7 @@ function Journey.start()
 		local dist = flat.Magnitude
 		markerPart.Position = tgt
 		markerGui.Enabled = dist > 10
-		markerDist.Text = string.format("%dm", math.floor(dist))
+		markerDist.Text = via and string.format("portal · %dm", math.floor(dist)) or string.format("%dm", math.floor(dist))
 		local t = os.clock()
 		ring.CFrame = CFrame.new(tgt + Vector3.new(0, 0.15, 0)) * CFrame.Angles(0, 0, math.rad(90))
 		ring.Transparency = dist < 220 and (0.55 + 0.2 * math.sin(t * 4)) or 1
