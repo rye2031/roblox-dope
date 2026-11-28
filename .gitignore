@@ -8,3 +8,4 @@
 
 # local agent/bridge logs
 *.log
+backups/
