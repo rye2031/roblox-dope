@@ -87,6 +87,7 @@ local monDot: Frame -- overflow waiting
 local expDot: Frame -- an expedition is back
 local shrineDot: Frame -- a sealed scroll is ready
 local passDot: Frame -- a Tamer Pass reward is ready
+local lastCoins: number? = nil
 local railButtons: { [string]: TextButton } = {}
 local newBadges: { [string]: Frame } = {}
 for i, r in RAIL do
@@ -326,6 +327,7 @@ local function onReward(drops, ups)
 		return
 	end
 	if drops.pos then
+		require(script.Parent.Wins).coins(drops.pos + Vector3.new(0, 3, 0), drops.coins or 0)
 		UnitView.popText(drops.pos + Vector3.new(0, 4, 0), "+" .. drops.coins .. " 💰", C.Sun)
 		task.delay(0.15, function()
 			UnitView.popText(drops.pos + Vector3.new(0, 5.5, 0), "+" .. Ui.fmt(drops.xp) .. " XP", C.Sky)
@@ -405,6 +407,13 @@ end
 
 function Hud.setProfile(p)
 	coinL.Text = "💰 " .. Ui.fmt(p.coins)
+	if lastCoins and p.coins > lastCoins then
+		-- the wallet hops when coins land
+		local sc = coinL:FindFirstChild("Hop") :: UIScale? or Ui.new("UIScale", { Name = "Hop", Parent = coinL })
+		sc.Scale = 1.25
+		game:GetService("TweenService"):Create(sc, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	end
+	lastCoins = p.coins
 	regL.Text = "📜 " .. (p.scrolls.Regular or 0)
 	legL.Text = "🌟 " .. (p.scrolls.Legendary or 0)
 	eclL.Visible = (p.scrolls.Eclipse or 0) > 0

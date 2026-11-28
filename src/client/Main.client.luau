@@ -26,6 +26,7 @@ local Pace = require(script.Parent.Pace)
 local Tips = require(script.Parent.Tips)
 local Landmarks = require(script.Parent.Landmarks)
 local _PassUi = require(script.Parent.PassUi)
+local Wins = require(script.Parent.Wins)
 
 Sfx.start(Ui)
 UnitView.start()
@@ -40,6 +41,7 @@ PortalFx.start()
 Pace.start()
 Tips.start()
 Landmarks.start()
+Wins.start()
 PropView.start()
 AmbientFx.start()
 Ticker.start(Journey)
@@ -133,6 +135,13 @@ if game:GetService("RunService"):IsStudio() then
 				Tips.show(a, true)
 			end
 			return Tips.state()
+		elseif cmd == "wins" then
+			if a == "banner" then
+				Wins.summoned({ sp = "Wyrmlet", el = "Fire", new = true })
+			elseif a == "gift" then
+				Wins.dailyGift()
+			end
+			return "ok"
 		elseif cmd == "gallery" then
 			return require(script.Parent.DebugGallery).show(tonumber(a) or 1)
 		elseif cmd == "dungeonui" then
