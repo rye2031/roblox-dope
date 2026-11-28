@@ -170,6 +170,10 @@ if game:GetService("RunService"):IsStudio() then
 				RunesUi.debugSelect(a)
 			end
 			return "ok"
+		elseif cmd == "preview" then
+			Ui.open("Index")
+			Panels.preview(a, b)
+			return "ok"
 		elseif cmd == "detail" then
 			Panels.showMonster(a)
 			return "ok"

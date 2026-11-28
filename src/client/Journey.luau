@@ -57,6 +57,7 @@ end
 local arrowL, arrowR = arrowPiece(1), arrowPiece(-1)
 
 local target: Vector3? = nil
+local areaStep: string? = nil -- the region an "anywhere here" step is about
 local override: { pos: Vector3, untilT: number }? = nil -- a live event the player clicked (ticker)
 
 -- Points the waypoint at a place until os.time() reaches untilT (then back to the story).
@@ -250,6 +251,12 @@ local function render(p)
 	local reward = StoryData.rewardText(s.reward or {})
 	tInfo.Text = info ~= "" and (info .. "   ·   " .. reward) or reward
 	target = s.at and ground(s.at) or nil
+	-- "defeat monsters in <region>" can be done anywhere in that region: the marker only leads
+	-- you there, and goes away once you're inside (owner, 2026-11-27)
+	areaStep = (s.kind == "defeat" and s.region) and s.region or nil
+	if areaStep and info ~= "" then
+		tInfo.Text = info .. "  ·  anywhere in " .. (REGION_NAMES[areaStep] or areaStep) .. "   ·   " .. reward
+	end
 	if i ~= lastStep then
 		if lastStep ~= 0 then
 			tScale.Scale = 1.12
@@ -297,6 +304,9 @@ function Journey.start()
 			override = nil
 		end
 		local goal = override and ground(override.pos) or target
+		if not override and areaStep and player:GetAttribute("Region") == areaStep then
+			goal = nil
+		end
 		-- in another place: point at the portal that leads there instead (valleys are closed)
 		local via = false
 		if goal and hrp then

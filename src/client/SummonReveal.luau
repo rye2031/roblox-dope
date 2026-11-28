@@ -250,11 +250,11 @@ local function buttonBar(parent: Instance, h: Handlers, y: UDim, z: number)
 		end)
 		return b
 	end
-	if h.kind ~= "Intro" then -- the dream intro only needs "Nice!"
+	if h.kind ~= "Intro" then -- the dream intro only needs "Done"
 		pill(1, string.format("Hatch 1  (%d)", have), C.Sky, have >= 1, h.one)
 		pill(2, string.format("Hatch %d", multi), C.Lilac, have >= multi, h.ten)
 	end
-	pill(3, "Nice!", C.Mint, true, h.done)
+	pill(3, "Done", C.Mint, true, h.done)
 	-- pop in
 	local sc = new("UIScale", { Scale = 0.6, Parent = bar })
 	tween(sc, 0.3, { Scale = 1 }, Enum.EasingStyle.Back)

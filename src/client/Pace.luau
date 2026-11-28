@@ -65,10 +65,47 @@ function Pace.start()
 	end
 	paintRide()
 	Ui.onProfile(paintRide)
+	-- riding pose: sit astride the monster (Roblox's own R15 sit animation, looped above the
+	-- walk/run ones) and silence the running footsteps; played on our own character, so it
+	-- replicates to everyone
+	local SIT_ID = "rbxassetid://2506281703"
+	local sitTrack: AnimationTrack? = nil
+	local function setPose(on: boolean)
+		local char = player.Character
+		local hum = char and char:FindFirstChildOfClass("Humanoid")
+		local animator = hum and hum:FindFirstChildOfClass("Animator")
+		if sitTrack then
+			sitTrack:Stop(0.15)
+			sitTrack = nil
+		end
+		if on and animator then
+			local a = Instance.new("Animation")
+			a.AnimationId = SIT_ID
+			local ok, track = pcall(function()
+				return animator:LoadAnimation(a)
+			end)
+			if ok and track then
+				track.Priority = Enum.AnimationPriority.Action4
+				track.Looped = true
+				track:Play(0.15)
+				sitTrack = track
+			end
+		end
+		local hrp = char and char:FindFirstChild("HumanoidRootPart")
+		local steps = hrp and hrp:FindFirstChild("Running") :: Sound?
+		if steps then
+			steps.Volume = on and 0 or 0.65
+		end
+	end
 	player:GetAttributeChangedSignal("Riding"):Connect(function()
-		if player:GetAttribute("Riding") then
+		local on = player:GetAttribute("Riding") ~= nil
+		setPose(on)
+		if on then
 			Sfx.play("skill_ready", { pitch = 1.2 })
 		end
+	end)
+	player.CharacterAdded:Connect(function()
+		sitTrack = nil
 	end)
 	local emitter: ParticleEmitter? = nil
 	local function onChar(char: Model)

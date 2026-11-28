@@ -1164,9 +1164,10 @@ function Combat.toggleRide(player: Player)
 	u.part:SetAttribute("Mount", true)
 	u.part:SetAttribute("RideScale", rideScale(u.sp))
 	u.target = nil
-	-- stand on its back (about 85% of its height; big heads and ears stick up past that)
-	local lift = Monsters.Species[u.sp].Height * rideScale(u.sp) * 0.85
-	hum.HipHeight = BASE_HIP + lift
+	-- sit astride its back: the client plays a seated pose, so the hips (not the feet) go about
+	-- 75% of the way up the monster and the legs hang down its sides
+	local lift = Monsters.Species[u.sp].Height * rideScale(u.sp) * 0.75
+	hum.HipHeight = lift + 0.4
 	local hrp = hrpOf(player)
 	if hrp then
 		hrp.CFrame += Vector3.new(0, lift, 0)

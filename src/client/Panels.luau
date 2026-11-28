@@ -785,7 +785,7 @@ end
 ----------------------------------------------------------------------------------------------
 -- Index
 
-local _, indexBody, indexSub = Ui.panel("Index", "Index", "Every species in every element you've befriended.", C.Mint, "📖", true)
+local _, indexBody, indexSub = Ui.panel("Index", "Index", "Every monster you can hatch. Tap one to see it.", C.Mint, "📖", true)
 Ui.onOpen.Index = function()
 	local p = Ui.profile
 	if not p then
@@ -805,8 +805,8 @@ Ui.onOpen.Index = function()
 	for _ in p.found or {} do
 		nFound += 1
 	end
-	Ui.section(indexBody, -6, string.format("DISCOVERIES  ·  %d / %d  ·  find them all for a Legendary Egg", nFound, #Disc.List))
-	local dgrid = new("Frame", { LayoutOrder = -5, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 12, Parent = indexBody }, {
+	Ui.section(indexBody, 9000, string.format("DISCOVERIES  ·  %d / %d  ·  find them all for a Legendary Egg", nFound, #Disc.List))
+	local dgrid = new("Frame", { LayoutOrder = 9001, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 12, Parent = indexBody }, {
 		new("UIGridLayout", { CellSize = UDim2.fromOffset(px(250), px(46)), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
 	for i, d in Disc.List do
@@ -846,14 +846,17 @@ Ui.onOpen.Index = function()
 			end
 		end)
 	end
-	label(indexBody, { LayoutOrder = -1, Size = UDim2.new(1, 0, 0, px(20)), Text = "Find all 5 elements of a species for a 🌟 Legendary Egg.", TextColor3 = C.Sub, TextSize = px(13) }, "Bold")
+	label(indexBody, { LayoutOrder = -1, Size = UDim2.new(1, 0, 0, px(20)), Text = "MONSTER CATALOG  ·  tap any monster to see it and its skills. Find all 5 elements of one for a 🌟 Legendary Egg.", TextColor3 = C.Sub, TextSize = px(13) }, "Bold")
 	local lastStars = 0
 	for i, sp in list do
 		if sp.Stars ~= lastStars then
 			lastStars = sp.Stars
 			Ui.section(indexBody, i * 2 - 1, stars(sp.Stars) .. (sp.Stars <= 2 and "  (great food for leveling)" or ""))
 		end
-		local r = new("Frame", { LayoutOrder = i * 2, Size = UDim2.new(1, 0, 0, px(64)), BackgroundColor3 = C.Soft, ZIndex = 12, Parent = indexBody }, { corner(14) })
+		local r = button({ Name = "Species_" .. sp.Id, LayoutOrder = i * 2, Size = UDim2.new(1, 0, 0, px(64)), BackgroundColor3 = C.Soft, Text = "", AutoButtonColor = true, ZIndex = 12, Parent = indexBody, Radius = 14 })
+		r.Activated:Connect(function()
+			Panels.preview(sp.Id)
+		end)
 		local any, all = false, true
 		for _, el in Config.Elements do
 			if p.index[sp.Id .. ":" .. el] then
@@ -875,10 +878,9 @@ Ui.onOpen.Index = function()
 		end
 		local _, img = Ui.portrait(r, sp.Id, nil, UDim2.fromOffset(px(52), px(52)), UDim2.fromOffset(6, 6), 13)
 		if not any then
-			img.ImageColor3 = Color3.new(0, 0, 0)
-			img.ImageTransparency = 0.6
+			img.ImageTransparency = 0.35 -- not found yet: a little faded, but you can still see it
 		end
-		label(r, { Position = UDim2.fromOffset(px(52) + 16, px(10)), Size = UDim2.new(0.45, 0, 0, px(20)), Text = any and sp.Name or "???", TextSize = px(17) }, "Title")
+		label(r, { Position = UDim2.fromOffset(px(52) + 16, px(10)), Size = UDim2.new(0.45, 0, 0, px(20)), Text = sp.Name .. (any and "" or "  ·  not found yet"), TextColor3 = any and C.Ink or C.Sub, TextSize = px(17) }, "Title")
 		label(r, { Position = UDim2.fromOffset(px(52) + 16, px(32)), Size = UDim2.new(0.45, 0, 0, px(18)), Text = sp.Role .. " · " .. (sp.Range == "ranged" and "ranged" or "melee"), TextColor3 = C.Sub, TextSize = px(13) }, "Bold")
 		local dots = new("Frame", { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -10, 0.5, 0), Size = UDim2.fromOffset(px(40) * 5 + 24, px(40)), BackgroundTransparency = 1, ZIndex = 13, Parent = r }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
 		for j, el in Config.Elements do
@@ -891,6 +893,106 @@ Ui.onOpen.Index = function()
 		end
 	end
 end
+
+-- Catalog preview: any species, found or not, in each element with its skills and how to get it.
+local indexPanel = Ui.panels.Index
+local prevCard = Ui.card({ Name = "Preview", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.52), Size = UDim2.new(1, -40, 1, -40), Visible = false, ZIndex = 40, Parent = indexPanel, Shadow = false }, 20)
+Ui.stroke(C.Mint, 3).Parent = prevCard
+local prevBody = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 41, Parent = prevCard })
+local prevSp: string? = nil
+local prevEl = "Fire"
+
+local function renderPreview()
+	clear(prevBody)
+	local id = prevSp
+	local p = Ui.profile
+	if not id or not p then
+		return
+	end
+	local sp = Monsters.Species[id]
+	local info = EI[prevEl]
+	local found = p.index[id .. ":" .. prevEl] == true
+	local back = pill(prevBody, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -14, 0, 14), Size = UDim2.fromOffset(px(96), px(34)), Text = "← Back", TextColor3 = C.Ink, ZIndex = 43 }, C.Soft)
+	back.Activated:Connect(function()
+		prevCard.Visible = false
+	end)
+	Ui.portrait(prevBody, id, prevEl, UDim2.fromOffset(px(170), px(170)), UDim2.fromOffset(18, 18), 42)
+	local x = px(170) + 34
+	label(prevBody, { Position = UDim2.fromOffset(x, 18), Size = UDim2.new(1, -x - px(120), 0, px(30)), Text = sp.Name, TextSize = px(28), ZIndex = 42 }, "Title")
+	label(prevBody, { Position = UDim2.fromOffset(x, 18 + px(34)), Size = UDim2.new(1, -x - 14, 0, px(20)), Text = string.format("%s  ·  %s  ·  %s", stars(sp.Stars), sp.Role, sp.Range == "ranged" and "ranged" or "melee"), TextColor3 = C.Sub, TextSize = px(16), ZIndex = 42 }, "Bold")
+	label(prevBody, { Position = UDim2.fromOffset(x, 18 + px(58)), Size = UDim2.new(1, -x - 14, 0, px(40)), Text = sp.Blurb or "", TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 42 }, "Bold")
+	-- element tabs
+	local tabs = new("Frame", { Position = UDim2.fromOffset(x, 18 + px(104)), Size = UDim2.new(1, -x - 14, 0, px(40)), BackgroundTransparency = 1, ZIndex = 42, Parent = prevBody }, {
+		new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	for j, el in Config.Elements do
+		local has = p.index[id .. ":" .. el] == true
+		local on = el == prevEl
+		local t = pill(tabs, { LayoutOrder = j, Size = UDim2.fromOffset(px(96), px(36)), Text = EI[el].Icon .. " " .. el .. (has and " ✓" or ""), TextColor3 = on and Color3.new(1, 1, 1) or C.Ink, TextSize = px(14), ZIndex = 43 }, on and EI[el].Color or C.Soft)
+		t.Activated:Connect(function()
+			prevEl = el
+			renderPreview()
+		end)
+	end
+	-- found / how to get
+	local yy = 18 + px(170) + 16
+	local LD = prevEl == "Light" or prevEl == "Dark"
+	local SC = T.Scrolls
+	local function oddsFor(kind: string): number
+		local k = SC[kind]
+		if sp.Stars >= 4 then
+			if LD then
+				return sp.Stars == 5 and (k.FiveLD or 0) or (k.FourLD or 0)
+			end
+			return k.Stars[sp.Stars] or 0
+		end
+		local w = k.Stars[sp.Stars] or 0
+		return LD and w * SC.Elements.Light / 100 or w
+	end
+	local nSame = #Monsters.byStars(sp.Stars)
+	local reg, leg = oddsFor("Regular"), oddsFor("Legendary")
+	local how = {}
+	if reg > 0 then
+		table.insert(how, string.format("Regular Egg: %s%% for a %d★%s, 1 of %d", (reg % 1 == 0) and tostring(reg) or string.format("%.2f", reg), sp.Stars, LD and (" " .. prevEl) or "", nSame))
+	end
+	if leg > 0 then
+		table.insert(how, string.format("Legendary Egg: %s%% for a %d★%s, 1 of %d", (leg % 1 == 0) and tostring(leg) or string.format("%.2f", leg), sp.Stars, LD and (" " .. prevEl) or "", nSame))
+	end
+	if sp.Stars == 5 and LD then
+		table.insert(how, "or the one Eclipse Egg from finishing the story")
+	end
+	label(prevBody, { Position = UDim2.fromOffset(18, yy), Size = UDim2.new(1, -36, 0, px(22)), Text = (found and "✓ You've found " or "Not found yet: ") .. info.Icon .. " " .. prevEl .. " " .. sp.Name, TextColor3 = found and Color3.fromRGB(40, 150, 90) or info.Color:Lerp(Color3.new(0, 0, 0), 0.25), TextSize = px(17), ZIndex = 42 }, "Title")
+	label(prevBody, { Position = UDim2.fromOffset(18, yy + px(24)), Size = UDim2.new(1, -36, 0, px(36)), Text = "Hatches from: " .. (#how > 0 and table.concat(how, "  ·  ") or "eggs"), TextColor3 = C.Sub, TextSize = px(13), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 42 }, "Bold")
+	-- skills for that element
+	local kit = Monsters.skills(id, prevEl)
+	local tags = { "Signature", "Auto skill", "Ultimate" }
+	for i, s in kit do
+		local row = new("Frame", { Position = UDim2.fromOffset(18, yy + px(66) + (i - 1) * px(62)), Size = UDim2.new(1, -36, 0, px(56)), BackgroundColor3 = C.Soft, ZIndex = 42, Parent = prevBody }, { corner(12) })
+		label(row, { Position = UDim2.fromOffset(12, px(6)), Size = UDim2.new(1, -24, 0, px(20)), Text = string.format("%s  ·  %s  ·  %ss", s.Name, tags[i], tostring(s.Cooldown)), TextSize = px(16), ZIndex = 43 }, "Title")
+		label(row, { Position = UDim2.fromOffset(12, px(28)), Size = UDim2.new(1, -24, 0, px(24)), Text = s.Desc or "", TextColor3 = C.Sub, TextSize = px(13), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 43 }, "Bold")
+	end
+end
+
+Panels.preview = function(id: string, el: string?)
+	prevSp = id
+	local p = Ui.profile
+	prevEl = el or "Fire"
+	if not el and p then
+		for _, e in Config.Elements do
+			if p.index[id .. ":" .. e] then
+				prevEl = e
+				break
+			end
+		end
+	end
+	prevCard.Visible = true
+	renderPreview()
+end
+indexPanel:GetPropertyChangedSignal("Visible"):Connect(function()
+	if not indexPanel.Visible then
+		prevCard.Visible = false
+	end
+end)
 
 ----------------------------------------------------------------------------------------------
 -- Quests
