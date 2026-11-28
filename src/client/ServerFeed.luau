@@ -37,7 +37,7 @@ local feed = new("Frame", {
 })
 
 -- Tooltip card shown while hovering a monster name.
-local tip = Ui.card({ Name = "FeedTip", Size = UDim2.fromOffset(px(230), px(86)), Visible = false, ZIndex = 60, Shadow = false, Parent = Ui.gui }, 14)
+local tip = Ui.card({ Name = "FeedTip", Active = false, Size = UDim2.fromOffset(px(230), px(86)), Visible = false, ZIndex = 60, Shadow = false, Parent = Ui.gui }, 14)
 local tipPortraitHolder = new("Frame", { Position = UDim2.fromOffset(px(8), px(8)), Size = UDim2.fromOffset(px(70), px(70)), BackgroundTransparency = 1, ZIndex = 61, Parent = tip })
 local function tipLabel(y: number, size: number, weight: string)
 	return Ui.text({ Position = UDim2.fromOffset(px(86), y), Size = UDim2.new(1, -px(94), 0, size + 4), BackgroundTransparency = 1, TextScaled = false, TextSize = size, TextXAlignment = Enum.TextXAlignment.Left, Text = "", ZIndex = 61, Parent = tip }, weight)

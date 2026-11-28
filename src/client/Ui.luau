@@ -48,6 +48,9 @@ function Ui.card(props: { [string]: any }, radius: number?)
 	props.Children = nil
 	props.Shadow = nil
 	table.insert(children, corner(radius or 16))
+	if props.Active == nil then
+		props.Active = true -- a card blocks clicks to whatever is behind it
+	end
 	local f = new("Frame", props, children)
 	if shadow then
 		Theme.shadow(f, radius or 16, 3)
@@ -91,7 +94,7 @@ end
 -- Toasts get their own top layer so they show above the summon reveal and panels.
 local toastGui = new("ScreenGui", {
 	Name = "WildToasts",
-	DisplayOrder = 60,
+	DisplayOrder = 76, -- toasts show above the hatch screen (72)
 	ResetOnSpawn = false,
 	IgnoreGuiInset = false,
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,

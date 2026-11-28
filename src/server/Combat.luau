@@ -271,7 +271,11 @@ local function makeUnit(side: string, sp: string, el: string, lv: number, aw: bo
 	end
 	local hpMult = 1
 	if side == "wild" then
-		hpMult = CT.WildHpMult * (opts.hpMult or (opts.boss and 22 or opts.elite and 3.5 or 1))
+		-- early levels are kinder (owner, 2026-11-27: a Lv 4 elite took a Lv 5 team 40 s): HP
+		-- ramps from x0.85 at Lv 1 to x1 by Lv 12, and elites from x2.2 to their full x3.5 by Lv 20
+		local early = math.clamp(0.85 + (lv - 1) * (0.15 / 11), 0.85, 1)
+		local eliteMult = 2.2 + 1.3 * math.clamp((lv - 1) / 19, 0, 1)
+		hpMult = CT.WildHpMult * early * (opts.hpMult or (opts.boss and 22 or opts.elite and eliteMult or 1))
 		stats.atk = math.floor(stats.atk * CT.WildAtkMult)
 		if opts.boss then
 			stats.atk = math.floor(stats.atk * 1.5)

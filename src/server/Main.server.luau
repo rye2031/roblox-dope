@@ -556,6 +556,13 @@ if game:GetService("RunService"):IsStudio() then
 				task.spawn(require(script.Parent.Intro).tryStart, player)
 			end
 			return "ok"
+		elseif cmd == "spawnwild" then
+			-- spawnwild <species> <element> <level> [elite]: one wild monster next to the player
+			local hrp = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
+			local camp = { id = "dbg" .. os.clock(), region = "SproutMeadow", pos = (hrp and hrp.Position or Vector3.zero) + Vector3.new(10, 0, 0), radius = 1, count = 1, lv = { c or 1, c or 1 }, species = a, element = b, once = true, elite = d == true, noElite = d ~= true }
+			Combat.spawnWild(camp)
+			local u = Combat.campUnits(camp)[1]
+			return u and u.id or "none"
 		elseif cmd == "riftlock" then
 			require(script.Parent.Rifts).debugLocked[p] = a and true or nil
 			return "ok"

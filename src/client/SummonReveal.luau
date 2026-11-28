@@ -34,9 +34,28 @@ local RARITY = {
 }
 SummonReveal.rarity = RARITY
 
+-- the uploaded egg meshes are only ever shown inside a ViewportFrame, which draws nothing until
+-- the mesh has downloaded: fetch them up front
+task.spawn(function()
+	local folder = ReplicatedStorage:WaitForChild("PropModels", 30)
+	if not folder then
+		return
+	end
+	local list = {}
+	for _, n in { "EggRegular", "EggLegendary", "EggEclipse" } do
+		local m = folder:FindFirstChild(n)
+		if m then
+			table.insert(list, m)
+		end
+	end
+	pcall(function()
+		game:GetService("ContentProvider"):PreloadAsync(list)
+	end)
+end)
+
 local gui = new("ScreenGui", {
 	Name = "SummonReveal",
-	DisplayOrder = 40,
+	DisplayOrder = 72, -- above the HUD, menus and tips; toasts, banners and the dream sit higher
 	IgnoreGuiInset = true,
 	ResetOnSpawn = false,
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
@@ -75,12 +94,6 @@ end
 local function clearAll()
 	for _, f in { stage, fxLayer } do
 		for _, c in f:GetChildren() do
-			c:Destroy()
-		end
-	end
-	-- the 3D hatch egg lives in workspace
-	for _, c in workspace:GetChildren() do
-		if c.Name == "HatchEgg" then
 			c:Destroy()
 		end
 	end
@@ -320,8 +333,7 @@ local function single(res, h: Handlers)
 	clearAll()
 	gui.Enabled = true
 	dim.BackgroundTransparency = 1
-	-- the egg is in the 3D world, so the screen only dims lightly until it bursts
-	tween(dim, 0.25, { BackgroundTransparency = 0.55 })
+	tween(dim, 0.25, { BackgroundTransparency = 0.25 })
 	local vp = workspace.CurrentCamera.ViewportSize
 	local centre = Vector2.new(vp.X / 2, vp.Y * 0.5)
 	local rc = RARITY[res.stars] or RARITY[1]
@@ -335,33 +347,16 @@ local function single(res, h: Handlers)
 	local SHELL = { Regular = Color3.fromRGB(240, 246, 250), Legendary = Color3.fromRGB(255, 186, 70), Eclipse = Color3.fromRGB(140, 104, 214) }
 	local eggKind = EGGS[res.kind] and res.kind or "Regular"
 	local meshName = EGGS[eggKind]
-	-- the egg lives in the real 3D world, just in front of the camera (ViewportFrames don't show
-	-- the runtime EditableImage texture, so the egg looked like a flat blob there)
-	local scroll = Instance.new("Folder")
-	scroll.Name = "HatchEgg"
-	scroll.Parent = workspace
-	local world = scroll
-	local wcam = workspace.CurrentCamera
-	local function anchorCF(): CFrame
-		-- 12 studs ahead of the camera, a little below centre, facing it
-		local cf = wcam.CFrame
-		local at = cf.Position + cf.LookVector * 10
-		return CFrame.lookAt(at, at + Vector3.new(cf.LookVector.X, 0, cf.LookVector.Z) * -1)
-	end
-	local backdrop = Instance.new("Part")
-	backdrop.Anchored = true
-	backdrop.CanCollide = false
-	backdrop.CanQuery = false
-	backdrop.CastShadow = false
-	backdrop.Transparency = 1
-	backdrop.Size = Vector3.new(1, 1, 1)
-	backdrop.Parent = scroll
-	local light = Instance.new("PointLight")
-	light.Brightness = 1.2
-	light.Range = 14
-	light.Color = Color3.new(1, 1, 1)
-	light.Parent = backdrop
-	-- the uploaded egg in ReplicatedStorage.PropModels, else the baked runtime mesh
+	-- the egg is drawn inside the reveal screen (a ViewportFrame), so it sits above the HUD and
+	-- every menu; the uploaded eggs carry their own texture, which ViewportFrames show
+	local scroll = new("ViewportFrame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(centre.X, centre.Y), Size = UDim2.fromOffset(px(420), px(460)), BackgroundTransparency = 1, Ambient = Color3.fromRGB(200, 200, 210), LightColor = Color3.new(1, 1, 1), LightDirection = Vector3.new(-0.5, -1, -0.7), ZIndex = 10, Parent = stage })
+	local vcam = Instance.new("Camera")
+	vcam.FieldOfView = 34
+	vcam.CFrame = CFrame.lookAt(Vector3.new(0, 0.3, 11), Vector3.new(0, 0.1, 0))
+	vcam.Parent = scroll
+	scroll.CurrentCamera = vcam
+	local world = Instance.new("WorldModel")
+	world.Parent = scroll
 	local egg: BasePart? = nil
 	local released = false
 	local folder = ReplicatedStorage:FindFirstChild("PropModels")
@@ -400,23 +395,7 @@ local function single(res, h: Handlers)
 	local st = { lift = 9, tilt = 0, scale = 1, spin = 0.5 }
 	local liftV, tiltV, scaleV = Instance.new("NumberValue"), Instance.new("NumberValue"), Instance.new("NumberValue")
 	liftV.Value, tiltV.Value, scaleV.Value = 9, 0, 1
-	local base = anchorCF()
-	backdrop.CFrame = base * CFrame.new(0, 1, 4)
-	-- floating world labels draw over 3D: hide them while the egg is up
-	local hidden = {}
-	for _, d in workspace:GetDescendants() do
-		if d:IsA("BillboardGui") and d.Enabled then
-			d.Enabled = false
-			table.insert(hidden, d)
-		end
-	end
-	scroll.Destroying:Connect(function()
-		for _, d in hidden do
-			if d.Parent then
-				d.Enabled = true
-			end
-		end
-	end)
+	local base = CFrame.lookAt(Vector3.zero, Vector3.new(0, 0, 1))
 	-- the rarity glow is a disc behind the egg in 3D (a 2D halo drew over the egg), and it hides
 	-- world labels behind it
 	local glow = Instance.new("Part")
@@ -429,8 +408,8 @@ local function single(res, h: Handlers)
 	glow.Color = tease
 	glow.Transparency = 0.45
 	glow.Size = Vector3.new(0.2, 0.5, 0.5)
-	glow.CFrame = base * CFrame.new(0, 0, 3) * CFrame.Angles(0, math.rad(90), 0) -- behind the egg (base faces the camera)
-	glow.Parent = scroll
+	glow.CFrame = CFrame.new(0, 0, -2.6) * CFrame.Angles(0, math.rad(90), 0) -- behind the egg
+	glow.Parent = world
 	TweenService:Create(glow, TweenInfo.new(0.6, Enum.EasingStyle.Back), { Size = Vector3.new(0.2, 7.5, 7.5) }):Play()
 	local conn = RunService.RenderStepped:Connect(function(dt)
 		st.spin += dt * 0.5
@@ -517,7 +496,6 @@ local function single(res, h: Handlers)
 			return
 		end
 		flash(Color3.new(1, 1, 1), high and 0.9 or 0.6)
-		tween(dim, 0.3, { BackgroundTransparency = 0.2 })
 		Sfx.play(res.stars >= 5 and "reveal_legend" or res.stars == 4 and "reveal_rare" or "reveal", { pitch = res.stars == 3 and 1.12 or 1, vary = 0 })
 		-- shell pieces fly out of the viewport while the card appears
 		e.Transparency = 1

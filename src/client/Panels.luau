@@ -440,7 +440,7 @@ renderDetail = function(uid: string)
 	end)
 
 	-- stats
-	local statRow = new("Frame", { LayoutOrder = 2, Size = UDim2.new(1, 0, 0, px(52)), BackgroundTransparency = 1, ZIndex = 21, Parent = detailScroll }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
+	local statRow = new("Frame", { LayoutOrder = 4, Size = UDim2.new(1, 0, 0, px(52)), BackgroundTransparency = 1, ZIndex = 21, Parent = detailScroll }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
 	local basePower = Monsters.power(m.sp, m.lv, m.aw)
 	local power = #myRunes > 0 and Runes.power(p, uid) or basePower
 	for i, s in { { "HP", st.hp, C.Mint, base.hp }, { "ATK", st.atk, C.Coral, base.atk }, { "DEF", st.def, C.Sky, base.def }, { "SPD", st.spd, C.Sun, base.spd }, { "POWER", power, C.Lilac, basePower } } do
@@ -452,11 +452,11 @@ renderDetail = function(uid: string)
 		end
 	end
 	if st.crit > base.crit or st.critDmg > base.critDmg then
-		label(detailScroll, { LayoutOrder = 3, Size = UDim2.new(1, 0, 0, px(16)), Text = string.format("Crit rate %d%% (+%d)  ·  Crit damage %d%% (+%d)", math.floor(st.crit * 100 + 0.5), math.floor((st.crit - base.crit) * 100 + 0.5), math.floor(st.critDmg * 100 + 0.5), math.floor((st.critDmg - base.critDmg) * 100 + 0.5)), TextColor3 = Color3.fromRGB(40, 150, 90), TextSize = px(13), ZIndex = 22 }, "Bold")
+		label(detailScroll, { LayoutOrder = 5, Size = UDim2.new(1, 0, 0, px(16)), Text = string.format("Crit rate %d%% (+%d)  ·  Crit damage %d%% (+%d)", math.floor(st.crit * 100 + 0.5), math.floor((st.crit - base.crit) * 100 + 0.5), math.floor(st.critDmg * 100 + 0.5), math.floor((st.critDmg - base.critDmg) * 100 + 0.5)), TextColor3 = Color3.fromRGB(40, 150, 90), TextSize = px(13), ZIndex = 22 }, "Bold")
 	end
 
 	-- rune sockets
-	local sockets = new("Frame", { Name = "Sockets", LayoutOrder = 4, Size = UDim2.new(1, 0, 0, px(64)), BackgroundTransparency = 1, ZIndex = 21, Parent = detailScroll }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
+	local sockets = new("Frame", { Name = "Sockets", LayoutOrder = 6, Size = UDim2.new(1, 0, 0, px(64)), BackgroundTransparency = 1, ZIndex = 21, Parent = detailScroll }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
 	for i = 1, Runes.Slots do
 		local e = myRunes[i]
 		local rar = e and Runes.Rarities[e.r.r]
@@ -482,14 +482,14 @@ renderDetail = function(uid: string)
 	local kit = Monsters.skills(m.sp, m.el)
 	local tags = { "Signature", "Auto skill", "Ultimate" }
 	for i, s in kit do
-		local r = new("Frame", { LayoutOrder = 4 + i, Size = UDim2.new(1, 0, 0, px(58)), BackgroundColor3 = C.Soft, ZIndex = 21, Parent = detailScroll }, { corner(12) })
+		local r = new("Frame", { LayoutOrder = 6 + i, Size = UDim2.new(1, 0, 0, px(58)), BackgroundColor3 = C.Soft, ZIndex = 21, Parent = detailScroll }, { corner(12) })
 		local lvl = m.sk[i] or 1
 		label(r, { Position = UDim2.fromOffset(12, px(6)), Size = UDim2.new(1, -24, 0, px(20)), Text = string.format("%s  ·  %s  ·  Lv %d/%d  ·  %ss", s.Name, tags[i], lvl, T.Feed.MaxSkillLevel, tostring(math.floor(Monsters.skillCooldown(s.Cooldown, lvl) * 10) / 10)), TextSize = px(16), ZIndex = 22 }, "Title")
 		label(r, { Position = UDim2.fromOffset(12, px(28)), Size = UDim2.new(1, -24, 0, px(26)), Text = s.Desc or "", TextColor3 = C.Sub, TextSize = px(13), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 22 }, "Bold")
 	end
 
 	-- actions
-	local acts = new("Frame", { LayoutOrder = 10, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 21, Parent = detailScroll }, { new("UIGridLayout", { CellSize = UDim2.fromOffset(px(150), px(40)), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
+	local acts = new("Frame", { LayoutOrder = 2, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 21, Parent = detailScroll }, { new("UIGridLayout", { CellSize = UDim2.fromOffset(px(150), px(40)), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
 	local slot = inTeam(p, uid)
 	if slot then
 		local b = pill(acts, { LayoutOrder = 1, Text = "Remove from team", ZIndex = 22 }, C.Peach)
@@ -534,7 +534,7 @@ renderDetail = function(uid: string)
 				renderDetail(uid)
 			end
 		end)
-		label(detailScroll, { LayoutOrder = 11, Size = UDim2.new(1, 0, 0, px(18)), Text = string.format("Evolving: Lv %d, %d %s Crystals (have %d), %s coins. +15%% stats and max level %d.", T.AwakenLevel, ess, m.el, p.essence[m.el] or 0, Ui.fmt(coins), T.MaxLevel), TextColor3 = C.Sub, TextSize = px(13), TextWrapped = true, ZIndex = 22 }, "Bold")
+		label(detailScroll, { LayoutOrder = 3, Size = UDim2.new(1, 0, 0, px(18)), Text = string.format("Evolving: Lv %d, %d %s Crystals (have %d), %s coins. +15%% stats and max level %d.", T.AwakenLevel, ess, m.el, p.essence[m.el] or 0, Ui.fmt(coins), T.MaxLevel), TextColor3 = C.Sub, TextSize = px(13), TextWrapped = true, ZIndex = 22 }, "Bold")
 	end
 	if not slot and not m.lock then
 		local value = Config.sellValue(sp.Stars, m.lv)

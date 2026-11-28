@@ -27,7 +27,7 @@ local ELEMENT_LINE = {
 }
 
 local gui = new("ScreenGui", { Name = "WildDream", DisplayOrder = 80, ResetOnSpawn = false, IgnoreGuiInset = true, Enabled = false, Parent = player:WaitForChild("PlayerGui") })
-local veil = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(236, 228, 255), BackgroundTransparency = 0, ZIndex = 1, Parent = gui }, {
+local veil = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(236, 228, 255), BackgroundTransparency = 0, Active = true, ZIndex = 1, Parent = gui }, {
 	new("UIGradient", { Color = ColorSequence.new(Color3.fromRGB(255, 240, 250), Color3.fromRGB(214, 220, 255)), Rotation = 90 }),
 })
 local box = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(px(640), px(320)), BackgroundTransparency = 1, ZIndex = 2, Parent = gui })
@@ -178,9 +178,9 @@ local function run()
 		end
 	end
 	if not alive(my) then return end
-	-- the shadow fight on the cloud island
+	-- the shadow fight on the cloud island (no veil: it would block the fight buttons)
 	veil.BackgroundTransparency = 1
-	veil.Visible = true
+	veil.Visible = false
 	box.Visible = false
 	task.wait(0.8)
 	showHint("A shadow appears! Your monsters fight on their own.\nClick (or tap ⚔) to swing. Press 1 when a big move glows.")
@@ -205,6 +205,7 @@ local function run()
 	-- wake up
 	showHint(nil)
 	box.Visible = true
+	veil.Visible = true
 	fadeVeil(0, 1)
 	task.wait(1)
 	if not say("Everything goes bright...", my, 1) then return end
@@ -213,6 +214,7 @@ local function run()
 	fadeVeil(1, 1.2)
 	box.Visible = false
 	task.wait(1.2)
+	veil.Visible = false
 	gui.Enabled = false
 	Ui.toast("You wake up in Haven with your new team! Go say hi to Mira 🧭", "good")
 end

@@ -14,7 +14,7 @@ local C, px, new = Ui.C, Ui.px, Ui.new
 local Wins = {}
 local player = Players.LocalPlayer
 
-local gui = new("ScreenGui", { Name = "WildWins", DisplayOrder = 70, ResetOnSpawn = false, IgnoreGuiInset = true, Parent = player:WaitForChild("PlayerGui") })
+local gui = new("ScreenGui", { Name = "WildWins", DisplayOrder = 74, ResetOnSpawn = false, IgnoreGuiInset = true, Parent = player:WaitForChild("PlayerGui") })
 
 ----------------------------------------------------------------------------------------------
 -- coins fly to the wallet
