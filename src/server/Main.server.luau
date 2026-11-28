@@ -34,13 +34,13 @@ end
 local remoteFolder = Instance.new("Folder")
 remoteFolder.Name = "Remotes"
 local remotes = {}
-for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce", "Story", "DungeonRun", "Portal", "Discovery" } do
+for _, n in { "Profile", "Toast", "Combat", "Reward", "Intent", "Fx", "Announce", "Story", "DungeonRun", "Portal", "Discovery", "Intro" } do
 	local r = Instance.new("RemoteEvent")
 	r.Name = n
 	r.Parent = remoteFolder
 	remotes[n] = r
 end
-for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow", "Travel", "Expedition", "IndexReward", "Arena", "Sealed", "Runes", "Dungeon", "Gear", "Pass" } do
+for _, n in { "GetProfile", "Summon", "SetTeam", "Lock", "Feed", "Awaken", "Sell", "BuyStorage", "SetWeapon", "UpgradeWeapon", "ClaimQuest", "ClaimStreak", "Tutorial", "Overflow", "Travel", "Expedition", "IndexReward", "Arena", "Sealed", "Runes", "Dungeon", "Gear", "Pass", "IntroAsk" } do
 	local r = Instance.new("RemoteFunction")
 	r.Name = n
 	r.Parent = remoteFolder
@@ -53,6 +53,7 @@ World.setupLighting()
 Regions.register(World)
 local worldFolder = World.build()
 task.spawn(World.settle)
+require(script.Parent.Intro).build()
 PlayerData.init(remotes.Profile)
 Quests.init(remotes)
 Summon.init(remotes)
@@ -64,6 +65,7 @@ Dungeons.init(remotes, Combat)
 require(script.Parent.Landmarks).init(remotes)
 require(script.Parent.Pass).init(remotes)
 require(script.Parent.Rifts).init(remotes)
+require(script.Parent.Intro).init(remotes, Combat, Summon)
 require(script.Parent.Landmarks).onFound = function(player)
 	require(script.Parent.Pass).add(player, "discovery")
 	Story.check(player)
@@ -548,8 +550,11 @@ if game:GetService("RunService"):IsStudio() then
 		elseif cmd == "newplayer" then
 			-- Studio: wipe to a brand-new profile (keeps nothing)
 			PlayerData.debugNoSave(player)
-			PlayerData.debugReplace(player, { scrolls = { Regular = 0, Legendary = 0 } })
+			PlayerData.debugReplace(player, a == "nodream" and { tutorial = { dream = true, intro = true } } or {})
 			Combat.syncTeam(player)
+			if a ~= "nodream" then
+				task.spawn(require(script.Parent.Intro).tryStart, player)
+			end
 			return "ok"
 		elseif cmd == "riftlock" then
 			require(script.Parent.Rifts).debugLocked[p] = a and true or nil

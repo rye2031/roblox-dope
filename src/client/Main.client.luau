@@ -27,6 +27,7 @@ local Tips = require(script.Parent.Tips)
 local Landmarks = require(script.Parent.Landmarks)
 local _PassUi = require(script.Parent.PassUi)
 local Wins = require(script.Parent.Wins)
+local Intro = require(script.Parent.Intro)
 
 Sfx.start(Ui)
 UnitView.start()
@@ -42,6 +43,7 @@ Pace.start()
 Tips.start()
 Landmarks.start()
 Wins.start()
+Intro.start()
 PropView.start()
 AmbientFx.start()
 Ticker.start(Journey)
@@ -135,6 +137,13 @@ if game:GetService("RunService"):IsStudio() then
 				Tips.show(a, true)
 			end
 			return Tips.state()
+		elseif cmd == "intro" then
+			if a == "pick" then
+				Intro.pick(b)
+			elseif a == "next" then
+				Intro.next()
+			end
+			return Intro.state()
 		elseif cmd == "wins" then
 			if a == "banner" then
 				Wins.summoned({ sp = "Wyrmlet", el = "Fire", new = true })

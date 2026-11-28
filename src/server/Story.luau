@@ -61,7 +61,8 @@ local function stateDone(player: Player, p, s): boolean
 	elseif k == "campfire" then
 		return p.campfires[s.region] == true
 	elseif k == "summon" then
-		return p.story.n >= s.n
+		-- eggs hatched before this step (the dream intro) count too
+		return p.story.n >= s.n or (p.opened or 0) >= s.n
 	elseif k == "discover" then
 		return p.found ~= nil and p.found[s.target] == true
 	elseif k == "dungeon" then

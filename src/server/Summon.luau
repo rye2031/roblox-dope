@@ -72,12 +72,17 @@ Summon.debugOdds = function(kind: string, n: number)
 	return out
 end
 
-local function rollOne(p, kind: string)
+local function rollOne(p, kind: string, forceEl: string?)
 	local stars, fiveLD = 5, true
 	if kind ~= "Eclipse" then
 		stars, fiveLD = rollStars(kind, p)
 	end
 	local el = rollElement(p, kind, stars, fiveLD)
+	-- the dream intro's starter egg hatches in the element the player's answers picked
+	-- (a starter is never Light/Dark: those stay pure luck)
+	if forceEl then
+		el = forceEl
+	end
 	local pool = Monsters.byStars(stars)
 	local sp = pool[rng:NextInteger(1, #pool)]
 	p.scrolls[kind] -= 1
@@ -96,6 +101,27 @@ local function rollOne(p, kind: string)
 		Inventory.overflowAdd(p, sp, el)
 	end
 	return { uid = uid, sp = sp, el = el, stars = stars, kind = kind, new = isNew, overflow = uid == nil }
+end
+
+-- The dream intro: hatch every starter egg (Legendary first, its element chosen by the quiz).
+-- Same odds otherwise; returns the results in order.
+function Summon.starter(player: Player, element: string): { any }
+	local p = PlayerData.get(player)
+	local out = {}
+	if not p then
+		return out
+	end
+	if (p.scrolls.Legendary or 0) > 0 then
+		table.insert(out, rollOne(p, "Legendary", element))
+	end
+	while (p.scrolls.Regular or 0) > 0 and #out < 3 do
+		table.insert(out, rollOne(p, "Regular"))
+	end
+	Quests.progress(player, "Summon", #out)
+	Story.event(player, "summon", { n = #out })
+	PlayerData.push(player)
+	PlayerData.saveSoon(player)
+	return out
 end
 
 -- Opens `count` scrolls (1 or Scrolls.MultiOpen). Returns (ok, message, results?) where

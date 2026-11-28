@@ -466,7 +466,7 @@ function Hud.setProfile(p)
 	end
 	Ui.profileLoadedOnce = true
 	passDot.Visible = require(script.Parent.PassUi).ready(p) > 0
-	if not p.tutorial.intro and not Hud.introShown then
+	if not p.tutorial.intro and not Hud.introShown and not player:GetAttribute("InIntro") and not p.tutorial.dream and (p.opened or 0) > 0 then
 		Hud.introShown = true
 		howTo.Visible = true
 	end
