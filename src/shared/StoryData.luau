@@ -67,7 +67,7 @@ StoryData.Chapters = {
 		Title = "A New Tamer",
 		Steps = {
 			{ id = "meet", kind = "talk", npc = "Mira", text = "Talk to Mira in the plaza", at = StoryData.Npcs.Mira.Pos, reward = { coins = 100 },
-				lines = { "Oh! You're awake! Welcome to Haven, Tamer.", "Were you dreaming of monsters? Those three look like they'd follow you anywhere.", "More eggs come from wild monsters, quests and bosses. Hatch them at the Summoning Shrine to grow your team!" } },
+				lines = { "Oh! You're awake! Welcome to Haven, Tamer.", "Were you dreaming of monsters? That team of yours looks like it would follow you anywhere.", "More eggs come from wild monsters, quests and bosses. Hatch them at the Summoning Shrine to grow your team!" } },
 			{ id = "first_summon", kind = "summon", n = 1, text = "Hatch an egg at the Summoning Shrine", at = P.Shrine, reward = { coins = 150, scrolls = 1 } },
 			{ id = "team", kind = "team", n = 3, text = "Have 3 monsters on your team", at = P.Shrine, reward = { coins = 150 },
 				hint = "Hatch more eggs. Your first three monsters join your team on their own." },

@@ -53,7 +53,7 @@ Config.Tuning = {
 		FiveElements = { Fire = 1, Water = 1, Wind = 1 }, -- a Stars[4] or Stars[5] result
 		PityFourStar = 50, -- Regular scrolls without a 4-star+ before one is guaranteed (4-star or Fire/Water/Wind 5-star)
 		PityLightDark = 200, -- scrolls without Light/Dark before a 1-3 star Light/Dark is guaranteed (never a 4 or 5-star)
-		Start = { Regular = 2, Legendary = 1 }, -- hatched in the dream intro (owner: 1 Legendary + 2 Regular)
+		Start = { Regular = 10, Legendary = 1 }, -- hatched in the dream intro (owner: 1 Legendary, then a Hatch-10 of Regular)
 		MultiOpen = 10, -- scrolls opened by the "Hatch 10" button -- a new Tamer's first scrolls
 	},
 

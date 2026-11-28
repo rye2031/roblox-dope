@@ -143,7 +143,7 @@ local function run()
 	line.TextColor3 = info.Color:Lerp(Color3.new(0, 0, 0), 0.25)
 	if not say(info.Icon .. " " .. ELEMENT_LINE[best], my, 1.6) then return end
 	line.TextColor3 = Color3.fromRGB(90, 70, 150)
-	if not say("\"Here are three eggs. Friends are waiting inside.\"", my, 1.2) then return end
+	if not say("\"Here is a Legendary Egg, just for you...\"", my, 1.2) then return end
 	-- the eggs hatch, one after another, with the real reveal (the dream backdrop steps aside:
 	-- it draws above the reveal's own screen)
 	box.Visible = false
@@ -151,9 +151,24 @@ local function run()
 	local ok, _, res = call("hatch")
 	if ok and typeof(res) == "table" then
 		local SummonReveal = require(script.Parent.SummonReveal)
-		for _, r in res do
+		-- first the Legendary egg on its own, then a Hatch-10 of Regular eggs
+		local shows = {}
+		if res.legendary then
+			table.insert(shows, res.legendary)
+		end
+		if res.ten and #res.ten > 0 then
+			table.insert(shows, res.ten)
+		end
+		for n, r in shows do
 			if not alive(my) then
 				return
+			end
+			if n == 2 then
+				box.Visible = true
+				veil.Visible = true
+				if not say("\"...and ten more eggs to build your team!\"", my, 1.2) then return end
+				box.Visible = false
+				veil.Visible = false
 			end
 			local done = false
 			task.spawn(require(script.Parent.Wins).summoned, r)

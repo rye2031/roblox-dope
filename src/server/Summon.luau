@@ -105,23 +105,43 @@ end
 
 -- The dream intro: hatch every starter egg (Legendary first, its element chosen by the quiz).
 -- Same odds otherwise; returns the results in order.
-function Summon.starter(player: Player, element: string): { any }
+function Summon.starter(player: Player, element: string): any
 	local p = PlayerData.get(player)
 	local out = {}
 	if not p then
 		return out
 	end
+	-- returns { legendary = result?, ten = { results } }: the Legendary egg on its own, then up
+	-- to 10 Regular eggs as one Hatch-10
+	local legendary = nil
 	if (p.scrolls.Legendary or 0) > 0 then
-		table.insert(out, rollOne(p, "Legendary", element))
+		legendary = rollOne(p, "Legendary", element)
+		table.insert(out, legendary)
 	end
-	while (p.scrolls.Regular or 0) > 0 and #out < 3 do
-		table.insert(out, rollOne(p, "Regular"))
+	local ten = {}
+	while (p.scrolls.Regular or 0) > 0 and #ten < SC.MultiOpen do
+		local r = rollOne(p, "Regular")
+		table.insert(ten, r)
+		table.insert(out, r)
+	end
+	-- the team: the three strongest of the new monsters
+	local best = {}
+	for _, r in out do
+		if r.uid then
+			table.insert(best, r)
+		end
+	end
+	table.sort(best, function(a, b)
+		return Monsters.power(a.sp, 1, false) > Monsters.power(b.sp, 1, false)
+	end)
+	for i = 1, 3 do
+		p.team[i] = best[i] and best[i].uid or ""
 	end
 	Quests.progress(player, "Summon", #out)
 	Story.event(player, "summon", { n = #out })
 	PlayerData.push(player)
 	PlayerData.saveSoon(player)
-	return out
+	return { legendary = legendary, ten = ten }
 end
 
 -- Opens `count` scrolls (1 or Scrolls.MultiOpen). Returns (ok, message, results?) where

@@ -93,8 +93,11 @@ end
 function Wins.summoned(res)
 	-- wait for the egg to burst (single) so the banner doesn't spoil the hatch
 	task.wait(res.sp and 3.4 or 1)
-	for _, r in (res.sp and { res } or res) do
-		if r.new then
+	local single = res.sp ~= nil
+	for _, r in (single and { res } or res) do
+		-- a Hatch-10 only bannered its 4★+ finds (ten banners in a row is too much)
+		local sp0 = Monsters.Species[r.sp]
+		if r.new and (single or (sp0 and sp0.Stars >= 4)) then
 			local sp = Monsters.Species[r.sp]
 			local info = Config.ElementInfo[r.el]
 			Wins.banner("NEW MONSTER!", string.format("%s %s %s  %s  joined your Index", info and info.Icon or "", r.el, sp and sp.Name or r.sp, string.rep("★", sp and sp.Stars or 1)), info and info.Color or C.Sun)
@@ -138,11 +141,20 @@ function Wins.dailyGift()
 end
 
 function Wins.start()
-	-- the gift waits until the player is in the world (not during the intro)
-	task.delay(6, function()
-		if not player:GetAttribute("InIntro") then
-			Wins.dailyGift()
+	-- the gift waits until the player is really in the world: not before the profile loads, not
+	-- while a brand-new player's dream is about to start or running, not over a hatch
+	task.spawn(function()
+		task.wait(6)
+		while true do
+			local p = Ui.profile
+			local dreamPending = p ~= nil and not (p.tutorial and p.tutorial.dream) and (p.opened or 0) == 0
+			if p and not dreamPending and not player:GetAttribute("InIntro") then
+				break
+			end
+			task.wait(1)
 		end
+		task.wait(2)
+		Wins.dailyGift()
 	end)
 end
 
