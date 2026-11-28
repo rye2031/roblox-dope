@@ -21,6 +21,11 @@ local layer = Ui.layer(gui) -- (phone preview: draws inside the phone frame)
 -- coins fly to the wallet
 
 Wins.walletPos = function(): Vector2
+	-- the coin label in the HUD wallet (top right), in this screen's coordinates
+	local w = Ui.hud:FindFirstChild("Wallet", true) :: GuiObject?
+	if w and w.AbsoluteSize.X > 0 then
+		return Vector2.new(w.AbsolutePosition.X + 22, w.AbsolutePosition.Y + w.AbsoluteSize.Y / 2) - layer.AbsolutePosition
+	end
 	return Vector2.new(px(110), px(32))
 end
 

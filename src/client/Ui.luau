@@ -40,6 +40,9 @@ Ui.mobile = Ui.preview or (UIS.TouchEnabled and not UIS.KeyboardEnabled) or math
 Ui.small = Ui.mobile or vp0.X < 900
 local PHONE = Vector2.new(844, 390)
 local INSET = 58 -- Roblox's top bar on phones
+-- notched phones: Roblox keeps screens this far from both side edges (iPhone safe area in
+-- landscape); the preview draws the notch on the left
+local NOTCH = 47
 
 -- Preview roots follow the window: the viewport is still resizing for a while after join.
 local previewRoots: { { root: Frame, inset: boolean, scale: UIScale } } = {}
@@ -51,9 +54,11 @@ local function placePreview()
 	local studioInset = game:GetService("GuiService"):GetGuiInset().Y
 	for _, r in previewRoots do
 		r.scale.Scale = scale
-		-- screens that respect the top bar start INSET points lower (Studio's own inset is
-		-- subtracted because those screens already start below it)
-		r.root.Position = UDim2.new(0.5, 0, 0, r.inset and (top + INSET * scale - studioInset) or top)
+		-- screens that respect the top bar already start below Studio's own inset
+		r.root.Position = UDim2.new(0.5, 0, 0, r.inset and (top - studioInset) or top)
+		if Ui.edgeChanged then
+			Ui.edgeChanged()
+		end
 	end
 	if #previewBars == 4 then
 		local pw, ph = PHONE.X * scale, PHONE.Y * scale
@@ -71,14 +76,22 @@ if Ui.preview then
 end
 
 -- A full-screen frame inside a ScreenGui that every child of that screen goes into. In phone
--- preview it becomes a phone-sized, scaled-up frame.
-function Ui.layer(screen: ScreenGui): Frame
+-- preview it becomes a phone-sized, scaled-up frame (inside the notch safe area unless `full`).
+function Ui.layer(screen: ScreenGui, full: boolean?): Frame
 	local root = new("Frame", { Name = "Root", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Parent = screen })
 	if Ui.preview then
-		root.AnchorPoint = Vector2.new(0.5, 0)
-		root.Size = UDim2.fromOffset(PHONE.X, screen.IgnoreGuiInset and PHONE.Y or PHONE.Y - INSET)
-		root.ClipsDescendants = true
-		table.insert(previewRoots, { root = root, inset = not screen.IgnoreGuiInset, scale = new("UIScale", { Parent = root }) })
+		-- the whole phone clips; screens draw into the notch-safe area inside it (the right
+		-- edge frames reach past that area, as on a real phone)
+		-- (the phone frame always covers the whole phone, top bar included; screens that respect
+		-- the top bar start INSET points down inside it, so HUD lifted into the bar row shows)
+		local insetAware = not screen.IgnoreGuiInset
+		local phone = new("Frame", { Name = "Phone", BackgroundTransparency = 1, AnchorPoint = Vector2.new(0.5, 0), Size = UDim2.fromOffset(PHONE.X, PHONE.Y), ClipsDescendants = true, Parent = screen })
+		table.insert(previewRoots, { root = phone, inset = insetAware, scale = new("UIScale", { Parent = phone }) })
+		root.Parent = phone
+		local side = full and 0 or NOTCH
+		local topIn = insetAware and INSET or 0
+		root.Position = UDim2.fromOffset(side, topIn)
+		root.Size = UDim2.new(1, -2 * side, 1, -topIn)
 		placePreview()
 	end
 	return root
@@ -87,7 +100,7 @@ end
 -- The size the current layout has to fit (the phone frame in preview).
 function Ui.view(insetAware: boolean?): Vector2
 	if Ui.preview then
-		return Vector2.new(PHONE.X, insetAware and PHONE.Y - INSET or PHONE.Y)
+		return Vector2.new(PHONE.X - 2 * NOTCH, insetAware and PHONE.Y - INSET or PHONE.Y)
 	end
 	local v = workspace.CurrentCamera.ViewportSize
 	return insetAware and Vector2.new(v.X, v.Y - game:GetService("GuiService"):GetGuiInset().Y) or v
@@ -118,8 +131,119 @@ local function placeHud()
 	Ui.hud.Size = UDim2.fromScale(1 / k, 1 / k)
 	Ui.hudScale = k
 end
+
+-- The right edge (2026-11-28, playtester: "elements opposite side from notch should have less
+-- padding"). Roblox keeps every screen out of the notch area on BOTH sides of a phone, so the
+-- right-hand HUD sits a thumb's width in from the edge for nothing when the notch is on the
+-- left. Two frames reach past the safe area on the right, sized by Ui.edge:
+--   Ui.hudR   the top and bottom corners: the notch never reaches them, always close to the edge
+--   Ui.hudRM  the middle band (your HP, the team column): close only when the notch is known to
+--             be on the left (LandscapeRight = top of the phone on the left; Roblox can report
+--             the orientation wrong, so anything else keeps the safe padding)
+local EDGE = 6 -- points to keep from the glass (rounded corners)
+Ui.hudR = new("Frame", { Name = "EdgeR", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Parent = Ui.hud })
+Ui.hudRM = new("Frame", { Name = "EdgeRM", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Parent = Ui.hud })
+-- The top-right row (2026-11-28, playtester: "fat top padding"): every screen here starts below
+-- Roblox's top bar, but Roblox's own buttons only fill its left end. Ui.hudTop is Ui.hudR moved
+-- up by Ui.topLift HUD points so the row (laid out centred on y = 24) sits centred in the bar,
+-- shifted left if Roblox has anything on the right (GuiService.TopbarInset = the free part of
+-- the bar), and back below the bar if the row would run into Roblox's buttons.
+Ui.hudTop = new("Frame", { Name = "TopRow", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Parent = Ui.hudR })
+Ui.topLift = 0
+local ROW_MID = 24 -- centre line of the row in HUD points (36-point buttons at y = 6)
+local topRowW = 0 -- HUD points from the row's right end to the wallet's left edge (Hud sets it)
+function Ui.placeTop(rowWidth: number?)
+	topRowW = rowWidth or topRowW
+	local k = Ui.hudScale or 1
+	local GS = game:GetService("GuiService")
+	local guiTop, bar, freeL, freeR -- in screen pixels (preview: phone points)
+	if Ui.preview then
+		guiTop, bar, freeL, freeR = INSET, INSET, NOTCH + 310, math.huge -- the ghost bar
+	else
+		local r = GS.TopbarInset
+		guiTop, bar, freeL, freeR = GS:GetGuiInset().Y, r.Height, r.Min.X, r.Max.X
+	end
+	local lift, shift = 0, 0
+	if bar > 0 and guiTop > 0 then
+		-- the row's right end (8 HUD points in from Ui.hudR's right edge)
+		local edgeR = Ui.preview and (PHONE.X - NOTCH + Ui.edge) or (Ui.hudR.AbsolutePosition.X + Ui.hudR.AbsoluteSize.X)
+		local right = edgeR - 8 * k
+		shift = math.max(0, right - (freeR - 4)) / k
+		local left = right - shift * k - topRowW * k
+		if left >= freeL + 8 then
+			lift = ROW_MID + (guiTop - bar / 2) / k
+		else
+			shift = 0
+		end
+	end
+	Ui.topLift = lift
+	Ui.hudTop.Position = UDim2.fromOffset(-shift, -lift)
+end
+Ui.edge = 0 -- extra points the right edge reaches (in Ui.gui points; HUD points = Ui.edge / k)
+local function notchLeft(): boolean
+	if Ui.preview then
+		return true
+	end
+	local ok, o = pcall(function()
+		return (player:WaitForChild("PlayerGui") :: PlayerGui).CurrentScreenOrientation
+	end)
+	return ok and o == Enum.ScreenOrientation.LandscapeRight
+end
+local function placeEdge()
+	task.defer(function()
+		Ui.placeTop()
+	end)
+	local inset
+	if Ui.preview then
+		inset = NOTCH
+	else
+		-- Roblox insets both sides equally: half the width the safe area loses
+		inset = math.max(0, (workspace.CurrentCamera.ViewportSize.X - Ui.gui.AbsoluteSize.X) / 2)
+	end
+	local ext = math.max(0, inset - EDGE)
+	Ui.edge = ext
+	local k = Ui.hudScale or 1
+	Ui.hudR.Size = UDim2.new(1, ext / k, 1, 0)
+	Ui.hudRM.Size = UDim2.new(1, notchLeft() and ext / k or 0, 1, 0)
+end
+Ui.edgeChanged = placeEdge
 placeHud()
-workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeHud)
+placeEdge()
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(function()
+	placeHud()
+	placeEdge()
+end)
+Ui.gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeEdge)
+pcall(function()
+	game:GetService("GuiService"):GetPropertyChangedSignal("TopbarInset"):Connect(function()
+		Ui.placeTop()
+	end)
+end)
+pcall(function()
+	player:WaitForChild("PlayerGui"):GetPropertyChangedSignal("CurrentScreenOrientation"):Connect(function()
+		placeEdge()
+		task.delay(0.5, placeEdge) -- the new value can arrive late
+	end)
+end)
+
+-- A HUD-points frame for another ScreenGui (same scale as Ui.hud), e.g. tips above menus.
+local hudLayers: { { f: Frame, sc: UIScale } } = {}
+function Ui.hudLayer(screen: ScreenGui): Frame
+	local f = new("Frame", { Name = "HudLayer", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Parent = Ui.layer(screen) })
+	local sc = new("UIScale", { Parent = f })
+	table.insert(hudLayers, { f = f, sc = sc })
+	local k = Ui.hudScale or 1
+	sc.Scale = k
+	f.Size = UDim2.fromScale(1 / k, 1 / k)
+	return f
+end
+hudScale:GetPropertyChangedSignal("Scale"):Connect(function()
+	local k = hudScale.Scale
+	for _, l in hudLayers do
+		l.sc.Scale = k
+		l.f.Size = UDim2.fromScale(1 / k, 1 / k)
+	end
+end)
 
 -- Studio preview: a dark backdrop around the phone, Roblox's top bar, the jump button and the
 -- joystick drawn as ghosts so nothing gets placed under them
@@ -129,17 +253,18 @@ if Ui.preview then
 	for _ = 1, 4 do
 		table.insert(previewBars, new("Frame", { BackgroundColor3 = Color3.fromRGB(20, 20, 30), BorderSizePixel = 0, Parent = back }))
 	end
-	local hole = Ui.layer(back)
+	local hole = Ui.layer(back, true)
 	new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = hole }, { new("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2 }) })
 	local over = new("ScreenGui", { Name = "PhoneGhosts", DisplayOrder = 200, IgnoreGuiInset = true, Parent = player:WaitForChild("PlayerGui") })
-	local g = Ui.layer(over)
+	local g = Ui.layer(over, true)
 	local function ghost(pos: UDim2, size: Vector2, round: boolean, label: string)
 		local f = new("Frame", { Position = pos, Size = UDim2.fromOffset(size.X, size.Y), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.55, Parent = g }, round and { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) } or {})
 		new("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = label, TextColor3 = Color3.new(1, 1, 1), TextSize = 12, Font = Enum.Font.GothamBold, Parent = f })
 	end
-	ghost(UDim2.fromOffset(0, 0), Vector2.new(310, INSET), false, "Roblox top bar")
-	ghost(UDim2.new(1, -95, 1, -90), Vector2.new(70, 70), true, "Jump")
-	ghost(UDim2.new(0, 40, 1, -150), Vector2.new(110, 110), true, "Move")
+	ghost(UDim2.fromOffset(NOTCH, 0), Vector2.new(310, INSET), false, "Roblox top bar")
+	ghost(UDim2.new(1, -95 - NOTCH, 1, -90), Vector2.new(70, 70), true, "Jump")
+	ghost(UDim2.new(0, 40 + NOTCH, 1, -150), Vector2.new(110, 110), true, "Move")
+	ghost(UDim2.new(0, 11, 0.5, -63), Vector2.new(37, 126), true, "")
 end
 
 local S = Ui.mobile and 0.74 or (Ui.small and 0.85 or 1)

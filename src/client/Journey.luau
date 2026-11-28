@@ -1,4 +1,4 @@
--- Tamer's Journey on the client: the objective tracker (top right), a waypoint marker at the
+-- Tamer's Journey on the client: the objective tracker (bottom left), a waypoint marker at the
 -- objective plus a ground arrow by your feet, the guides' dialogue box, the "step done" /
 -- "chapter complete" moments, and campfire fast travel.
 local Players = game:GetService("Players")
@@ -33,20 +33,18 @@ end
 ----------------------------------------------------------------------------------------------
 -- Tracker
 
--- (HUD points: right of the minimap, see Hud.luau)
-local tracker = Ui.card({ Name = "Journey", Position = UDim2.fromOffset(126, 6), Size = UDim2.fromOffset(206, 48), ZIndex = 3, Shadow = false, Parent = Ui.hud }, 12)
-local tChapter = label(tracker, { Position = UDim2.fromOffset(px(14), px(8)), Size = UDim2.new(1, -px(28), 0, px(16)), Text = "", TextSize = px(13), TextColor3 = C.Lilac, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4 })
-local tText = label(tracker, { Position = UDim2.fromOffset(px(14), px(26)), Size = UDim2.new(1, -px(28), 0, px(38)), Text = "", TextSize = px(16), TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 4 })
-local tInfo = label(tracker, { Position = UDim2.new(0, px(14), 1, -px(22)), Size = UDim2.new(1, -px(28), 0, px(16)), Text = "", TextSize = px(13), TextColor3 = C.Sub, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4 }, "Bold")
+-- (HUD points, bottom left: a see-through strip over the world, see Hud.luau. Not Active, so a
+-- thumb on the joystick zone under it still moves you; it grows upward for long steps. Tips sit
+-- just above it.)
+local tracker = new("Frame", { Name = "Journey", AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 8, 1, -8), Size = UDim2.fromOffset(236, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = Color3.fromRGB(16, 20, 30), BackgroundTransparency = 0.45, ZIndex = 3, Parent = Ui.hud }, {
+	new("UICorner", { CornerRadius = UDim.new(0, 10) }),
+	new("UIPadding", { PaddingLeft = UDim.new(0, 9), PaddingRight = UDim.new(0, 9), PaddingTop = UDim.new(0, 5), PaddingBottom = UDim.new(0, 5) }),
+	new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 1) }),
+})
+local tChapter = label(tracker, { Size = UDim2.new(1, 0, 0, 0), Text = "", TextSize = 9, Visible = false })
+local tText = label(tracker, { LayoutOrder = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Text = "", TextSize = 11, TextWrapped = true, TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4 })
+local tInfo = label(tracker, { LayoutOrder = 2, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, Text = "", TextSize = 9, TextWrapped = true, TextColor3 = Color3.fromRGB(190, 230, 210), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4 }, "Bold")
 local tScale = new("UIScale", { Parent = tracker })
--- one compact pill on every screen (chapter name in the info line)
-tChapter.Visible = false
-tText.Position = UDim2.fromOffset(9, 4)
-tText.Size = UDim2.new(1, -18, 0, 28)
-tText.TextSize = 11
-tInfo.Position = UDim2.new(0, 9, 1, -15)
-tInfo.Size = UDim2.new(1, -18, 0, 12)
-tInfo.TextSize = 9
 
 local travelB = Ui.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(16), 0, px(158)), Size = UDim2.fromOffset(px(170), px(40)), BackgroundColor3 = C.Peach, Text = "🔥 Fast travel", TextScaled = false, TextSize = px(16), Visible = false, ZIndex = 3, Parent = Ui.gui, Radius = 20 })
 

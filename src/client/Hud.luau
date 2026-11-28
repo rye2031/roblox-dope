@@ -12,6 +12,7 @@ local Config = require(Shared.Config)
 local Monsters = require(Shared.Monsters)
 local Ui = require(script.Parent.Ui)
 local Panels = require(script.Parent.Panels)
+local TweenService = game:GetService("TweenService")
 local Controls = require(script.Parent.Controls)
 local Unlocks = require(script.Parent.Unlocks)
 local UnitView = require(script.Parent.UnitView)
@@ -42,13 +43,17 @@ end
 ----------------------------------------------------------------------------------------------
 -- HUD layout (2026-11-27 redesign from the owner's reference shot of a mobile action RPG;
 -- phone and PC share it):
---   top-left      minimap (tap: fast travel), quest tracker beside it (Journey), Auto + Ride
---   top-centre    wallet, target card under it
---   top-right     Quests, Shrine, Monsters and the ⊞ Menu (every other menu, sound, help)
+--   top-left      minimap (tap: fast travel; off by default on phones, Menu > Map), Auto + Ride
+--   top-centre    target card
+--   top-right     wallet, then Quests, Shrine, Monsters and the ⊞ Menu (every other menu,
+--                 map, sound, help)
 --   right edge    your avatar + HP, the two waiting monsters, then the active monster with
 --                 its two skills beside it (tap a waiting portrait to make it active)
+--   bottom-left   tips and the quest tracker (Tips.luau, Journey.luau)
 --   bottom-right  attack, weapon skill and dodge around Roblox's jump button
--- Everything is placed in phone points inside Ui.hud, which scales up on big screens.
+-- Everything is placed in phone points inside Ui.hud, which scales up on big screens. The
+-- top-right row sits in Ui.hudTop (inside Roblox's top bar when there is room) and the right column in Ui.hudRM, which reach past the notch
+-- padding on the side away from the notch (Ui.luau).
 
 local hud = Ui.hud
 local keys = not Ui.mobile and not Controls.touch -- show keyboard hints on PC
@@ -63,12 +68,13 @@ local function roundCorner(): UICorner
 end
 
 -- a small dark pill with a key name (PC only)
-local function keyBadge(parent: GuiObject, k: string, pos: UDim2?)
+local function keyBadge(parent: GuiObject, k: string, pos: UDim2?): Frame?
 	if not keys then
-		return
+		return nil
 	end
 	local b = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = pos or UDim2.new(0, 4, 0, 4), Size = UDim2.fromOffset(math.max(16, #k * 7 + 8), 15), BackgroundColor3 = Color3.fromRGB(30, 30, 44), BackgroundTransparency = 0.15, ZIndex = 9, Parent = parent }, { roundCorner() })
 	label(b, { Size = UDim2.fromScale(1, 1), Text = k, TextSize = 10, TextColor3 = WHITE, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 10 }, "Title")
+	return b
 end
 
 -- white text with a dark edge, readable over the world
@@ -99,9 +105,9 @@ local function iconButton(name: string, pos: UDim2, size: number, icon: string?,
 end
 
 ----------------------------------------------------------------------------------------------
--- Wallet (top centre)
+-- Wallet (top right, left of the round buttons; placed every frame by how many are showing)
 
-local wallet = Ui.card({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 6), Size = UDim2.fromOffset(0, 30), ZIndex = 2, Shadow = false, Parent = hud }, 15)
+local wallet = Ui.card({ Name = "Wallet", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -184, 0, 9), Size = UDim2.fromOffset(0, 30), ZIndex = 2, Shadow = false, Parent = Ui.hudTop }, 15)
 new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 10), Parent = wallet })
 Ui.pad(0, 10, 0, 10).Parent = wallet
 local coinL = label(wallet, { LayoutOrder = 1, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "💰 0", TextSize = 14 }, "Title")
@@ -116,7 +122,7 @@ local REGION_NAMES = { Haven = "Haven", SproutMeadow = "Sprout Meadow", EmberCan
 -- Top right: Quests, Shrine, Monsters, Menu
 
 local function topBtn(i: number, glyph: string, name: string): TextButton
-	local b = button({ Name = "Top" .. name, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8 - (i - 1) * 44, 0, 6), Size = UDim2.fromOffset(36, 36), BackgroundColor3 = C.Card, TextColor3 = C.Ink, Text = glyph, TextScaled = false, TextSize = 17, ZIndex = 2, Parent = hud, Radius = 18 })
+	local b = button({ Name = "Top" .. name, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8 - (i - 1) * 44, 0, 6), Size = UDim2.fromOffset(36, 36), BackgroundColor3 = C.Card, TextColor3 = C.Ink, Text = glyph, TextScaled = false, TextSize = 17, ZIndex = 2, Parent = Ui.hudTop, Radius = 18 })
 	Ui.stroke(C.Line, 1.5).Parent = b
 	worldLabel(b, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 1), Size = UDim2.fromOffset(60, 11), Text = name, TextSize = 9 })
 	return b
@@ -155,7 +161,8 @@ local menuScale = new("UIScale", { Parent = menuP })
 Ui.onOpen.Menu = function()
 	local k = Ui.hudScale or 1
 	menuScale.Scale = k
-	menuP.Position = UDim2.new(1, -8 * k, 0, 58 * k)
+	-- just under the top-right row, wherever it sits (in the top bar or below it)
+	menuP.Position = UDim2.new(1, Ui.edge - 8 * k, 0, math.max(6, 52 - Ui.topLift) * k)
 end
 local grid = new("Frame", { LayoutOrder = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 12, Parent = menuBody }, {
 	new("UIGridLayout", { CellSize = UDim2.fromOffset(60, 60), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
@@ -230,6 +237,7 @@ muteB.Activated:Connect(function()
 	local g = muteB:FindFirstChild("Glyph") :: TextLabel
 	g.Text = Sfx.isMuted() and "🔇" or "🔊"
 end)
+local mapT = tile(65, "🗺", "Map", C.Mint)
 local help = tile(70, "?", "Help", C.Mint)
 menuB.Activated:Connect(function()
 	Ui.open(Ui.isOpen("Menu") and nil or "Menu")
@@ -250,6 +258,30 @@ miniBtn.Activated:Connect(function()
 	else
 		Ui.toast("Light 2 campfires to fast travel between them 🔥", "info")
 	end
+end)
+-- shown or hidden from Menu > Map; phones start without it (small screen), PCs with it.
+-- The left column (Auto, then Ride from Pace.luau) moves up into its place when it's off:
+-- Ui.hud's "LeftTop" attribute is where that column starts.
+local mapOn = not Ui.mobile
+local mapGlyph = mapT:FindFirstChild("Glyph") :: TextLabel
+local mapName: TextLabel? = nil
+for _, c in mapT:GetChildren() do
+	if c:IsA("TextLabel") and c ~= mapGlyph then
+		mapName = c
+	end
+end
+local function setMap(on: boolean)
+	mapOn = on
+	mini.Visible = on
+	mapGlyph.TextTransparency = on and 0 or 0.55
+	if mapName then
+		mapName.Text = on and "Map: on" or "Map: off"
+	end
+	hud:SetAttribute("LeftTop", on and 98 or 6)
+end
+mapT.Activated:Connect(function()
+	setMap(not mapOn)
+	Sfx.play("select")
 end)
 local miniDots: { Frame } = {}
 local function miniDot(i: number): Frame
@@ -349,6 +381,12 @@ local function paintAuto(state: boolean)
 	autoL.Text = state and "Auto ON" or "Auto"
 end
 AutoHunt.onChanged(paintAuto)
+setMap(mapOn)
+local function placeLeft()
+	autoB.Position = UDim2.fromOffset(8, hud:GetAttribute("LeftTop") or 98)
+end
+hud:GetAttributeChangedSignal("LeftTop"):Connect(placeLeft)
+placeLeft()
 Ui.onProfile(function(p)
 	local open = p.kills >= 1 or (p.bosses and p.bosses[Config.AutoHunt.UnlockBoss])
 	autoB.Visible = Unlocks.open(p, "Auto")
@@ -376,7 +414,7 @@ local function teamUnit(slot: number): BasePart?
 end
 
 -- you: avatar headshot + HP
-local meAv = new("ImageLabel", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 58), Size = UDim2.fromOffset(34, 34), BackgroundColor3 = C.Card, ZIndex = 3, Parent = hud }, { roundCorner() })
+local meAv = new("ImageLabel", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 58), Size = UDim2.fromOffset(34, 34), BackgroundColor3 = C.Card, ZIndex = 3, Parent = Ui.hudRM }, { roundCorner() })
 local meRing = Ui.stroke(WHITE, 2)
 meRing.Parent = meAv
 task.spawn(function()
@@ -387,71 +425,101 @@ task.spawn(function()
 		meAv.Image = img
 	end
 end)
-local hpLabel = worldLabel(hud, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -48, 0, 60), Size = UDim2.fromOffset(110, 12), Text = "", TextSize = 10, TextXAlignment = Enum.TextXAlignment.Right })
-local hpBack, hpFill = bar(hud, UDim2.new(1, -158, 0, 75), UDim2.fromOffset(110, 8), C.Mint)
+local hpLabel = worldLabel(Ui.hudRM, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -48, 0, 60), Size = UDim2.fromOffset(110, 12), Text = "", TextSize = 10, TextXAlignment = Enum.TextXAlignment.Right })
+local hpBack, hpFill = bar(Ui.hudRM, UDim2.new(1, -158, 0, 75), UDim2.fromOffset(110, 8), C.Mint)
 hpBack.BackgroundColor3 = Color3.fromRGB(40, 40, 56)
 
--- three portrait spots: two waiting (small), the active one at the bottom (big)
-type Spot = { b: ImageButton, ring: UIStroke, hp: Frame, faint: TextLabel, portrait: Frame?, key: string?, slot: number? }
+-- three portrait spots: two waiting (small), the active one at the bottom (big). Each team
+-- slot keeps its own bubble; switching glides the bubbles to their new spots (the new active
+-- one grows into the gold-ringed spot), so you can see who moved where.
+type Spot = { b: ImageButton, ring: UIStroke, hp: Frame, faint: TextLabel, auto: TextLabel, portrait: Frame?, key: string?, slot: number?, at: number? }
 local SPOTS = { { y = 98, size = 34 }, { y = 142, size = 34 }, { y = 186, size = 44 } }
-local spots: { Spot } = {}
-for i, s in SPOTS do
-	local b = new("ImageButton", { Name = "Party" .. i, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, s.y), Size = UDim2.fromOffset(s.size, s.size), BackgroundColor3 = C.Card, AutoButtonColor = false, Visible = false, ZIndex = 3, Parent = hud }, { roundCorner() })
-	local ring = Ui.stroke(GREY, i == 3 and 3 or 2)
+local spots: { Spot } = {} -- by team slot
+for slot = 1, 3 do
+	local s = SPOTS[slot]
+	local b = new("ImageButton", { Name = "Party" .. slot, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -8 - s.size / 2, 0, s.y + s.size / 2), Size = UDim2.fromOffset(s.size, s.size), BackgroundColor3 = C.Card, AutoButtonColor = false, Visible = false, ZIndex = 3, Parent = Ui.hudRM }, { roundCorner() })
+	local ring = Ui.stroke(GREY, 2)
 	ring.Parent = b
 	local back = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 2), Size = UDim2.new(1, -4, 0, 4), BackgroundColor3 = Color3.fromRGB(40, 40, 56), ZIndex = 3, Parent = b }, { roundCorner() })
 	local hp = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = C.Mint, ZIndex = 4, Parent = back }, { roundCorner() })
 	local faint = worldLabel(b, { Size = UDim2.fromScale(1, 1), Text = "💤", TextSize = 16, Visible = false, ZIndex = 8 })
-	spots[i] = { b = b, ring = ring, hp = hp, faint = faint }
-	if i < 3 then
-		worldLabel(b, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(0, -3, 0.5, 0), Size = UDim2.fromOffset(30, 10), Text = "AUTO", TextSize = 8, TextColor3 = Color3.fromRGB(210, 220, 235), TextXAlignment = Enum.TextXAlignment.Right })
-	end
+	local auto = worldLabel(b, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(0, -3, 0.5, 0), Size = UDim2.fromOffset(30, 10), Text = "AUTO", TextSize = 8, TextColor3 = Color3.fromRGB(210, 220, 235), TextXAlignment = Enum.TextXAlignment.Right })
+	spots[slot] = { b = b, ring = ring, hp = hp, faint = faint, auto = auto }
 	b.Activated:Connect(function()
-		local sp = spots[i]
+		local sp = spots[slot]
 		if not sp.slot then
 			return
 		end
-		if i == 3 then
-			local uid = Ui.profile and Ui.profile.team[sp.slot]
+		if slot == (player:GetAttribute("ActiveSlot") or 1) then
+			local uid = Ui.profile and Ui.profile.team[slot]
 			if uid and uid ~= "" then
 				Panels.showMonster(uid)
 			end
 		else
-			Controls.setActive(sp.slot)
+			Controls.setActive(slot)
 			Sfx.play("select")
 		end
 	end)
 end
-keyBadge(spots[1].b, "X", UDim2.new(0, 0, 0, 0))
+local xBadge = keyBadge(spots[1].b, "X", UDim2.new(0, 0, 0, 0))
+-- move a bubble to spot `at` (1-2 waiting, 3 active), gliding unless it's the first placement
+local function moveSpot(sp: Spot, at: number)
+	if sp.at == at then
+		return
+	end
+	local s = SPOTS[at]
+	local goal = { Position = UDim2.new(1, -8 - s.size / 2, 0, s.y + s.size / 2), Size = UDim2.fromOffset(s.size, s.size) }
+	if sp.at == nil then
+		sp.b.Position, sp.b.Size = goal.Position, goal.Size
+		sp.ring.Thickness = at == 3 and 3 or 2
+	else
+		local promoted = at == 3
+		TweenService:Create(sp.b, TweenInfo.new(promoted and 0.42 or 0.32, promoted and Enum.EasingStyle.Back or Enum.EasingStyle.Quad, Enum.EasingDirection.Out), goal):Play()
+		if promoted then
+			-- a gold flash as it lands in the active spot
+			sp.ring.Thickness = 6
+			TweenService:Create(sp.ring, TweenInfo.new(0.5, Enum.EasingStyle.Quad), { Thickness = 3 }):Play()
+		end
+	end
+	sp.at = at
+	sp.b.ZIndex = at == 3 and 5 or 3
+end
 
 -- the active monster's two skills, left of its portrait
 type SkillBtn = { b: ImageButton, img: ImageLabel, shade: Frame, cd: TextLabel, ring: UIStroke, sc: UIScale, name: string? }
 local skillBtns: { [number]: SkillBtn } = {}
 for i, x in { [2] = -128, [3] = -78 } do
 	local b, img, shade, cd, ring, sc = iconButton("Skill" .. (i - 1), UDim2.new(1, x, 0, 208), 46)
+	b.Parent = Ui.hudRM
 	skillBtns[i] = { b = b, img = img, shade = shade, cd = cd, ring = ring, sc = sc }
 	keyBadge(b, tostring(i - 1), UDim2.new(0, 4, 0, 4))
 	b.Activated:Connect(function()
 		Controls.skillOf(i)
 	end)
 end
-local skillName = worldLabel(hud, { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -56, 0, 184), Size = UDim2.fromOffset(150, 11), Text = "", TextSize = 9, TextXAlignment = Enum.TextXAlignment.Right })
+local skillName = worldLabel(Ui.hudRM, { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -56, 0, 184), Size = UDim2.fromOffset(150, 11), Text = "", TextSize = 9, TextXAlignment = Enum.TextXAlignment.Right })
 
 local function renderTeam(p)
 	local active = player:GetAttribute("ActiveSlot") or 1
-	local order = {}
+	local at = {}
+	local n = 0
 	for slot = 1, 3 do
 		if slot ~= active then
-			table.insert(order, slot)
+			n += 1
+			at[slot] = n
 		end
 	end
-	table.insert(order, active)
-	for i, sp in spots do
-		local slot = order[i]
+	at[active] = 3
+	for slot, sp in spots do
 		local uid = p.team[slot]
 		local m = uid and uid ~= "" and p.monsters[uid] or nil
 		sp.slot = m and slot or nil
 		sp.b.Visible = m ~= nil
+		moveSpot(sp, at[slot])
+		sp.auto.Visible = at[slot] ~= 3
+		if xBadge and at[slot] == 1 then
+			xBadge.Parent = sp.b
+		end
 		local key = m and (uid .. ":" .. m.el) or nil
 		if key ~= sp.key then
 			if sp.portrait then
@@ -469,7 +537,10 @@ local function renderTeam(p)
 			sp.key = key
 		end
 		if m then
-			sp.ring.Color = i == 3 and GOLD or EI[m.el].Color
+			sp.ring.Color = at[slot] == 3 and GOLD or EI[m.el].Color
+			if at[slot] ~= 3 then
+				sp.ring.Thickness = 2
+			end
 		end
 	end
 	-- skill icons for the active monster
@@ -494,9 +565,9 @@ player:GetAttributeChangedSignal("ActiveSlot"):Connect(function()
 end)
 
 ----------------------------------------------------------------------------------------------
--- Target frame (top centre, under the wallet)
+-- Target frame (top centre)
 
-local targetCard = Ui.card({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 42), Size = UDim2.fromOffset(230, 38), Visible = false, ZIndex = 2, Parent = hud }, 12)
+local targetCard = Ui.card({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 6), Size = UDim2.fromOffset(230, 38), Visible = false, ZIndex = 2, Parent = hud }, 12)
 local tName = label(targetCard, { Position = UDim2.fromOffset(10, 3), Size = UDim2.new(1, -20, 0, 15), Text = "", TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left }, "Title")
 local tFx = label(targetCard, { Position = UDim2.fromOffset(10, 3), Size = UDim2.new(1, -20, 0, 15), Text = "", TextSize = 10, TextColor3 = C.Sub, TextXAlignment = Enum.TextXAlignment.Right, Visible = not Ui.mobile }, "Bold")
 local _, tHp = bar(targetCard, UDim2.fromOffset(10, 21), UDim2.new(1, -20, 0, 10), C.Coral)
@@ -770,6 +841,7 @@ function Hud.start()
 	local bases: { [BasePart]: CFrame } = {}
 	local lastMini = 0
 
+	local lastRowW = -1
 	RunService.RenderStepped:Connect(function(dt)
 		local t = os.clock()
 		-- player HP
@@ -830,6 +902,18 @@ function Hud.start()
 		monQDot.Visible = monDot.Visible
 		shrineQDot.Visible = shrineDot.Visible
 		questQ.Visible = railButtons.Quests.Visible
+		local wx = 8
+		for _, tb in { menuB, monQ, shrineQ, questQ } do
+			if tb.Visible then
+				wx += 44
+			end
+		end
+		wallet.Position = UDim2.new(1, -wx - 2, 0, 9)
+		local rowW = wx + 2 + wallet.AbsoluteSize.X / (Ui.hudScale or 1)
+		if math.abs(rowW - lastRowW) > 0.5 then
+			lastRowW = rowW
+			Ui.placeTop(rowW)
+		end
 		local anyDot = false
 		for _, d in tileDots do
 			if d.Visible and (d.Parent :: GuiObject).Visible then
@@ -843,7 +927,7 @@ function Hud.start()
 		end
 		menuDot.Visible = anyDot
 		-- minimap at 10 Hz
-		if t - lastMini > 0.1 then
+		if mapOn and t - lastMini > 0.1 then
 			lastMini = t
 			drawMinimap()
 		end

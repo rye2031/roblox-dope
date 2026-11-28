@@ -60,34 +60,34 @@ local queue: { string } = {}
 local showing = false
 local forced: { [string]: boolean } = {}
 
-local gui = new("ScreenGui", { Name = "WildTips", DisplayOrder = 55, ResetOnSpawn = false, IgnoreGuiInset = true, Parent = player:WaitForChild("PlayerGui") })
-local layer = Ui.layer(gui) -- (phone preview: draws inside the phone frame)
-local card = Ui.card({ Name = "Tip", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -px(176)), Size = UDim2.fromOffset(px(560), px(118)), Visible = false, ZIndex = 5, Parent = layer }, 20)
-Ui.stroke(C.Mint, 3).Parent = card
-local icon = new("Frame", { Position = UDim2.fromOffset(px(16), px(16)), Size = UDim2.fromOffset(px(52), px(52)), BackgroundColor3 = Ui.Theme.tint(C.Mint, 0.7), ZIndex = 6, Parent = card }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
-local glyph = Ui.text({ Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, TextScaled = false, TextSize = px(26), Text = "", ZIndex = 7, Parent = icon }, "Title")
-local title = Ui.text({ Position = UDim2.fromOffset(px(82), px(12)), Size = UDim2.new(1, -px(98), 0, px(22)), BackgroundTransparency = 1, TextScaled = false, TextSize = px(18), TextXAlignment = Enum.TextXAlignment.Left, Text = "", ZIndex = 6, Parent = card }, "Title")
-local body = Ui.text({ Position = UDim2.fromOffset(px(82), px(36)), Size = UDim2.new(1, -px(98) - px(120), 0, px(72)), BackgroundTransparency = 1, TextScaled = false, TextSize = px(15), TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, TextColor3 = C.Sub, Text = "", ZIndex = 6, Parent = card }, "Bold")
-local ok = Ui.button({ Name = "GotIt", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -px(14), 1, -px(14)), Size = UDim2.fromOffset(px(110), px(38)), BackgroundColor3 = C.Mint, Text = "Got it", TextScaled = false, TextSize = px(16), ZIndex = 6, Parent = card, Radius = 19 })
--- phones: a slim strip in the top bar's empty right half, clear of the HUD buttons below it,
--- the joystick and the thumb buttons
-if Ui.mobile then
-	card.AnchorPoint = Vector2.new(1, 0)
-	card.Position = UDim2.new(1, -8, 0, 4)
-	card.Size = UDim2.fromOffset(420, 52)
-	icon.Position = UDim2.fromOffset(8, 11)
-	icon.Size = UDim2.fromOffset(30, 30)
-	glyph.TextSize = 16
-	title.Position = UDim2.fromOffset(46, 5)
-	title.Size = UDim2.new(1, -46 - 84, 0, 14)
-	title.TextSize = 12
-	body.Position = UDim2.fromOffset(46, 19)
-	body.Size = UDim2.new(1, -46 - 84, 0, 30)
-	body.TextSize = 11
-	ok.AnchorPoint = Vector2.new(1, 0.5)
-	ok.Position = UDim2.new(1, -8, 0.5, 0)
-	ok.Size = UDim2.fromOffset(70, 30)
-	ok.TextSize = 13
+-- Bottom left, just above the quest tracker (2026-11-28, playtester: the banner top right was
+-- "weird"): a see-through card in HUD points that goes away on its own after LIFE seconds (a
+-- thin bar shows the time left) or when tapped. Its own ScreenGui keeps it above menus, so a
+-- menu's first-time tip shows over that menu.
+local LIFE = 20
+local gui = new("ScreenGui", { Name = "WildTips", DisplayOrder = 55, ResetOnSpawn = false, IgnoreGuiInset = false, Parent = player:WaitForChild("PlayerGui") })
+local layer = Ui.hudLayer(gui) -- (phone preview: draws inside the phone frame)
+local card = new("TextButton", { Name = "Tip", AnchorPoint = Vector2.new(0, 1), Position = UDim2.new(0, 8, 1, -60), Size = UDim2.fromOffset(260, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundColor3 = Color3.fromRGB(16, 20, 30), BackgroundTransparency = 0.3, AutoButtonColor = false, Text = "", Visible = false, ZIndex = 5, Parent = layer }, {
+	new("UICorner", { CornerRadius = UDim.new(0, 12) }),
+	new("UIPadding", { PaddingBottom = UDim.new(0, 9) }),
+})
+local content = new("Frame", { Position = UDim2.fromOffset(44, 7), Size = UDim2.new(1, -70, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 6, Parent = card }, {
+	new("UIListLayout", { SortOrder = Enum.SortOrder.LayoutOrder, Padding = UDim.new(0, 1) }),
+})
+local icon = new("Frame", { Position = UDim2.fromOffset(8, 8), Size = UDim2.fromOffset(28, 28), BackgroundColor3 = Ui.Theme.tint(C.Mint, 0.3), BackgroundTransparency = 0.2, ZIndex = 6, Parent = card }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+local glyph = Ui.text({ Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, TextScaled = false, TextSize = 15, Text = "", ZIndex = 7, Parent = icon }, "Title")
+Ui.text({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -6, 0, 4), Size = UDim2.fromOffset(16, 16), BackgroundTransparency = 1, TextScaled = false, TextSize = 15, Text = "×", TextColor3 = Color3.fromRGB(200, 205, 220), ZIndex = 7, Parent = card }, "Title")
+-- time left (bottom edge; +6 because of the bottom padding)
+local timeBack = new("Frame", { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, 6), Size = UDim2.new(1, -20, 0, 2), BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 0.8, BorderSizePixel = 0, ZIndex = 6, Parent = card })
+local timeBar = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = C.Mint, BorderSizePixel = 0, ZIndex = 7, Parent = timeBack })
+local title = Ui.text({ LayoutOrder = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, TextScaled = false, TextSize = 12, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.new(1, 1, 1), Text = "", ZIndex = 6, Parent = content }, "Title")
+local body = Ui.text({ LayoutOrder = 2, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, TextScaled = false, TextSize = 11, TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextColor3 = Color3.fromRGB(215, 222, 235), Text = "", ZIndex = 6, Parent = content }, "Bold")
+-- sit above the quest tracker (it grows with long steps)
+local function place()
+	local tr = Ui.hud:FindFirstChild("Journey") :: GuiObject?
+	local k = Ui.hudScale or 1
+	local above = (tr and tr.Visible) and tr.AbsoluteSize.Y / k + 6 or 0
+	card.Position = UDim2.new(0, 8, 1, -8 - above)
 end
 
 local function seen(id: string): boolean
@@ -105,7 +105,8 @@ local function dismiss()
 	showing = false
 	task.delay(1.2, showNext)
 end
-ok.Activated:Connect(dismiss)
+card.Activated:Connect(dismiss)
+local shownAt = 0
 Tips.dismiss = dismiss -- debug
 Tips.state = function()
 	return string.format("showing %s (%s) queue %d", tostring(card.Visible), title.Text, #queue)
@@ -134,12 +135,22 @@ showNext = function()
 	end
 	showing = true
 	glyph.Text, title.Text, body.Text = t[1], t[2], t[3]
-	ok.Text = #queue > 0 and "Next" or "Got it"
+	place()
 	card.Visible = true
 	local sc = new("UIScale", { Scale = 0.85, Parent = card })
 	TweenService:Create(sc, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	task.delay(0.35, function()
 		sc:Destroy()
+	end)
+	-- gone on its own after LIFE seconds
+	local at = os.clock()
+	shownAt = at
+	timeBar.Size = UDim2.fromScale(1, 1)
+	TweenService:Create(timeBar, TweenInfo.new(LIFE, Enum.EasingStyle.Linear), { Size = UDim2.fromScale(0, 1) }):Play()
+	task.delay(LIFE, function()
+		if shownAt == at and card.Visible then
+			dismiss()
+		end
 	end)
 	Sfx.play("toast")
 	if not seen(id) then

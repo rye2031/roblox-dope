@@ -37,8 +37,14 @@ end
 -- Ride button (F): hop on your lead monster to travel faster. Out of combat only.
 local C, px = Ui.C, Ui.px
 -- a round button in the HUD's left column, under Auto (HUD points, see Hud.luau)
+-- (left column under Auto: Ui.hud's "LeftTop" is where that column starts, see Hud.luau)
 local rideB = Ui.button({ Name = "Ride", Position = UDim2.fromOffset(8, 150), Size = UDim2.fromOffset(36, 36), BackgroundColor3 = C.Lilac, Text = "🐾", TextScaled = false, TextSize = 18, ZIndex = 3, Parent = Ui.hud, Radius = 18 })
 Ui.stroke(C.Line, 1.5).Parent = rideB
+local function placeRide()
+	rideB.Position = UDim2.fromOffset(8, (Ui.hud:GetAttribute("LeftTop") or 98) + 52)
+end
+Ui.hud:GetAttributeChangedSignal("LeftTop"):Connect(placeRide)
+placeRide()
 local rideL = Ui.text({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 1), Size = UDim2.fromOffset(60, 11), BackgroundTransparency = 1, TextScaled = false, TextSize = 9, Text = "Ride", TextColor3 = Color3.new(1, 1, 1), TextStrokeTransparency = 0.35, ZIndex = 3, Parent = rideB }, "Title")
 if not Ui.mobile then
 	local kb = Ui.new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -2, 0, 2), Size = UDim2.fromOffset(16, 15), BackgroundColor3 = Color3.fromRGB(30, 30, 44), BackgroundTransparency = 0.15, ZIndex = 9, Parent = rideB }, { Ui.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
