@@ -91,6 +91,8 @@ end
 
 -- Summon results: a banner for each species+element seen for the first time.
 function Wins.summoned(res)
+	-- wait for the egg to burst (single) so the banner doesn't spoil the hatch
+	task.wait(res.sp and 3.4 or 1)
 	for _, r in (res.sp and { res } or res) do
 		if r.new then
 			local sp = Monsters.Species[r.sp]

@@ -2049,5 +2049,44 @@
       "art/meshy/props/models/egg_eclipse/model_base_color.png",
       "art/meshy/props/models/egg_eclipse/thumb.png"
     ]
+  },
+  {
+    "name": "egg_eclipse",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "107981425288547",
+    "roblox_mesh": "rbxassetid://94295276647543",
+    "roblox_texture": "rbxassetid://135524078537728",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/egg_eclipse/model.glb"
+    ]
+  },
+  {
+    "name": "egg_legendary",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "109972885355964",
+    "roblox_mesh": "rbxassetid://85118994536429",
+    "roblox_texture": "rbxassetid://102734186855454",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/egg_legendary/model.glb"
+    ]
+  },
+  {
+    "name": "egg_regular",
+    "kind": "roblox-upload",
+    "roblox_model_asset": "83293179800453",
+    "roblox_mesh": "rbxassetid://130114254774364",
+    "roblox_texture": "rbxassetid://132374921208716",
+    "moderation": "Approved",
+    "uploaded": "2026-11-27",
+    "account_user_id": "12039302950",
+    "files": [
+      "art/meshy/props/models/egg_regular/model.glb"
+    ]
   }
 ]

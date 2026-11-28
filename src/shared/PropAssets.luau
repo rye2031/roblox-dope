@@ -24,4 +24,7 @@ return {
 	PropRuinedArch = { Model = 71368510898634, Mesh = "rbxassetid://73448578811504", Texture = "rbxassetid://139812615621373", Height = 1.898 },
 	PropShadowCrystals = { Model = 72248347810334, Mesh = "rbxassetid://94757195841006", Texture = "rbxassetid://112272038774528", Height = 1.902 },
 	PropSunObelisk = { Model = 117411316045176, Mesh = "rbxassetid://94727646016412", Texture = "rbxassetid://121255842015634", Height = 1.901 },
+	EggEclipse = { Model = 107981425288547, Mesh = "rbxassetid://94295276647543", Texture = "rbxassetid://135524078537728", Height = 1.902 },
+	EggLegendary = { Model = 109972885355964, Mesh = "rbxassetid://85118994536429", Texture = "rbxassetid://102734186855454", Height = 1.897 },
+	EggRegular = { Model = 83293179800453, Mesh = "rbxassetid://130114254774364", Texture = "rbxassetid://132374921208716", Height = 1.903 },
 }

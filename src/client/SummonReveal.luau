@@ -361,8 +361,21 @@ local function single(res, h: Handlers)
 	light.Range = 14
 	light.Color = Color3.new(1, 1, 1)
 	light.Parent = backdrop
-	local egg: BasePart? = MeshLoader.get(meshName, 4.4)
+	-- the uploaded egg in ReplicatedStorage.PropModels, else the baked runtime mesh
+	local egg: BasePart? = nil
 	local released = false
+	local folder = ReplicatedStorage:FindFirstChild("PropModels")
+	local tpl = folder and folder:FindFirstChild(meshName)
+	local tplPart = tpl and (tpl:IsA("BasePart") and tpl or tpl:FindFirstChildWhichIsA("BasePart", true))
+	if tplPart then
+		local c = (tplPart :: BasePart):Clone()
+		c:ClearAllChildren()
+		c.Size = (tplPart :: BasePart).Size * (4.4 / (tplPart :: BasePart).Size.Y)
+		egg = c
+		released = true
+	else
+		egg = MeshLoader.get(meshName, 4.4)
+	end
 	local function release()
 		if not released then
 			released = true

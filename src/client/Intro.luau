@@ -156,7 +156,7 @@ local function run()
 				return
 			end
 			local done = false
-			require(script.Parent.Wins).summoned(r)
+			task.spawn(require(script.Parent.Wins).summoned, r)
 			SummonReveal.show(r, {
 				kind = "Intro",
 				one = function()

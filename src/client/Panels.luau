@@ -762,7 +762,7 @@ reveal = function(res, kind)
 	if nOver > 0 then
 		Ui.toast(string.format("Storage full: %d went to Overflow. Open Monsters to take, swap or sell %s", nOver, nOver > 1 and "them" or "it"), "warn")
 	end
-	require(script.Parent.Wins).summoned(res)
+	task.spawn(require(script.Parent.Wins).summoned, res)
 	SummonReveal.show(res, {
 		kind = k,
 		one = function()
