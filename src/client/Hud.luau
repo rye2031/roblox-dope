@@ -448,7 +448,8 @@ function Hud.setProfile(p)
 		local open = Unlocks.open(p, name)
 		if open and not b.Visible then
 			b.Visible = true
-			local fresh = not (p.tutorial and p.tutorial["unl_" .. name])
+			-- long-time players see everything without a badge storm
+			local fresh = not (p.tutorial and p.tutorial["unl_" .. name]) and not Unlocks.veteran(p)
 			if fresh and Unlocks.message(name) and Ui.profileLoadedOnce then
 				newBadges[name].Visible = true
 				Ui.toast("✨ New: " .. Unlocks.message(name), "good")

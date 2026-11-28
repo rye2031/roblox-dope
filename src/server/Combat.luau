@@ -1164,10 +1164,12 @@ function Combat.toggleRide(player: Player)
 	u.part:SetAttribute("Mount", true)
 	u.part:SetAttribute("RideScale", rideScale(u.sp))
 	u.target = nil
-	hum.HipHeight = BASE_HIP + Monsters.Species[u.sp].Height * rideScale(u.sp) * 0.72
+	-- stand on its back (about 85% of its height; big heads and ears stick up past that)
+	local lift = Monsters.Species[u.sp].Height * rideScale(u.sp) * 0.85
+	hum.HipHeight = BASE_HIP + lift
 	local hrp = hrpOf(player)
 	if hrp then
-		hrp.CFrame += Vector3.new(0, Monsters.Species[u.sp].Height * rideScale(u.sp) * 0.72, 0)
+		hrp.CFrame += Vector3.new(0, lift, 0)
 	end
 end
 

@@ -84,7 +84,8 @@ Tips.state = function()
 end
 
 showNext = function()
-	if showing or #queue == 0 then
+	-- the dream intro has its own hints: tips wait until it's over
+	if showing or #queue == 0 or player:GetAttribute("InIntro") then
 		return
 	end
 	local id = table.remove(queue, 1)
@@ -131,6 +132,11 @@ function Tips.show(id: string, force: boolean?, front: boolean?)
 end
 
 function Tips.start()
+	player:GetAttributeChangedSignal("InIntro"):Connect(function()
+		if not player:GetAttribute("InIntro") then
+			task.delay(2.5, showNext)
+		end
+	end)
 	-- the first time a menu opens
 	local open = Ui.open
 	Ui.open = function(name: string?)

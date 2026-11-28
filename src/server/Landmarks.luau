@@ -57,11 +57,13 @@ end
 
 local function volcano(h, f)
 	local c = Vector3.new(700, 0, 300)
-	terrain:SetMaterialColor(Enum.Material.Asphalt, Color3.fromRGB(84, 70, 70))
+	terrain:SetMaterialColor(Enum.Material.Asphalt, Color3.fromRGB(70, 62, 60))
 	terrain:SetMaterialColor(Enum.Material.CrackedLava, Color3.fromRGB(255, 120, 50))
-	for i = 0, 11 do
-		local r = 64 - i * 5
-		terrain:FillCylinder(CFrame.new(c.X, 2 + i * 5.5, c.Z), 5.6, r, i >= 10 and Enum.Material.CrackedLava or Enum.Material.Asphalt)
+	-- a smooth cone: many thin rings (big steps showed as stripes), glowing lip on top
+	for y = 0, 60, 1.5 do
+		local k = y / 64
+		local r = 8 + 58 * (1 - k) ^ 1.25
+		terrain:FillCylinder(CFrame.new(c.X, y + 1, c.Z), 2.2, r, y >= 55 and Enum.Material.CrackedLava or Enum.Material.Asphalt)
 	end
 	-- crater: carve the top and fill a lava pool
 	terrain:FillCylinder(CFrame.new(c.X, 64, c.Z), 14, 7, Enum.Material.Air)

@@ -57,6 +57,8 @@ Unlocks.Rules = {
 	end, "Travel: jump to any campfire you've lit" },
 }
 
+Unlocks.veteran = veteran
+
 function Unlocks.open(p, id: string): boolean
 	if not p then
 		return false

@@ -113,6 +113,7 @@ local function run()
 	token += 1
 	local my = token
 	gui.Enabled = true
+	veil.Visible = true
 	veil.BackgroundTransparency = 0
 	box.Visible = true
 	showHint(nil)
@@ -143,8 +144,10 @@ local function run()
 	if not say(info.Icon .. " " .. ELEMENT_LINE[best], my, 1.6) then return end
 	line.TextColor3 = Color3.fromRGB(90, 70, 150)
 	if not say("\"Here are three eggs. Friends are waiting inside.\"", my, 1.2) then return end
-	-- the eggs hatch, one after another, with the real reveal
+	-- the eggs hatch, one after another, with the real reveal (the dream backdrop steps aside:
+	-- it draws above the reveal's own screen)
 	box.Visible = false
+	veil.Visible = false
 	local ok, _, res = call("hatch")
 	if ok and typeof(res) == "table" then
 		local SummonReveal = require(script.Parent.SummonReveal)
@@ -155,7 +158,7 @@ local function run()
 			local done = false
 			require(script.Parent.Wins).summoned(r)
 			SummonReveal.show(r, {
-				kind = r.kind,
+				kind = "Intro",
 				one = function()
 					done = true
 				end,
@@ -176,7 +179,8 @@ local function run()
 	end
 	if not alive(my) then return end
 	-- the shadow fight on the cloud island
-	fadeVeil(1, 0.8)
+	veil.BackgroundTransparency = 1
+	veil.Visible = true
 	box.Visible = false
 	task.wait(0.8)
 	showHint("A shadow appears! Your monsters fight on their own.\nClick (or tap ⚔) to swing. Press 1 when a big move glows.")
