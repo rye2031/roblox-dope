@@ -15,6 +15,7 @@ local Wins = {}
 local player = Players.LocalPlayer
 
 local gui = new("ScreenGui", { Name = "WildWins", DisplayOrder = 74, ResetOnSpawn = false, IgnoreGuiInset = true, Parent = player:WaitForChild("PlayerGui") })
+local layer = Ui.layer(gui) -- (phone preview: draws inside the phone frame)
 
 ----------------------------------------------------------------------------------------------
 -- coins fly to the wallet
@@ -34,7 +35,7 @@ function Wins.coins(worldPos: Vector3, amount: number)
 	local n = math.clamp(math.floor(amount / 15) + 2, 2, 7)
 	for i = 1, n do
 		task.delay((i - 1) * 0.06, function()
-			local c = new("TextLabel", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(from.X + math.random(-24, 24), from.Y + math.random(-16, 16)), Size = UDim2.fromOffset(px(26), px(26)), BackgroundTransparency = 1, Text = "💰", TextScaled = true, ZIndex = 5, Parent = gui })
+			local c = new("TextLabel", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(from.X + math.random(-24, 24), from.Y + math.random(-16, 16)), Size = UDim2.fromOffset(px(26), px(26)), BackgroundTransparency = 1, Text = "💰", TextScaled = true, ZIndex = 5, Parent = layer })
 			local mid = UDim2.fromOffset((from.X + to.X) / 2 + math.random(-60, 60), math.min(from.Y, to.Y) - math.random(20, 80))
 			local t1 = TweenService:Create(c, TweenInfo.new(0.22, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), { Position = mid })
 			t1:Play()
@@ -53,7 +54,7 @@ end
 ----------------------------------------------------------------------------------------------
 -- NEW MONSTER banner (queued, one at a time)
 
-local banner = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.28), Size = UDim2.fromOffset(px(520), px(92)), BackgroundColor3 = C.Card, Visible = false, ZIndex = 10, Parent = gui }, {
+local banner = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.28), Size = UDim2.fromOffset(px(520), px(92)), BackgroundColor3 = C.Card, Visible = false, ZIndex = 10, Parent = layer }, {
 	new("UICorner", { CornerRadius = UDim.new(0, px(24)) }),
 })
 local bStroke = Ui.stroke(C.Sun, 4)
@@ -117,16 +118,34 @@ function Wins.dailyGift()
 	while SummonReveal.isOpen() or player:GetAttribute("InIntro") do
 		task.wait(1)
 	end
-	local card = Ui.card({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45), Size = UDim2.fromOffset(px(360), px(250)), ZIndex = 20, Parent = gui }, 26)
+	-- no drop shadow: it's a sibling frame that the pop-in scale and Destroy would leave behind
+	local card = Ui.card({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45), Size = UDim2.fromOffset(px(360), px(250)), ZIndex = 20, Shadow = false, Parent = layer }, 26)
 	Ui.stroke(C.Sun, 4).Parent = card
 	local box = Ui.text({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, px(16)), Size = UDim2.fromOffset(px(110), px(110)), BackgroundTransparency = 1, TextScaled = true, Text = "🎁", ZIndex = 21, Parent = card }, "Title")
-	Ui.text({ Position = UDim2.fromOffset(0, px(128)), Size = UDim2.new(1, 0, 0, px(30)), BackgroundTransparency = 1, TextScaled = false, TextSize = px(24), Text = "Your daily gift!", ZIndex = 21, Parent = card }, "Title")
+	local title = Ui.text({ Position = UDim2.fromOffset(0, px(128)), Size = UDim2.new(1, 0, 0, px(30)), BackgroundTransparency = 1, TextScaled = false, TextSize = px(24), Text = "Your daily gift!", ZIndex = 21, Parent = card }, "Title")
 	local open = Ui.button({ AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -px(18)), Size = UDim2.fromOffset(px(200), px(50)), BackgroundColor3 = C.Mint, Text = "Open it!", TextScaled = false, TextSize = px(20), ZIndex = 21, Parent = card, Radius = 25 })
+	if Ui.mobile then
+		-- phones: a short strip in the middle instead of a big box
+		card.Size = UDim2.fromOffset(300, 84)
+		box.AnchorPoint = Vector2.new(0, 0.5)
+		box.Position = UDim2.new(0, 10, 0.5, 0)
+		box.Size = UDim2.fromOffset(60, 60)
+		title.Position = UDim2.fromOffset(78, 0)
+		title.Size = UDim2.new(1, -78 - 112, 1, 0)
+		title.TextSize = 16
+		title.TextWrapped = true
+		open.AnchorPoint = Vector2.new(1, 0.5)
+		open.Position = UDim2.new(1, -12, 0.5, 0)
+		open.Size = UDim2.fromOffset(100, 42)
+		open.TextSize = 16
+	end
 	local sc = new("UIScale", { Scale = 0.4, Parent = card })
 	TweenService:Create(sc, TweenInfo.new(0.5, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	task.spawn(function()
 		while box.Parent do
 			box.Rotation = math.sin(os.clock() * 8) * 8
+			-- steps aside while a hatch, the dream or a menu is open, then comes back
+			card.Visible = not (SummonReveal.isOpen() or player:GetAttribute("InIntro") or Ui.anyOpen())
 			task.wait()
 		end
 	end)

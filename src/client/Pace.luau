@@ -47,6 +47,14 @@ local function toggleRide()
 	Intent:FireServer("ride")
 end
 
+-- phones: next to Auto under the wallet
+if Ui.mobile then
+	rideB.AnchorPoint = Vector2.zero
+	rideB.Position = UDim2.fromOffset(96, 74)
+	rideB.Size = UDim2.fromOffset(82, 30)
+	rideB.TextSize = 12
+end
+
 function Pace.start()
 	rideB.Activated:Connect(toggleRide)
 	UserInputService.InputBegan:Connect(function(input, processed)
@@ -59,6 +67,9 @@ function Pace.start()
 		rideB.Text = riding and "🐾 Get off [F]" or "🐾 Ride [F]"
 		rideB.BackgroundColor3 = riding and C.Mint or (player:GetAttribute("InCombat") and C.Line or C.Lilac)
 		rideB.Visible = player:GetAttribute("Dungeon") == nil and require(script.Parent.Unlocks).open(Ui.profile, "Ride")
+		if Ui.mobile then
+			rideB.Text = riding and "🐾 Off" or "🐾 Ride"
+		end
 	end
 	for _, a in { "Riding", "InCombat", "Dungeon" } do
 		player:GetAttributeChangedSignal(a):Connect(paintRide)

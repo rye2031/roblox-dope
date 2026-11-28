@@ -38,6 +38,18 @@ local tChapter = label(tracker, { Position = UDim2.fromOffset(px(14), px(8)), Si
 local tText = label(tracker, { Position = UDim2.fromOffset(px(14), px(26)), Size = UDim2.new(1, -px(28), 0, px(38)), Text = "", TextSize = px(16), TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 4 })
 local tInfo = label(tracker, { Position = UDim2.new(0, px(14), 1, -px(22)), Size = UDim2.new(1, -px(28), 0, px(16)), Text = "", TextSize = px(13), TextColor3 = C.Sub, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4 }, "Bold")
 local tScale = new("UIScale", { Parent = tracker })
+-- phones: a small quest pill under the top-right buttons
+if Ui.mobile then
+	tracker.Position = UDim2.new(1, -8, 0, 50)
+	tracker.Size = UDim2.fromOffset(236, 54)
+	tChapter.Visible = false
+	tText.Position = UDim2.fromOffset(10, 5)
+	tText.Size = UDim2.new(1, -20, 0, 30)
+	tText.TextSize = 12
+	tInfo.Position = UDim2.new(0, 10, 1, -17)
+	tInfo.Size = UDim2.new(1, -20, 0, 13)
+	tInfo.TextSize = 10
+end
 
 local travelB = Ui.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(16), 0, px(158)), Size = UDim2.fromOffset(px(170), px(40)), BackgroundColor3 = C.Peach, Text = "🔥 Fast travel", TextScaled = false, TextSize = px(16), Visible = false, ZIndex = 3, Parent = Ui.gui, Radius = 20 })
 
@@ -84,6 +96,27 @@ local dText = label(dialog, { Position = UDim2.fromOffset(px(84), px(40)), Size 
 local dNext = label(dialog, { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -px(16), 1, -px(10)), Size = UDim2.fromOffset(px(220), px(18)), Text = "Click or press E ▸", TextSize = px(13), TextColor3 = C.Sub, TextXAlignment = Enum.TextXAlignment.Right, ZIndex = 31 }, "Bold")
 local dHit = new("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 33, Parent = dialog })
 dHit:SetAttribute("NoTap", true)
+dialog:GetPropertyChangedSignal("Visible"):Connect(function()
+	Ui.dialogOpen = dialog.Visible
+end)
+if Ui.mobile then
+	dialog.AnchorPoint = Vector2.new(0.5, 0)
+	dialog.Position = UDim2.new(0.5, -30, 0, 52) -- left of the quest pill
+	dialog.Size = UDim2.fromOffset(350, 104)
+	dIcon.Position = UDim2.fromOffset(10, 10)
+	dIcon.Size = UDim2.fromOffset(36, 36)
+	dGlyph.TextSize = 20
+	dName.Position = UDim2.fromOffset(56, 8)
+	dName.Size = UDim2.new(1, -64, 0, 18)
+	dName.TextSize = 14
+	dText.Position = UDim2.fromOffset(56, 28)
+	dText.Size = UDim2.new(1, -64, 0, 52)
+	dText.TextSize = 13
+	dNext.Position = UDim2.new(1, -10, 1, -6)
+	dNext.Size = UDim2.fromOffset(160, 14)
+	dNext.TextSize = 11
+	dNext.Text = "Tap to continue ▸"
+end
 
 local queue: { { npc: string, lines: { string } } } = {}
 local lineIdx = 0
@@ -103,7 +136,7 @@ local function showLine()
 	dName.TextColor3 = g.Color:Lerp(Color3.new(0, 0, 0), 0.25)
 	fullText = cur.lines[lineIdx] or ""
 	dialog.Visible = true
-	dNext.Text = lineIdx < #cur.lines and "Click or press E ▸" or "Click or press E to close"
+	dNext.Text = Ui.mobile and (lineIdx < #cur.lines and "Tap to continue ▸" or "Tap to close") or (lineIdx < #cur.lines and "Click or press E ▸" or "Click or press E to close")
 	typing = true
 	task.spawn(function()
 		for i = 1, #fullText do
@@ -378,7 +411,7 @@ function Journey.start()
 			end
 			-- travel from anywhere (owner, 2026-11-27): the button is always there outside dungeons
 			local _ = near
-			travelB.Visible = Ui.profile ~= nil and player:GetAttribute("Dungeon") == nil and require(script.Parent.Unlocks).open(Ui.profile, "Travel")
+			travelB.Visible = not Ui.mobile and Ui.profile ~= nil and player:GetAttribute("Dungeon") == nil and require(script.Parent.Unlocks).open(Ui.profile, "Travel")
 			local fighting = player:GetAttribute("InCombat") == true
 			travelB.BackgroundColor3 = fighting and C.Line or C.Peach
 			travelB.Text = fighting and "🔥 Travel (in a fight)" or "🔥 Travel"

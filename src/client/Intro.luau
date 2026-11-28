@@ -27,18 +27,25 @@ local ELEMENT_LINE = {
 }
 
 local gui = new("ScreenGui", { Name = "WildDream", DisplayOrder = 80, ResetOnSpawn = false, IgnoreGuiInset = true, Enabled = false, Parent = player:WaitForChild("PlayerGui") })
-local veil = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(236, 228, 255), BackgroundTransparency = 0, Active = true, ZIndex = 1, Parent = gui }, {
+local layer = Ui.layer(gui) -- (phone preview: draws inside the phone frame)
+local veil = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(236, 228, 255), BackgroundTransparency = 0, Active = true, ZIndex = 1, Parent = layer }, {
 	new("UIGradient", { Color = ColorSequence.new(Color3.fromRGB(255, 240, 250), Color3.fromRGB(214, 220, 255)), Rotation = 90 }),
 })
-local box = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(px(640), px(320)), BackgroundTransparency = 1, ZIndex = 2, Parent = gui })
+local box = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(px(640), px(320)), BackgroundTransparency = 1, ZIndex = 2, Parent = layer })
 local line = Ui.text({ Position = UDim2.fromOffset(0, 0), Size = UDim2.new(1, 0, 0, px(110)), BackgroundTransparency = 1, TextScaled = false, TextSize = px(26), TextWrapped = true, TextColor3 = Color3.fromRGB(90, 70, 150), Text = "", ZIndex = 3, Parent = box }, "Title")
 local answers = new("Frame", { Position = UDim2.fromOffset(0, px(130)), Size = UDim2.new(1, 0, 0, px(180)), BackgroundTransparency = 1, ZIndex = 3, Parent = box }, {
 	new("UIListLayout", { Padding = UDim.new(0, px(10)), HorizontalAlignment = Enum.HorizontalAlignment.Center, SortOrder = Enum.SortOrder.LayoutOrder }),
 })
-local skip = Ui.button({ Name = "Skip", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(20), 0, px(20)), Size = UDim2.fromOffset(px(140), px(40)), BackgroundColor3 = Color3.fromRGB(255, 255, 255), TextColor3 = C.Sub, Text = "Skip intro", TextScaled = false, TextSize = px(15), ZIndex = 5, Parent = gui, Radius = 20 })
-local hint = Ui.card({ Name = "DreamHint", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, px(90)), Size = UDim2.fromOffset(px(520), px(70)), Visible = false, ZIndex = 4, Parent = gui }, 20)
+local skip = Ui.button({ Name = "Skip", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(20), 0, px(20)), Size = UDim2.fromOffset(px(140), px(40)), BackgroundColor3 = Color3.fromRGB(255, 255, 255), TextColor3 = C.Sub, Text = "Skip intro", TextScaled = false, TextSize = px(15), ZIndex = 5, Parent = layer, Radius = 20 })
+local hint = Ui.card({ Name = "DreamHint", AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, px(90)), Size = UDim2.fromOffset(px(520), px(70)), Visible = false, ZIndex = 4, Parent = layer }, 20)
 Ui.stroke(C.Lilac, 3).Parent = hint
 local hintText = Ui.text({ Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, TextScaled = false, TextSize = px(18), TextWrapped = true, Text = "", ZIndex = 5, Parent = hint }, "Title")
+if Ui.mobile then
+	-- below the HUD's target card, left of the quest pill
+	hint.Position = UDim2.new(0.5, 0, 0, 116)
+	hint.Size = UDim2.fromOffset(350, 56)
+	hintText.TextSize = 13
+end
 
 local token = 0
 local debugPick: number? = nil
@@ -198,7 +205,7 @@ local function run()
 	veil.Visible = false
 	box.Visible = false
 	task.wait(0.8)
-	showHint("A shadow appears! Your monsters fight on their own.\nClick (or tap ⚔) to swing. Press 1 when a big move glows.")
+	showHint(Ui.mobile and "A shadow appears! Your monsters fight on their own.\nTap ⚔ to swing. Tap a glowing monster button for a big move." or "A shadow appears! Your monsters fight on their own.\nClick to swing. Press 1 when a big move glows.")
 	call("fight")
 	Sfx.play("warn")
 	local won = false

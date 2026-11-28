@@ -35,6 +35,13 @@ local TIPS = {
 	ride = { "🐾", "Ride your monster", "Press F (or Ride) to hop on your lead monster and travel fast. A fight knocks you off." },
 	portal = { "🌀", "Portals", "Glowing portals take you between places. A locked one tells you what opens it." },
 }
+-- phones have no keys: the same tips in tap words
+if Ui.mobile then
+	TIPS.combat[3] = "Your 3 monsters fight on their own. Tap ⚔ to swing. When a monster's round button glows gold, tap it for a big move."
+	TIPS.dodge[3] = "Red circles on the ground mean a big hit is coming. Tap the 💨 button to roll out of the way."
+	TIPS.auto[3] = "Tap 🤖 Auto and your Tamer fights nearby monsters for you, at a bit less reward."
+	TIPS.ride[3] = "Tap 🐾 Ride to hop on your lead monster and travel fast. A fight knocks you off."
+end
 
 -- Panels with a "?" button and which tips it replays.
 local PANEL_TIPS = {
@@ -54,13 +61,34 @@ local showing = false
 local forced: { [string]: boolean } = {}
 
 local gui = new("ScreenGui", { Name = "WildTips", DisplayOrder = 55, ResetOnSpawn = false, IgnoreGuiInset = true, Parent = player:WaitForChild("PlayerGui") })
-local card = Ui.card({ Name = "Tip", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -px(176)), Size = UDim2.fromOffset(px(560), px(118)), Visible = false, ZIndex = 5, Parent = gui }, 20)
+local layer = Ui.layer(gui) -- (phone preview: draws inside the phone frame)
+local card = Ui.card({ Name = "Tip", AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -px(176)), Size = UDim2.fromOffset(px(560), px(118)), Visible = false, ZIndex = 5, Parent = layer }, 20)
 Ui.stroke(C.Mint, 3).Parent = card
 local icon = new("Frame", { Position = UDim2.fromOffset(px(16), px(16)), Size = UDim2.fromOffset(px(52), px(52)), BackgroundColor3 = Ui.Theme.tint(C.Mint, 0.7), ZIndex = 6, Parent = card }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 local glyph = Ui.text({ Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, TextScaled = false, TextSize = px(26), Text = "", ZIndex = 7, Parent = icon }, "Title")
 local title = Ui.text({ Position = UDim2.fromOffset(px(82), px(12)), Size = UDim2.new(1, -px(98), 0, px(22)), BackgroundTransparency = 1, TextScaled = false, TextSize = px(18), TextXAlignment = Enum.TextXAlignment.Left, Text = "", ZIndex = 6, Parent = card }, "Title")
 local body = Ui.text({ Position = UDim2.fromOffset(px(82), px(36)), Size = UDim2.new(1, -px(98) - px(120), 0, px(72)), BackgroundTransparency = 1, TextScaled = false, TextSize = px(15), TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, TextColor3 = C.Sub, Text = "", ZIndex = 6, Parent = card }, "Bold")
 local ok = Ui.button({ Name = "GotIt", AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -px(14), 1, -px(14)), Size = UDim2.fromOffset(px(110), px(38)), BackgroundColor3 = C.Mint, Text = "Got it", TextScaled = false, TextSize = px(16), ZIndex = 6, Parent = card, Radius = 19 })
+-- phones: a slim strip in the top bar's empty right half, clear of the HUD buttons below it,
+-- the joystick and the thumb buttons
+if Ui.mobile then
+	card.AnchorPoint = Vector2.new(1, 0)
+	card.Position = UDim2.new(1, -8, 0, 4)
+	card.Size = UDim2.fromOffset(420, 52)
+	icon.Position = UDim2.fromOffset(8, 11)
+	icon.Size = UDim2.fromOffset(30, 30)
+	glyph.TextSize = 16
+	title.Position = UDim2.fromOffset(46, 5)
+	title.Size = UDim2.new(1, -46 - 84, 0, 14)
+	title.TextSize = 12
+	body.Position = UDim2.fromOffset(46, 19)
+	body.Size = UDim2.new(1, -46 - 84, 0, 30)
+	body.TextSize = 11
+	ok.AnchorPoint = Vector2.new(1, 0.5)
+	ok.Position = UDim2.new(1, -8, 0.5, 0)
+	ok.Size = UDim2.fromOffset(70, 30)
+	ok.TextSize = 13
+end
 
 local function seen(id: string): boolean
 	local p = Ui.profile
@@ -86,6 +114,11 @@ end
 showNext = function()
 	-- the dream intro has its own hints: tips wait until it's over
 	if showing or #queue == 0 or player:GetAttribute("InIntro") then
+		return
+	end
+	-- never on top of a conversation or a hatch: try again shortly
+	if Ui.dialogOpen or require(script.Parent.SummonReveal).isOpen() then
+		task.delay(1, showNext)
 		return
 	end
 	local id = table.remove(queue, 1)

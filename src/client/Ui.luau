@@ -20,16 +20,110 @@ Ui.button = Theme.button
 local new, corner, pad, stroke, text, button = Theme.new, Theme.corner, Theme.pad, Theme.stroke, Theme.text, Theme.button
 local player = Players.LocalPlayer
 
-Ui.gui = new("ScreenGui", {
+-- Phones (2026-11-27 mobile pass). `Ui.mobile` = a touch device without a keyboard, or a
+-- small screen. Studio phone preview: set workspace attribute `DebugPhone` before Play; every
+-- screen then draws into a phone-sized frame (844 x 390 points, Roblox's top bar and the
+-- jump/joystick areas marked) scaled up to fit the window, so layouts can be checked here.
+local UIS = game:GetService("UserInputService")
+-- the camera reports a 1x1 viewport for the first frames after join: wait for the real size
+-- (it decides phone layout and the preview scale)
+local vp0 = workspace.CurrentCamera.ViewportSize
+do
+	local t0 = os.clock()
+	while vp0.X < 100 and os.clock() - t0 < 5 do
+		task.wait()
+		vp0 = workspace.CurrentCamera.ViewportSize
+	end
+end
+Ui.preview = game:GetService("RunService"):IsStudio() and workspace:GetAttribute("DebugPhone") == true
+Ui.mobile = Ui.preview or (UIS.TouchEnabled and not UIS.KeyboardEnabled) or math.min(vp0.X, vp0.Y) < 500
+Ui.small = Ui.mobile or vp0.X < 900
+local PHONE = Vector2.new(844, 390)
+local INSET = 58 -- Roblox's top bar on phones
+
+-- Preview roots follow the window: the viewport is still resizing for a while after join.
+local previewRoots: { { root: Frame, inset: boolean, scale: UIScale } } = {}
+local previewBars: { Frame } = {}
+local function placePreview()
+	local vp = workspace.CurrentCamera.ViewportSize
+	local scale = math.min((vp.X - 20) / PHONE.X, (vp.Y - 20) / PHONE.Y)
+	local top = (vp.Y - PHONE.Y * scale) / 2
+	local studioInset = game:GetService("GuiService"):GetGuiInset().Y
+	for _, r in previewRoots do
+		r.scale.Scale = scale
+		-- screens that respect the top bar start INSET points lower (Studio's own inset is
+		-- subtracted because those screens already start below it)
+		r.root.Position = UDim2.new(0.5, 0, 0, r.inset and (top + INSET * scale - studioInset) or top)
+	end
+	if #previewBars == 4 then
+		local pw, ph = PHONE.X * scale, PHONE.Y * scale
+		local left = (vp.X - pw) / 2
+		previewBars[1].Size = UDim2.new(1, 0, 0, top) -- above
+		previewBars[2].Position = UDim2.new(0, 0, 0, top + ph) -- below
+		previewBars[2].Size = UDim2.new(1, 0, 1, -(top + ph))
+		previewBars[3].Size = UDim2.new(0, left, 1, 0) -- left
+		previewBars[4].Position = UDim2.new(0, left + pw, 0, 0) -- right
+		previewBars[4].Size = UDim2.new(1, -(left + pw), 1, 0)
+	end
+end
+if Ui.preview then
+	workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placePreview)
+end
+
+-- A full-screen frame inside a ScreenGui that every child of that screen goes into. In phone
+-- preview it becomes a phone-sized, scaled-up frame.
+function Ui.layer(screen: ScreenGui): Frame
+	local root = new("Frame", { Name = "Root", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Parent = screen })
+	if Ui.preview then
+		root.AnchorPoint = Vector2.new(0.5, 0)
+		root.Size = UDim2.fromOffset(PHONE.X, screen.IgnoreGuiInset and PHONE.Y or PHONE.Y - INSET)
+		root.ClipsDescendants = true
+		table.insert(previewRoots, { root = root, inset = not screen.IgnoreGuiInset, scale = new("UIScale", { Parent = root }) })
+		placePreview()
+	end
+	return root
+end
+
+-- The size the current layout has to fit (the phone frame in preview).
+function Ui.view(insetAware: boolean?): Vector2
+	if Ui.preview then
+		return Vector2.new(PHONE.X, insetAware and PHONE.Y - INSET or PHONE.Y)
+	end
+	local v = workspace.CurrentCamera.ViewportSize
+	return insetAware and Vector2.new(v.X, v.Y - game:GetService("GuiService"):GetGuiInset().Y) or v
+end
+
+Ui.screenGui = new("ScreenGui", {
 	Name = "WildHud",
 	ResetOnSpawn = false,
 	IgnoreGuiInset = false,
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	Parent = player:WaitForChild("PlayerGui"),
 })
+Ui.gui = Ui.layer(Ui.screenGui)
 
-Ui.small = workspace.CurrentCamera.ViewportSize.X < 900
-local S = Ui.small and 0.85 or 1
+-- Studio preview: a dark backdrop around the phone, Roblox's top bar, the jump button and the
+-- joystick drawn as ghosts so nothing gets placed under them
+if Ui.preview then
+	local back = new("ScreenGui", { Name = "PhonePreview", DisplayOrder = -10, IgnoreGuiInset = true, Parent = player:WaitForChild("PlayerGui") })
+	-- four bars around the phone (the phone area itself stays clear); placePreview sizes them
+	for _ = 1, 4 do
+		table.insert(previewBars, new("Frame", { BackgroundColor3 = Color3.fromRGB(20, 20, 30), BorderSizePixel = 0, Parent = back }))
+	end
+	local hole = Ui.layer(back)
+	new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Parent = hole }, { new("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2 }) })
+	local over = new("ScreenGui", { Name = "PhoneGhosts", DisplayOrder = 200, IgnoreGuiInset = true, Parent = player:WaitForChild("PlayerGui") })
+	local g = Ui.layer(over)
+	local function ghost(pos: UDim2, size: Vector2, round: boolean, label: string)
+		local f = new("Frame", { Position = pos, Size = UDim2.fromOffset(size.X, size.Y), BackgroundColor3 = Color3.new(0, 0, 0), BackgroundTransparency = 0.55, Parent = g }, round and { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) } or {})
+		new("TextLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = label, TextColor3 = Color3.new(1, 1, 1), TextSize = 12, Font = Enum.Font.GothamBold, Parent = f })
+	end
+	ghost(UDim2.fromOffset(0, 0), Vector2.new(310, INSET), false, "Roblox top bar")
+	ghost(UDim2.new(1, -95, 1, -90), Vector2.new(70, 70), true, "Jump")
+	ghost(UDim2.new(0, 40, 1, -150), Vector2.new(110, 110), true, "Move")
+end
+
+local S = Ui.mobile and 0.74 or (Ui.small and 0.85 or 1)
 function Ui.px(n: number): number
 	return math.floor(n * S + 0.5)
 end
@@ -100,27 +194,50 @@ local toastGui = new("ScreenGui", {
 	ZIndexBehavior = Enum.ZIndexBehavior.Sibling,
 	Parent = player:WaitForChild("PlayerGui"),
 })
+-- phones: toasts sit at the bottom centre, between the joystick and the thumb buttons
 local toastHolder = new("Frame", {
 	BackgroundTransparency = 1,
-	AnchorPoint = Vector2.new(0.5, 0),
-	Position = UDim2.new(0.5, 0, 0, px(84)),
-	Size = UDim2.new(0.8, 0, 0, 200),
-	Parent = toastGui,
-}, { new("UIListLayout", { HorizontalAlignment = Enum.HorizontalAlignment.Center, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
+	AnchorPoint = Ui.mobile and Vector2.new(0.5, 1) or Vector2.new(0.5, 0),
+	Position = Ui.mobile and UDim2.new(0.5, -12, 1, -10) or UDim2.new(0.5, 0, 0, px(84)),
+	Size = Ui.mobile and UDim2.fromOffset(290, 120) or UDim2.new(0.8, 0, 0, 200),
+	Parent = Ui.layer(toastGui),
+}, { new("UIListLayout", { HorizontalAlignment = Enum.HorizontalAlignment.Center, VerticalAlignment = Ui.mobile and Enum.VerticalAlignment.Bottom or Enum.VerticalAlignment.Top, Padding = UDim.new(0, 6), SortOrder = Enum.SortOrder.LayoutOrder }) })
 
 local TOAST_COLORS = { info = C.Sky, warn = C.Peach, alert = C.Coral, good = C.Mint }
 local TOAST_GLYPH = { info = "i", warn = "!", alert = "!", good = "✓" }
 local toastN = 0
 function Ui.toast(msg: string, kind: string?)
+	-- phones keep only the two newest toasts on screen
+	if Ui.mobile then
+		local list = {}
+		for _, c in toastHolder:GetChildren() do
+			if c:IsA("Frame") then
+				table.insert(list, c)
+			end
+		end
+		table.sort(list, function(a, b)
+			return a.LayoutOrder < b.LayoutOrder
+		end)
+		for i = 1, #list - 1 do
+			list[i]:Destroy()
+		end
+	end
 	toastN += 1
 	local k = kind or "info"
-	local holder = new("Frame", { LayoutOrder = toastN, BackgroundTransparency = 1, Size = UDim2.new(0, 0, 0, px(38)), AutomaticSize = Enum.AutomaticSize.X, Parent = toastHolder })
+	local holder = new("Frame", { LayoutOrder = toastN, BackgroundTransparency = 1, Size = UDim2.new(0, 0, 0, px(38)), AutomaticSize = Ui.mobile and Enum.AutomaticSize.XY or Enum.AutomaticSize.X, Parent = toastHolder })
 	local t = new("Frame", { BackgroundColor3 = C.Card, Size = UDim2.new(0, 0, 1, 0), AutomaticSize = Enum.AutomaticSize.X, Parent = holder }, { corner(19), stroke(TOAST_COLORS[k] or C.Sky, 2) })
 	new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 8), Parent = t })
 	pad(0, 7, 0, 14).Parent = t
 	Ui.dot(t, TOAST_COLORS[k] or C.Sky, TOAST_GLYPH[k] or "i", px(24)).LayoutOrder = 1
 	local label = text({ LayoutOrder = 2, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), TextScaled = false, TextSize = px(16), Text = msg, Parent = t }, "Bold")
-	new("UISizeConstraint", { MaxSize = Vector2.new(620, 60), Parent = label })
+	new("UISizeConstraint", { MaxSize = Vector2.new(Ui.mobile and 236 or 620, 60), Parent = label })
+	if Ui.mobile then
+		label.TextSize = 12
+		label.TextWrapped = true
+		label.AutomaticSize = Enum.AutomaticSize.XY
+		t.AutomaticSize = Enum.AutomaticSize.XY
+		t.Size = UDim2.fromOffset(0, 30)
+	end
 	task.delay(k == "alert" and 2.5 or 3, function()
 		for _, x in t:GetDescendants() do
 			if x:IsA("TextLabel") then
@@ -193,6 +310,16 @@ end
 
 function Ui.isOpen(name: string): boolean
 	return Ui.panels[name] ~= nil and Ui.panels[name].Visible
+end
+
+-- Is any menu open?
+function Ui.anyOpen(): boolean
+	for _, p in Ui.panels do
+		if p.Visible then
+			return true
+		end
+	end
+	return false
 end
 
 -- A grey rounded row with an icon dot, a title, a blurb and a button on the right.

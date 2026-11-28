@@ -56,7 +56,7 @@ function AutoHunt.set(state: boolean, why: string?)
 	if not state and hum then
 		hum:Move(Vector3.zero)
 	end
-	Ui.toast(why or (state and "🤖 Auto-Hunt on: your team fights nearby monsters (60% rewards). Press R to stop" or "Auto-Hunt off"), state and "good" or "info")
+	Ui.toast(why or (state and "🤖 Auto-Hunt on: your team fights nearby monsters (60% rewards). " .. (Ui.mobile and "Tap Auto to stop" or "Press R to stop") or "Auto-Hunt off"), state and "good" or "info")
 	Sfx.play(state and "skill_ready" or "close")
 	for _, fn in listeners do
 		fn(state)
@@ -147,7 +147,7 @@ function AutoHunt.start()
 				continue
 			end
 			if os.clock() - lastInput > A.IdleMinutes * 60 then
-				AutoHunt.set(false, "Auto-Hunt paused: you've been away a while. Press R to start again")
+				AutoHunt.set(false, "Auto-Hunt paused: you've been away a while. " .. (Ui.mobile and "Tap Auto to start again" or "Press R to start again"))
 				continue
 			end
 			if hum.Health < hum.MaxHealth * 0.25 then

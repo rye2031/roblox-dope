@@ -62,10 +62,11 @@ local gui = new("ScreenGui", {
 	Enabled = false,
 	Parent = Players.LocalPlayer:WaitForChild("PlayerGui"),
 })
-local dim = new("Frame", { Name = "Dim", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(14, 14, 26), BackgroundTransparency = 1, ZIndex = 1, Parent = gui })
-local stage = new("Frame", { Name = "Stage", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 2, Parent = gui })
-local fxLayer = new("Frame", { Name = "Fx", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 30, Parent = gui })
-local flashF = new("Frame", { Name = "Flash", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 1, ZIndex = 50, Parent = gui })
+local layer = Ui.layer(gui) -- (phone preview: draws inside the phone frame)
+local dim = new("Frame", { Name = "Dim", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(14, 14, 26), BackgroundTransparency = 1, ZIndex = 1, Parent = layer })
+local stage = new("Frame", { Name = "Stage", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 2, Parent = layer })
+local fxLayer = new("Frame", { Name = "Fx", Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 30, Parent = layer })
+local flashF = new("Frame", { Name = "Flash", Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.new(1, 1, 1), BackgroundTransparency = 1, ZIndex = 50, Parent = layer })
 
 local token = 0 -- bumps on every new reveal so old coroutines stop
 local skipping = false
@@ -158,7 +159,7 @@ end
 -- Lightning from the top of the screen down to `to` (screen pixels), with a branch or two.
 local function lightning(to: Vector2, color: Color3, scale: number)
 	Sfx.play("thunder", { pitch = 1.15 - scale * 0.15, vary = 0.06 })
-	local vp = workspace.CurrentCamera.ViewportSize
+	local vp = Ui.view()
 	local from = Vector2.new(math.clamp(to.X + (math.random() - 0.5) * vp.X * 0.35, 0, vp.X), -20)
 	local holder = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 31, Parent = fxLayer })
 	local function draw(pts: { Vector2 }, w: number)
@@ -334,8 +335,13 @@ local function single(res, h: Handlers)
 	gui.Enabled = true
 	dim.BackgroundTransparency = 1
 	tween(dim, 0.25, { BackgroundTransparency = 0.25 })
-	local vp = workspace.CurrentCamera.ViewportSize
-	local centre = Vector2.new(vp.X / 2, vp.Y * 0.5)
+	local vp = Ui.view()
+	-- the card plus the buttons under it have to fit the screen height (phones are ~390 tall)
+	local barH = px(48) + px(14)
+	local cardW = math.floor(math.min(px(300), (vp.Y - barH - px(40)) / 1.32))
+	local cardH = math.floor(cardW * 1.32)
+	local centre = Vector2.new(vp.X / 2, math.floor((vp.Y - barH) / 2) + px(6))
+	local eggScale = math.clamp(cardH / px(420), 0.45, 1)
 	local rc = RARITY[res.stars] or RARITY[1]
 	local high = res.stars >= 4
 
@@ -349,7 +355,7 @@ local function single(res, h: Handlers)
 	local meshName = EGGS[eggKind]
 	-- the egg is drawn inside the reveal screen (a ViewportFrame), so it sits above the HUD and
 	-- every menu; the uploaded eggs carry their own texture, which ViewportFrames show
-	local scroll = new("ViewportFrame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(centre.X, centre.Y), Size = UDim2.fromOffset(px(420), px(460)), BackgroundTransparency = 1, Ambient = Color3.fromRGB(200, 200, 210), LightColor = Color3.new(1, 1, 1), LightDirection = Vector3.new(-0.5, -1, -0.7), ZIndex = 10, Parent = stage })
+	local scroll = new("ViewportFrame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(centre.X, centre.Y), Size = UDim2.fromOffset(px(420) * eggScale, px(460) * eggScale), BackgroundTransparency = 1, Ambient = Color3.fromRGB(200, 200, 210), LightColor = Color3.new(1, 1, 1), LightDirection = Vector3.new(-0.5, -1, -0.7), ZIndex = 10, Parent = stage })
 	local vcam = Instance.new("Camera")
 	vcam.FieldOfView = 34
 	vcam.CFrame = CFrame.lookAt(Vector3.new(0, 0.3, 11), Vector3.new(0, 0.1, 0))
@@ -526,8 +532,8 @@ local function single(res, h: Handlers)
 				scroll:Destroy()
 			end
 		end)
-		tween(halo, 0.4, { Size = UDim2.fromOffset(px(520), px(520)), BackgroundTransparency = 0.85 })
-		local card, starRow = monsterCard(stage, res, px(300), 10)
+		tween(halo, 0.4, { Size = UDim2.fromOffset(px(520) * eggScale, px(520) * eggScale), BackgroundTransparency = 0.85 })
+		local card, starRow = monsterCard(stage, res, cardW, 10)
 		card.Position = UDim2.fromOffset(centre.X, centre.Y)
 		local sc = new("UIScale", { Scale = 0.3, Parent = card })
 		tween(sc, 0.4, { Scale = 1 }, Enum.EasingStyle.Back)
@@ -543,7 +549,7 @@ local function single(res, h: Handlers)
 		if token ~= my then
 			return
 		end
-		buttonBar(stage, h, UDim.new(0.44, px(240)), 20)
+		buttonBar(stage, h, UDim.new(0, centre.Y + cardH / 2 + px(10)), 20)
 	end)
 end
 
@@ -558,18 +564,22 @@ local function multi(list, h: Handlers)
 	gui.Enabled = true
 	dim.BackgroundTransparency = 1
 	tween(dim, 0.25, { BackgroundTransparency = 0.15 })
-	local vp = workspace.CurrentCamera.ViewportSize
+	local vp = Ui.view()
 	local cols = 5
 	local rows = math.ceil(#list / cols)
-	local cw = math.floor(math.min(px(140), (vp.X - px(80)) / cols - px(14)))
-	local ch = math.floor(cw * 1.32)
 	local gap = px(14)
+	-- title above, buttons below: the grid gets what's left of the height
+	local titleH, barH = px(52), px(62)
+	local byH = ((vp.Y - titleH - barH - px(20)) - (rows - 1) * gap) / rows / 1.32
+	local cw = math.floor(math.min(px(140), (vp.X - px(80)) / cols - px(14), byH))
+	local ch = math.floor(cw * 1.32)
 	local gridW = cols * cw + (cols - 1) * gap
 	local gridH = rows * ch + (rows - 1) * gap
 	local x0 = (vp.X - gridW) / 2 + cw / 2
-	local y0 = vp.Y * 0.43 - gridH / 2 + ch / 2
+	local gridTop = titleH + math.max(0, (vp.Y - titleH - barH - gridH) / 2)
+	local y0 = gridTop + ch / 2
 
-	local title = label(stage, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0.43, -gridH / 2 - px(58)), Size = UDim2.fromOffset(px(500), px(40)), Text = "Opening " .. #list .. " eggs...", TextSize = px(28), TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 20 })
+	local title = label(stage, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, gridTop - px(46)), Size = UDim2.fromOffset(px(500), px(40)), Text = "Opening " .. #list .. " eggs...", TextSize = px(28), TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 20 })
 	local skipB = Ui.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(24), 0, px(70)), Size = UDim2.fromOffset(px(110), px(40)), BackgroundColor3 = Color3.fromRGB(60, 62, 90), TextColor3 = Color3.new(1, 1, 1), TextScaled = false, TextSize = px(16), Text = "Skip ▸▸", ZIndex = 25, Parent = stage, Radius = 20 })
 	skipB.Activated:Connect(function()
 		skipping = true
@@ -716,7 +726,7 @@ local function multi(list, h: Handlers)
 		end
 		title.RichText = true
 		title.Text = table.concat(parts, "   ")
-		buttonBar(stage, h, UDim.new(0.43, gridH / 2 + px(24)), 20)
+		buttonBar(stage, h, UDim.new(0, gridTop + gridH + px(12)), 20)
 	end)
 end
 

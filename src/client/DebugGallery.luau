@@ -78,7 +78,7 @@ function DebugGallery.clear()
 	local cam = workspace.CurrentCamera
 	cam.CameraType = Enum.CameraType.Custom
 	cam.FieldOfView = 70
-	Ui.gui.Enabled = true
+	Ui.screenGui.Enabled = true
 end
 
 function DebugGallery.show(page: number): string
@@ -150,7 +150,7 @@ function DebugGallery.show(page: number): string
 		c.FieldOfView = 30
 		c.CFrame = want
 	end)
-	Ui.gui.Enabled = false
+	Ui.screenGui.Enabled = false
 	local toasts = Players.LocalPlayer.PlayerGui:FindFirstChild("WildToasts")
 	if toasts then
 		toasts.Enabled = false

@@ -151,14 +151,14 @@ end)
 local function paintAuto(state: boolean)
 	autoB.BackgroundColor3 = state and C.Mint or C.Card
 	autoB.TextColor3 = state and Color3.new(1, 1, 1) or C.Ink
-	autoB.Text = state and "🤖 Auto-Hunt ON [R]" or ((Controls.touch and "🤖 Auto-Hunt") or "🤖 Auto-Hunt [R]")
+	autoB.Text = Ui.mobile and (state and "🤖 ON" or "🤖 Auto") or (state and "🤖 Auto-Hunt ON [R]" or ((Controls.touch and "🤖 Auto-Hunt") or "🤖 Auto-Hunt [R]"))
 end
 AutoHunt.onChanged(paintAuto)
 Ui.onProfile(function(p)
 	local open = p.kills >= 1 or (p.bosses and p.bosses[Config.AutoHunt.UnlockBoss])
 	autoB.Visible = Unlocks.open(p, "Auto")
 	if not open then
-		autoB.Text = "🔒 Auto-Hunt"
+		autoB.Text = Ui.mobile and "🔒 Auto" or "🔒 Auto-Hunt"
 		autoB.TextColor3 = C.Sub
 	elseif not AutoHunt.isOn() then
 		paintAuto(false)
@@ -205,6 +205,27 @@ local function teamUnit(slot: number): BasePart?
 end
 
 local function renderTeam(p)
+	local mob = Hud.mob
+	if mob then
+		for i, t in mob.team do
+			local uid = p.team[i]
+			local m = uid ~= "" and p.monsters[uid]
+			if t.portrait then
+				t.portrait:Destroy()
+				t.portrait = nil
+			end
+			t.b.Visible = m ~= nil and m ~= false
+			if m then
+				local back = Ui.portrait(t.b, m.sp, m.el, UDim2.fromScale(1, 1), UDim2.new(), 4)
+				local cr = back:FindFirstChildOfClass("UICorner")
+				if cr then
+					cr.CornerRadius = UDim.new(0.5, 0)
+				end
+				t.portrait = back
+				t.ring.Color = EI[m.el].Color
+			end
+		end
+	end
 	for i, s in slots do
 		local uid = p.team[i]
 		local m = uid ~= "" and p.monsters[uid]
@@ -246,7 +267,8 @@ local tHpText = label(targetCard, { Position = UDim2.fromOffset(12, px(28)), Siz
 ----------------------------------------------------------------------------------------------
 -- Touch buttons
 
-if Controls.touch then
+local atkB: TextButton? = nil
+if Controls.touch or Ui.mobile then
 	local atk = button({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -px(120), 1, -px(150)), Size = UDim2.fromOffset(px(104), px(104)), BackgroundColor3 = C.Coral, Text = "⚔", TextScaled = false, TextSize = px(42), ZIndex = 3, Parent = gui, Radius = 52 })
 	local holding = false
 	atk.InputBegan:Connect(function(input)
@@ -266,7 +288,136 @@ if Controls.touch then
 		end
 	end)
 	bottom.Position = UDim2.new(0.5, -px(40), 1, -10)
+	atkB = atk
 end
+
+----------------------------------------------------------------------------------------------
+-- Phone layout (2026-11-27, owner: "mobile looks garbage"). Everything is regrouped around
+-- the thumbs and Roblox's own controls (top bar top-left, joystick bottom-left, jump
+-- bottom-right):
+--   top-left   wallet, HP strip, Auto + Ride
+--   top-right  Monsters, Shrine, Menu (all other menus in a sheet), help, sound
+--   bottom-right  big attack button left of jump; the three monster skills as round
+--              portrait buttons in an arc around it (bright and pulsing when ready, dark with
+--              a countdown while cooling down); weapon skill and dodge above jump
+-- Positions in that cluster are raw points because Roblox's jump button is a fixed size.
+
+local mob: any = nil
+if Ui.mobile then
+	mob = { team = {} }
+	bottom.Visible = false
+	-- top-left
+	wallet.Position = UDim2.fromOffset(8, 6)
+	wallet.Size = UDim2.fromOffset(0, 34)
+	for _, l in { coinL, regL, legL, eclL } do
+		l.TextSize = 15
+	end
+	local hpCard = Ui.card({ Name = "PhoneHp", Position = UDim2.fromOffset(8, 46), Size = UDim2.fromOffset(170, 22), ZIndex = 2, Shadow = false, Parent = gui }, 11)
+	label(hpCard, { Position = UDim2.fromOffset(6, 0), Size = UDim2.fromOffset(18, 22), Text = "❤", TextSize = 13, TextXAlignment = Enum.TextXAlignment.Center }, "Title")
+	local _, f = bar(hpCard, UDim2.fromOffset(26, 7), UDim2.new(1, -34, 0, 8), C.Mint)
+	mob.hpFill = f
+	autoB.Parent = gui
+	autoB.AnchorPoint = Vector2.zero
+	autoB.Position = UDim2.fromOffset(8, 74)
+	autoB.Size = UDim2.fromOffset(82, 30)
+	autoB.TextSize = 12
+	mob.utilY = 74
+	-- top-right round buttons
+	local function round(glyph: string, i: number, color: Color3?): TextButton
+		local b = button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8 - (i - 1) * 44, 0, 6), Size = UDim2.fromOffset(38, 38), BackgroundColor3 = color or C.Card, TextColor3 = C.Ink, Text = glyph, TextScaled = false, TextSize = 18, ZIndex = 2, Parent = gui, Radius = 19 })
+		Ui.stroke(C.Line, 1.5).Parent = b
+		return b
+	end
+	help.AnchorPoint = Vector2.new(1, 0)
+	help.Position = UDim2.new(1, -8, 0, 6)
+	help.Size = UDim2.fromOffset(38, 38)
+	help.TextSize = 18
+	muteB.Position = UDim2.new(1, -8 - 44, 0, 6)
+	muteB.Size = UDim2.fromOffset(38, 38)
+	muteB.TextSize = 16
+	local menuB = round("☰", 3)
+	local shrineQ = round("🥚", 4)
+	local monQ = round("🐾", 5)
+	monQ.Activated:Connect(function()
+		Ui.open(Ui.isOpen("Monsters") and nil or "Monsters")
+	end)
+	shrineQ.Activated:Connect(function()
+		Ui.open(Ui.isOpen("Shrine") and nil or "Shrine")
+	end)
+	mob.menuDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(12, 12), BackgroundColor3 = C.Coral, Visible = false, ZIndex = 4, Parent = menuB }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	-- the menu sheet: every rail button moves into a grid here
+	-- a popover under the top-right buttons (5 tiles a row), not a full-screen sheet
+	local menuP, menuBody = Ui.panel("Menu", "Menu", "Everything in one place.", C.Lilac, "☰")
+	menuP.AnchorPoint = Vector2.new(1, 0)
+	menuP.Position = UDim2.new(1, -8, 0, 50)
+	menuP.Size = UDim2.fromOffset(400, 222)
+	local grid = new("Frame", { LayoutOrder = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 12, Parent = menuBody }, {
+		new("UIGridLayout", { CellSize = UDim2.fromOffset(66, 66), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+	})
+	rail.Visible = false
+	for _, b in railButtons do
+		b.Parent = grid
+		b.ZIndex = 13
+		for _, d in b:GetDescendants() do
+			if d:IsA("GuiObject") then
+				d.ZIndex = math.max(d.ZIndex, 14)
+			end
+		end
+	end
+	local travelT = button({ LayoutOrder = 50, BackgroundColor3 = C.Card, Text = "", ZIndex = 13, Parent = grid, Radius = 18 })
+	Ui.stroke(Ui.Theme.tint(C.Peach, 0.4), 2).Parent = travelT
+	label(travelT, { Position = UDim2.fromOffset(0, 6), Size = UDim2.new(1, 0, 0, 30), Text = "🔥", TextSize = 24, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 14 }, "Title")
+	label(travelT, { Position = UDim2.new(0, 0, 1, -22), Size = UDim2.new(1, 0, 0, 16), Text = "Travel", TextSize = 12, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 14 }, "Title")
+	travelT.Activated:Connect(function()
+		Ui.open("Travel")
+	end)
+	menuB.Activated:Connect(function()
+		Ui.open(Ui.isOpen("Menu") and nil or "Menu")
+	end)
+	mob.railButtons = railButtons
+	-- target card: small, top centre
+	targetCard.Position = UDim2.new(0.5, 0, 0, 6)
+	targetCard.Size = UDim2.fromOffset(230, 44)
+	tName.TextSize = 12
+	tFx.Visible = false
+	-- the thumb cluster
+	local function circle(name: string, center: Vector2, size: number, color: Color3, glyph: string?): TextButton
+		local b = button({ Name = name, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, center.X, 1, center.Y), Size = UDim2.fromOffset(size, size), BackgroundColor3 = color, Text = glyph or "", TextScaled = false, TextSize = math.floor(size * 0.42), TextColor3 = Color3.new(1, 1, 1), ZIndex = 3, Parent = gui, Radius = size / 2 })
+		return b
+	end
+	if atkB then
+		atkB.AnchorPoint = Vector2.new(0.5, 0.5)
+		atkB.Position = UDim2.new(1, -160, 1, -58)
+		atkB.Size = UDim2.fromOffset(74, 74)
+		atkB.TextSize = 32
+	end
+	local SPOTS = { Vector2.new(-252, -48), Vector2.new(-236, -124), Vector2.new(-170, -152) }
+	for i = 1, 3 do
+		local b = circle("Skill" .. i, SPOTS[i], 54, C.Lilac)
+		local ring = Ui.stroke(C.Lilac, 3)
+		ring.Parent = b
+		local shade = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(20, 20, 34), BackgroundTransparency = 0.45, ZIndex = 6, Visible = false, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+		local cd = label(b, { Size = UDim2.fromScale(1, 1), Text = "", TextSize = 18, TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 7 }, "Title")
+		local back = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 3), Size = UDim2.fromOffset(44, 5), BackgroundColor3 = Color3.fromRGB(40, 40, 60), BackgroundTransparency = 0.3, ZIndex = 3, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+		local hp = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = C.Mint, ZIndex = 4, Parent = back }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+		local sc = new("UIScale", { Parent = b })
+		b.Visible = false
+		b.Activated:Connect(function()
+			Controls.team(i)
+		end)
+		mob.team[i] = { b = b, ring = ring, shade = shade, cd = cd, hp = hp, sc = sc, portrait = nil }
+	end
+	mob.skill = circle("WeaponSkill", Vector2.new(-60, -132), 50, C.Peach, "⚔")
+	local skShade = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(20, 20, 34), BackgroundTransparency = 0.45, ZIndex = 6, Visible = false, Parent = mob.skill }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	mob.skillShade = skShade
+	mob.skillCd = label(mob.skill, { Size = UDim2.fromScale(1, 1), Text = "", TextSize = 16, TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 7 }, "Title")
+	mob.skill.Activated:Connect(function()
+		Controls.skill()
+	end)
+	mob.dodge = circle("Dodge", Vector2.new(-60, -192), 44, C.Sky, "💨")
+	mob.dodge.Activated:Connect(Controls.dodge)
+end
+Hud.mob = mob
 
 ----------------------------------------------------------------------------------------------
 -- How to play
@@ -513,6 +664,44 @@ function Hud.start()
 		local dl = Controls.dodgeReady - os.clock()
 		dodgeB.BackgroundColor3 = dl > 0 and C.Mute or C.Sky
 		dodgeB.Text = Controls.touch and "Dodge" or "[Shift] Dodge"
+		-- phone cluster
+		local mob = Hud.mob
+		if mob then
+			if hum then
+				mob.hpFill.Size = UDim2.fromScale(math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1), 1)
+			end
+			mob.skillShade.Visible = left > 0
+			mob.skillCd.Text = left > 0 and tostring(math.ceil(left)) or ""
+			mob.skill.Text = left > 0 and "" or (w.Icon or "⚔")
+			mob.dodge.BackgroundColor3 = dl > 0 and C.Mute or C.Sky
+			for i, tm in mob.team do
+				local u = tm.b.Visible and teamUnit(i)
+				if u then
+					local hp, max = u:GetAttribute("HP") or 0, u:GetAttribute("MaxHP") or 1
+					tm.hp.Size = UDim2.fromScale(math.clamp(hp / max, 0, 1), 1)
+					local st = u:GetAttribute("State")
+					local cdLeft = (u:GetAttribute("CdB") or 0) - workspace:GetServerTimeNow()
+					local ready = cdLeft <= 0.05 and st ~= "fainted"
+					local pulse = ready and (0.5 + 0.5 * math.sin(t * 7)) or 0
+					tm.shade.Visible = not ready
+					tm.cd.Text = st == "fainted" and "💤" or (not ready and tostring(math.ceil(cdLeft)) or "")
+					tm.ring.Thickness = ready and (3 + pulse * 2) or 2
+					tm.ring.Color = ready and Color3.fromRGB(255, 214, 90) or Color3.fromRGB(120, 120, 140)
+					tm.sc.Scale = ready and (1 + pulse * 0.07) or 0.94
+				end
+			end
+			local anyDot = false
+			for _, b in mob.railButtons do
+				if b.Visible then
+					for _, c in b:GetChildren() do
+						if c:IsA("Frame") and c.Visible and c.Size.X.Offset <= px(40) and c.Size.X.Offset >= 10 and c.BackgroundColor3 ~= C.Card then
+							anyDot = true
+						end
+					end
+				end
+			end
+			mob.menuDot.Visible = anyDot
+		end
 		-- team bar live values
 		for i, s in slots do
 			if s.uid then
