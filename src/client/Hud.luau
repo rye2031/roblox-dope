@@ -1,6 +1,7 @@
--- Wildbound's always-on HUD: wallet bar, menu rail, team bar with ultimates, player HP and
--- weapon skill, target frame, touch buttons, reward pops, pads that open menus, the How to
--- play card, the Top Tamers board and small world animations.
+-- Wildbound's always-on HUD: minimap, wallet, top-right menus + the Menu popover, your HP and
+-- team column with the active monster's skills, attack/weapon skill/dodge, target frame,
+-- reward pops, pads that open menus, the How to play card, the Top Tamers board and small
+-- world animations.
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -39,39 +40,134 @@ local function bar(parent: Instance, pos: UDim2, size: UDim2, color: Color3, z: 
 end
 
 ----------------------------------------------------------------------------------------------
--- Wallet (top-left, after Roblox's buttons)
+-- HUD layout (2026-11-27 redesign from the owner's reference shot of a mobile action RPG;
+-- phone and PC share it):
+--   top-left      minimap (tap: fast travel), quest tracker beside it (Journey), Auto + Ride
+--   top-centre    wallet, target card under it
+--   top-right     Quests, Shrine, Monsters and the ⊞ Menu (every other menu, sound, help)
+--   right edge    your avatar + HP, the two waiting monsters, then the active monster with
+--                 its two skills beside it (tap a waiting portrait to make it active)
+--   bottom-right  attack, weapon skill and dodge around Roblox's jump button
+-- Everything is placed in phone points inside Ui.hud, which scales up on big screens.
 
-local wallet = Ui.card({ Position = UDim2.fromOffset(px(70), 10), Size = UDim2.fromOffset(0, px(44)), ZIndex = 2, Shadow = false, Parent = gui }, 22)
-new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 12), Parent = wallet })
-Ui.pad(0, 12, 0, 12).Parent = wallet
-local coinL = label(wallet, { LayoutOrder = 1, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "💰 0", TextSize = px(18) }, "Title")
-local regL = label(wallet, { LayoutOrder = 2, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "🥚 0", TextSize = px(18) }, "Title")
-local legL = label(wallet, { LayoutOrder = 3, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "🌟 0", TextSize = px(18) }, "Title")
-local eclL = label(wallet, { LayoutOrder = 4, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "🌑 1", TextSize = px(18), Visible = false }, "Title")
+local hud = Ui.hud
+local keys = not Ui.mobile and not Controls.touch -- show keyboard hints on PC
+local SkillIcons = require(Shared.SkillIcons)
+local Sfx = require(script.Parent.Sfx)
+local WHITE = Color3.new(1, 1, 1)
+local GOLD = Color3.fromRGB(255, 214, 90)
+local GREY = Color3.fromRGB(120, 120, 140)
+
+local function roundCorner(): UICorner
+	return new("UICorner", { CornerRadius = UDim.new(0.5, 0) })
+end
+
+-- a small dark pill with a key name (PC only)
+local function keyBadge(parent: GuiObject, k: string, pos: UDim2?)
+	if not keys then
+		return
+	end
+	local b = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = pos or UDim2.new(0, 4, 0, 4), Size = UDim2.fromOffset(math.max(16, #k * 7 + 8), 15), BackgroundColor3 = Color3.fromRGB(30, 30, 44), BackgroundTransparency = 0.15, ZIndex = 9, Parent = parent }, { roundCorner() })
+	label(b, { Size = UDim2.fromScale(1, 1), Text = k, TextSize = 10, TextColor3 = WHITE, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 10 }, "Title")
+end
+
+-- white text with a dark edge, readable over the world
+local function worldLabel(parent: GuiObject, props: { [string]: any })
+	props.TextColor3 = props.TextColor3 or WHITE
+	props.TextStrokeTransparency = 0.35
+	props.TextStrokeColor3 = Color3.fromRGB(20, 20, 30)
+	props.TextXAlignment = props.TextXAlignment or Enum.TextXAlignment.Center
+	return label(parent, props, "Title")
+end
+
+-- a round icon button centred on `pos`: a baked icon (SkillIcons) or a glyph
+local function iconButton(name: string, pos: UDim2, size: number, icon: string?, glyph: string?, bg: Color3?): (ImageButton, ImageLabel, Frame, TextLabel, UIStroke, UIScale)
+	local b = new("ImageButton", { Name = name, AnchorPoint = Vector2.new(0.5, 0.5), Position = pos, Size = UDim2.fromOffset(size, size), BackgroundColor3 = bg or Color3.fromRGB(40, 40, 56), BackgroundTransparency = bg and 0 or 0.3, AutoButtonColor = false, ZIndex = 3, Parent = hud }, { roundCorner() })
+	local img = new("ImageLabel", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, ZIndex = 4, Parent = b })
+	if icon then
+		task.spawn(SkillIcons.apply, img, icon)
+	end
+	if glyph then
+		label(b, { Size = UDim2.fromScale(1, 1), Text = glyph, TextSize = math.floor(size * 0.46), TextColor3 = WHITE, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 5 }, "Title")
+	end
+	local ring = Ui.stroke(GREY, 2)
+	ring.Parent = b
+	local shade = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(16, 16, 28), BackgroundTransparency = 0.4, Visible = false, ZIndex = 6, Parent = b }, { roundCorner() })
+	local cd = worldLabel(b, { Size = UDim2.fromScale(1, 1), Text = "", TextSize = math.floor(size * 0.36), ZIndex = 7 })
+	local sc = new("UIScale", { Parent = b })
+	return b, img, shade, cd, ring, sc
+end
+
+----------------------------------------------------------------------------------------------
+-- Wallet (top centre)
+
+local wallet = Ui.card({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 6), Size = UDim2.fromOffset(0, 30), ZIndex = 2, Shadow = false, Parent = hud }, 15)
+new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 10), Parent = wallet })
+Ui.pad(0, 10, 0, 10).Parent = wallet
+local coinL = label(wallet, { LayoutOrder = 1, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "💰 0", TextSize = 14 }, "Title")
+local regL = label(wallet, { LayoutOrder = 2, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "🥚 0", TextSize = 14 }, "Title")
+local legL = label(wallet, { LayoutOrder = 3, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "🌟 0", TextSize = 14 }, "Title")
+local eclL = label(wallet, { LayoutOrder = 4, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "🌑 1", TextSize = 14, Visible = false }, "Title")
 wallet.AutomaticSize = Enum.AutomaticSize.X
-
--- World boss chip (under the wallet)
-local bossChip = Ui.card({ Position = UDim2.fromOffset(px(70), 10 + px(52)), Size = UDim2.fromOffset(px(250), px(32)), ZIndex = 2, Shadow = false, Parent = gui }, 16)
-local bossText = label(bossChip, { Size = UDim2.fromScale(1, 1), Text = "", TextSize = px(14), TextXAlignment = Enum.TextXAlignment.Center }, "Title")
-bossChip.Visible = false -- the Next-up ticker (Ticker.luau) shows the titan now
 
 local REGION_NAMES = { Haven = "Haven", SproutMeadow = "Sprout Meadow", EmberCanyon = "Ember Canyon", TideCoast = "Tide Coast", GaleHighlands = "Gale Highlands", TwilightVale = "Twilight Vale", TitanField = "Titan Field" }
 
-local help = button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(70), 0, 10), Size = UDim2.fromOffset(px(44), px(44)), BackgroundColor3 = C.Card, TextColor3 = C.Ink, Text = "?", TextScaled = false, TextSize = px(22), ZIndex = 2, Parent = gui, Radius = 22 })
--- sound on/off (session only)
-local Sfx = require(script.Parent.Sfx)
-local muteB = button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(70) - px(52), 0, 10), Size = UDim2.fromOffset(px(44), px(44)), BackgroundColor3 = C.Card, TextColor3 = C.Ink, Text = "🔊", TextScaled = false, TextSize = px(20), ZIndex = 2, Parent = gui, Radius = 22 })
-muteB.Visible = Sfx.enabled
-muteB.Activated:Connect(function()
-	Sfx.setMuted(not Sfx.isMuted())
-	muteB.Text = Sfx.isMuted() and "🔇" or "🔊"
-end)
+----------------------------------------------------------------------------------------------
+-- Top right: Quests, Shrine, Monsters, Menu
+
+local function topBtn(i: number, glyph: string, name: string): TextButton
+	local b = button({ Name = "Top" .. name, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8 - (i - 1) * 44, 0, 6), Size = UDim2.fromOffset(36, 36), BackgroundColor3 = C.Card, TextColor3 = C.Ink, Text = glyph, TextScaled = false, TextSize = 17, ZIndex = 2, Parent = hud, Radius = 18 })
+	Ui.stroke(C.Line, 1.5).Parent = b
+	worldLabel(b, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 1), Size = UDim2.fromOffset(60, 11), Text = name, TextSize = 9 })
+	return b
+end
+local function dotOn(b: GuiObject, color: Color3): Frame
+	return new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(11, 11), BackgroundColor3 = color, Visible = false, ZIndex = 6, Parent = b }, { roundCorner() })
+end
+local menuB = topBtn(1, "", "Menu")
+do -- a 2 x 2 grid of little squares
+	for k = 0, 3 do
+		new("Frame", { Position = UDim2.new(0.5, (k % 2 == 0) and -8 or 1, 0.5, (k < 2) and -8 or 1), Size = UDim2.fromOffset(7, 7), BackgroundColor3 = C.Ink, ZIndex = 3, Parent = menuB }, { new("UICorner", { CornerRadius = UDim.new(0, 2) }) })
+	end
+end
+local monQ = topBtn(2, "🐾", "Monsters")
+local shrineQ = topBtn(3, "🥚", "Shrine")
+local questQ = topBtn(4, "📜", "Quests")
+local menuDot, monQDot, shrineQDot, questQDot = dotOn(menuB, C.Coral), dotOn(monQ, C.Peach), dotOn(shrineQ, C.Sun), dotOn(questQ, C.Coral)
+for b, name in { [monQ] = "Monsters", [shrineQ] = "Shrine", [questQ] = "Quests" } do
+	b.Activated:Connect(function()
+		Ui.open(Ui.isOpen(name) and nil or name)
+	end)
+end
 
 ----------------------------------------------------------------------------------------------
--- Menu rail (left)
+-- The ⊞ Menu: a popover grid under the top-right buttons with every other menu
 
--- starts under the Next-up ticker (wallet + 3 rows)
-local rail = new("Frame", { AnchorPoint = Vector2.new(0, 0), Position = UDim2.new(0, 10, 0, 10 + px(52) + px(100) + 12), Size = UDim2.fromOffset(px(64), px(64) * 8 + 64), BackgroundTransparency = 1, Parent = gui }, { new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
+local menuP, menuBody = Ui.panel("Menu", "Menu", "Everything in one place.", C.Lilac, "▦")
+menuP.AnchorPoint = Vector2.new(1, 0)
+menuP.Size = UDim2.fromOffset(448, 226)
+for _, c in menuP:GetChildren() do
+	if c:IsA("UISizeConstraint") then
+		c:Destroy()
+	end
+end
+local menuScale = new("UIScale", { Parent = menuP })
+Ui.onOpen.Menu = function()
+	local k = Ui.hudScale or 1
+	menuScale.Scale = k
+	menuP.Position = UDim2.new(1, -8 * k, 0, 58 * k)
+end
+local grid = new("Frame", { LayoutOrder = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 12, Parent = menuBody }, {
+	new("UIGridLayout", { CellSize = UDim2.fromOffset(60, 60), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
+})
+local function tile(order: number, glyph: string, name: string, color: Color3): TextButton
+	local b = button({ Name = name, LayoutOrder = order, BackgroundColor3 = C.Card, Text = "", ZIndex = 13, Parent = grid, Radius = 16 })
+	Ui.stroke(Ui.Theme.tint(color, 0.4), 2).Parent = b
+	label(b, { Name = "Glyph", Position = UDim2.fromOffset(0, 5), Size = UDim2.new(1, 0, 0, 28), Text = glyph, TextSize = 22, TextColor3 = color, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 14 }, "Title")
+	label(b, { Position = UDim2.new(0, 0, 1, -20), Size = UDim2.new(1, 0, 0, 14), Text = name, TextSize = 11, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 14 }, "Title")
+	return b
+end
+
 local RAIL = {
 	{ "Monsters", "🐾", C.Lilac },
 	{ "Shrine", "🥚", C.Sun },
@@ -90,106 +186,181 @@ local passDot: Frame -- a Tamer Pass reward is ready
 local lastCoins: number? = nil
 local railButtons: { [string]: TextButton } = {}
 local newBadges: { [string]: Frame } = {}
+local tileDots: { Frame } = {}
 for i, r in RAIL do
-	local b = button({ LayoutOrder = i, Size = UDim2.fromOffset(px(64), px(64)), BackgroundColor3 = C.Card, Text = "", ZIndex = 2, Parent = rail, Radius = 18 })
-	Ui.stroke(Ui.Theme.tint(r[3], 0.4), 2).Parent = b
-	label(b, { Position = UDim2.fromOffset(0, px(6)), Size = UDim2.new(1, 0, 0, px(30)), Text = r[2], TextSize = px(26), TextColor3 = r[3], TextXAlignment = Enum.TextXAlignment.Center }, "Title")
-	label(b, { Position = UDim2.new(0, 0, 1, -px(22)), Size = UDim2.new(1, 0, 0, px(16)), Text = r[1], TextSize = px(12), TextXAlignment = Enum.TextXAlignment.Center }, "Title")
+	local b = tile(i, r[2], r[1], r[3])
 	railButtons[r[1]] = b
 	b.Visible = r[1] == "Monsters" or r[1] == "Shrine"
-	newBadges[r[1]] = new("Frame", { Name = "New", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -px(4), 0, px(6)), Size = UDim2.fromOffset(px(40), px(18)), BackgroundColor3 = C.Coral, Visible = false, ZIndex = 5, Parent = b }, {
-		new("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
-		Ui.text({ Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, TextScaled = false, TextSize = px(11), TextColor3 = Color3.new(1, 1, 1), Text = "NEW!", ZIndex = 6 }, "Title"),
+	newBadges[r[1]] = new("Frame", { Name = "New", AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -4, 0, 5), Size = UDim2.fromOffset(34, 15), BackgroundColor3 = C.Coral, Visible = false, ZIndex = 16, Parent = b }, {
+		roundCorner(),
+		Ui.text({ Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, TextScaled = false, TextSize = 9, TextColor3 = WHITE, Text = "NEW!", ZIndex = 17 }, "Title"),
 	})
 	b.Activated:Connect(function()
 		if newBadges[r[1]].Visible then
 			newBadges[r[1]].Visible = false
 			task.spawn(Ui.call, "Tutorial", "unl_" .. r[1])
 		end
-		if Ui.isOpen(r[1]) then
-			Ui.open(nil)
-		else
-			Ui.open(r[1])
-		end
+		Ui.open(Ui.isOpen(r[1]) and nil or r[1])
 	end)
-	if r[1] == "Shrine" then
-		shrineDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(px(16), px(16)), BackgroundColor3 = C.Sun, Visible = false, ZIndex = 4, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	local dotColor = ({ Shrine = C.Sun, Pass = C.Coral, Expeditions = C.Mint, Monsters = C.Peach, Quests = C.Coral })[r[1]]
+	if dotColor then
+		local d = new("Frame", { AnchorPoint = Vector2.new(0, 0), Position = UDim2.new(0, -2, 0, -2), Size = UDim2.fromOffset(12, 12), BackgroundColor3 = dotColor, Visible = false, ZIndex = 16, Parent = b }, { roundCorner() })
+		table.insert(tileDots, d)
+		if r[1] == "Shrine" then
+			shrineDot = d
+		elseif r[1] == "Pass" then
+			passDot = d
+		elseif r[1] == "Expeditions" then
+			expDot = d
+		elseif r[1] == "Monsters" then
+			monDot = d
+		else
+			questDot = d
+		end
 	end
-	if r[1] == "Pass" then
-		passDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(px(16), px(16)), BackgroundColor3 = C.Coral, Visible = false, ZIndex = 4, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+end
+local travelT = tile(50, "🔥", "Travel", C.Peach)
+travelT.Activated:Connect(function()
+	Ui.open("Travel")
+end)
+local muteB = tile(60, "🔊", "Sound", C.Sky)
+muteB.Visible = Sfx.enabled
+muteB.Activated:Connect(function()
+	Sfx.setMuted(not Sfx.isMuted())
+	local g = muteB:FindFirstChild("Glyph") :: TextLabel
+	g.Text = Sfx.isMuted() and "🔇" or "🔊"
+end)
+local help = tile(70, "?", "Help", C.Mint)
+menuB.Activated:Connect(function()
+	Ui.open(Ui.isOpen("Menu") and nil or "Menu")
+end)
+
+----------------------------------------------------------------------------------------------
+-- Minimap (top left): heading-up radar of what's around you. Tap it to fast travel.
+
+local MAP_W, MAP_H, MAP_R = 112, 84, 110 -- size in points; studs from centre to the top edge
+local mini = Ui.card({ Name = "Minimap", Position = UDim2.fromOffset(8, 6), Size = UDim2.fromOffset(MAP_W, MAP_H), BackgroundColor3 = Color3.fromRGB(28, 36, 48), BackgroundTransparency = 0.22, ClipsDescendants = true, ZIndex = 2, Shadow = false, Parent = hud }, 12)
+new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(MAP_H * 0.9, MAP_H * 0.9), BackgroundTransparency = 1, ZIndex = 3, Parent = mini }, { roundCorner(), new("UIStroke", { Color = WHITE, Transparency = 0.82, Thickness = 1 }) })
+local miniName = worldLabel(mini, { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -2), Size = UDim2.new(1, -8, 0, 12), Text = "", TextSize = 9, ZIndex = 6 })
+worldLabel(mini, { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(14, 14), Text = "▲", TextSize = 11, TextColor3 = GOLD, ZIndex = 7 })
+local miniBtn = new("TextButton", { Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, Text = "", ZIndex = 8, Parent = mini })
+miniBtn.Activated:Connect(function()
+	if Ui.profile and Unlocks.open(Ui.profile, "Travel") then
+		Ui.open("Travel")
+	else
+		Ui.toast("Light 2 campfires to fast travel between them 🔥", "info")
 	end
-	if r[1] == "Expeditions" then
-		expDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(px(16), px(16)), BackgroundColor3 = C.Mint, Visible = false, ZIndex = 4, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+end)
+local miniDots: { Frame } = {}
+local function miniDot(i: number): Frame
+	local d = miniDots[i]
+	if not d then
+		d = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), BackgroundColor3 = WHITE, ZIndex = 4, Parent = mini }, { roundCorner() })
+		miniDots[i] = d
 	end
-	if r[1] == "Monsters" then
-		monDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(px(16), px(16)), BackgroundColor3 = C.Peach, Visible = false, ZIndex = 4, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	d.Visible = true
+	return d
+end
+local campfires: { BasePart } = {}
+local portals: { BasePart } = {}
+task.spawn(function()
+	task.wait(3)
+	for _, d in workspace:GetDescendants() do
+		if d:IsA("BasePart") then
+			if d:GetAttribute("Campfire") then
+				table.insert(campfires, d)
+			elseif d.Name == "PortalDisc" then
+				table.insert(portals, d)
+			end
+		end
 	end
-	if r[1] == "Quests" then
-		questDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(px(16), px(16)), BackgroundColor3 = C.Coral, Visible = false, ZIndex = 4, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+end)
+local function drawMinimap()
+	local char = player.Character
+	local hrp = char and char:FindFirstChild("HumanoidRootPart") :: BasePart?
+	if not hrp then
+		return
 	end
+	local cam = workspace.CurrentCamera
+	local r = cam.CFrame.RightVector
+	local f = cam.CFrame.LookVector
+	local right = Vector3.new(r.X, 0, r.Z).Unit
+	local fwd = Vector3.new(f.X, 0, f.Z).Unit
+	local k = (MAP_H / 2) / MAP_R
+	local n = 0
+	local function put(pos: Vector3, color: Color3, size: number, clampEdge: boolean?)
+		local d = pos - hrp.Position
+		local x, y = d:Dot(right) * k, -d:Dot(fwd) * k
+		local hw, hh = MAP_W / 2 - 4, MAP_H / 2 - 4
+		if math.abs(x) > hw or math.abs(y) > hh then
+			if not clampEdge then
+				return
+			end
+			local s = math.min(hw / math.max(math.abs(x), 1e-3), hh / math.max(math.abs(y), 1e-3))
+			x, y = x * s, y * s
+		end
+		n += 1
+		local dot = miniDot(n)
+		dot.Position = UDim2.new(0.5, x, 0.5, y)
+		dot.Size = UDim2.fromOffset(size, size)
+		dot.BackgroundColor3 = color
+	end
+	for _, c in campfires do
+		put(c.Position, Color3.fromRGB(255, 150, 60), 6)
+	end
+	for _, p in portals do
+		put(p.Position, Color3.fromRGB(190, 130, 255), 6)
+	end
+	local units = workspace:FindFirstChild("Units")
+	for _, u in units and units:GetChildren() or {} do
+		if u:IsA("BasePart") and u:GetAttribute("State") ~= "dead" then
+			if u:GetAttribute("Owner") == player.UserId then
+				put(u.Position, C.Mint, 4)
+			elseif u:GetAttribute("Side") == "wild" then
+				local big = u:GetAttribute("Boss") or u:GetAttribute("Legend")
+				put(u.Position, big and Color3.fromRGB(200, 120, 255) or u:GetAttribute("Elite") and GOLD or Color3.fromRGB(255, 96, 86), big and 7 or 4)
+			end
+		end
+	end
+	local marker = workspace:FindFirstChild("JourneyMarker") :: BasePart?
+	local bb = marker and marker:FindFirstChildOfClass("BillboardGui")
+	if marker and bb and bb.Enabled then
+		put(marker.Position, Color3.fromRGB(120, 240, 150), 8, true)
+	end
+	for i = n + 1, #miniDots do
+		miniDots[i].Visible = false
+	end
+	miniName.Text = REGION_NAMES[player:GetAttribute("Region") or ""] or ""
 end
 
 ----------------------------------------------------------------------------------------------
--- Team bar (bottom centre) + player HP + weapon skill
+-- Auto-Hunt (left column, under the minimap; Ride sits under it, from Pace.luau)
 
-local bottom = new("Frame", { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -10), Size = UDim2.fromOffset(px(560), px(132)), BackgroundTransparency = 1, Parent = gui })
-local me = Ui.card({ Position = UDim2.fromOffset(0, 0), Size = UDim2.new(1, 0, 0, px(40)), ZIndex = 2, Parent = bottom }, 14)
-local hpLabel = label(me, { Position = UDim2.fromOffset(12, 0), Size = UDim2.fromOffset(px(110), px(40)), Text = "HP", TextSize = px(15), TextXAlignment = Enum.TextXAlignment.Left }, "Title")
-local _, hpFill = bar(me, UDim2.new(0, px(118), 0.5, -px(6)), UDim2.new(1, -px(118) - px(200), 0, px(12)), C.Mint)
-local skillB = button({ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -px(100), 0.5, 0), Size = UDim2.fromOffset(px(92), px(30)), BackgroundColor3 = C.Peach, Text = "Q", TextScaled = false, TextSize = px(14), ZIndex = 3, Parent = me, Radius = 15 })
-local dodgeB = button({ AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(1, -6, 0.5, 0), Size = UDim2.fromOffset(px(88), px(30)), BackgroundColor3 = C.Sky, Text = "Dodge", TextScaled = false, TextSize = px(14), ZIndex = 3, Parent = me, Radius = 15 })
-skillB.Activated:Connect(function()
-	Controls.skill()
-end)
--- Auto-Hunt toggle (above the bar, right side)
 local AutoHunt = require(script.Parent.AutoHunt)
-local autoB = button({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, 0, 0, -6), Size = UDim2.fromOffset(px(170), px(30)), BackgroundColor3 = C.Card, TextColor3 = C.Ink, Text = "🤖 Auto-Hunt [R]", TextScaled = false, TextSize = px(14), ZIndex = 3, Parent = bottom, Radius = 15 })
+local autoB = button({ Name = "Auto", Position = UDim2.fromOffset(8, 98), Size = UDim2.fromOffset(36, 36), BackgroundColor3 = C.Card, TextColor3 = C.Ink, Text = "🤖", TextScaled = false, TextSize = 18, ZIndex = 3, Parent = hud, Radius = 18 })
 Ui.stroke(C.Line, 1.5).Parent = autoB
+local autoL = worldLabel(autoB, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 1), Size = UDim2.fromOffset(60, 11), Text = "Auto", TextSize = 9 })
+keyBadge(autoB, "R", UDim2.new(1, -2, 0, 2))
 autoB.Activated:Connect(function()
 	AutoHunt.toggle()
 end)
 local function paintAuto(state: boolean)
 	autoB.BackgroundColor3 = state and C.Mint or C.Card
-	autoB.TextColor3 = state and Color3.new(1, 1, 1) or C.Ink
-	autoB.Text = Ui.mobile and (state and "🤖 ON" or "🤖 Auto") or (state and "🤖 Auto-Hunt ON [R]" or ((Controls.touch and "🤖 Auto-Hunt") or "🤖 Auto-Hunt [R]"))
+	autoL.Text = state and "Auto ON" or "Auto"
 end
 AutoHunt.onChanged(paintAuto)
 Ui.onProfile(function(p)
 	local open = p.kills >= 1 or (p.bosses and p.bosses[Config.AutoHunt.UnlockBoss])
 	autoB.Visible = Unlocks.open(p, "Auto")
 	if not open then
-		autoB.Text = Ui.mobile and "🔒 Auto" or "🔒 Auto-Hunt"
-		autoB.TextColor3 = C.Sub
+		autoL.Text = "🔒 Auto"
 	elseif not AutoHunt.isOn() then
 		paintAuto(false)
 	end
 end)
-dodgeB.Activated:Connect(Controls.dodge)
 
-local teamRow = new("Frame", { Position = UDim2.fromOffset(0, px(48)), Size = UDim2.new(1, 0, 0, px(84)), BackgroundTransparency = 1, Parent = bottom }, { new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
-type Slot = { card: Frame, name: TextLabel, sub: TextLabel, hp: Frame, ult: TextButton, cd: TextLabel, portrait: Frame?, uid: string? }
-local slots: { Slot } = {}
-for i = 1, 3 do
-	local card = Ui.card({ LayoutOrder = i, Size = UDim2.new(1 / 3, -6, 1, 0), ZIndex = 2, Shadow = false, Parent = teamRow }, 16)
-	local name = label(card, { Position = UDim2.fromOffset(px(70), px(6)), Size = UDim2.new(1, -px(74), 0, px(18)), Text = "Empty", TextSize = px(15), TextXAlignment = Enum.TextXAlignment.Left, TextTruncate = Enum.TextTruncate.AtEnd }, "Title")
-	local sub = label(card, { Position = UDim2.fromOffset(px(70), px(25)), Size = UDim2.new(1, -px(74), 0, px(14)), Text = "Tap to add a monster", TextColor3 = C.Sub, TextSize = px(12), TextXAlignment = Enum.TextXAlignment.Left }, "Bold")
-	local _, hp = bar(card, UDim2.fromOffset(px(70), px(43)), UDim2.new(1, -px(78), 0, px(8)), C.Mint)
-	local ult = button({ Position = UDim2.fromOffset(px(70), px(56)), Size = UDim2.new(1, -px(78), 0, px(22)), BackgroundColor3 = C.Lilac, Text = "", TextScaled = false, TextSize = px(12), ZIndex = 3, Parent = card, Radius = 11 })
-	local cd = label(ult, { Size = UDim2.fromScale(1, 1), Text = "", TextSize = px(12), TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 4 }, "Title")
-	local open = button({ Size = UDim2.fromOffset(px(64), px(84)), BackgroundTransparency = 1, Text = "", ZIndex = 5, Parent = card })
-	slots[i] = { card = card, name = name, sub = sub, hp = hp, ult = ult, cd = cd, portrait = nil, uid = nil }
-	ult.Activated:Connect(function()
-		Controls.team(i)
-	end)
-	open.Activated:Connect(function()
-		local s = slots[i]
-		if s.uid then
-			Panels.showMonster(s.uid)
-		else
-			Ui.open("Monsters")
-		end
-	end)
-end
+----------------------------------------------------------------------------------------------
+-- Right edge: you, the team, and the active monster's skills
 
 local function teamUnit(slot: number): BasePart?
 	local units = workspace:FindFirstChild("Units")
@@ -204,81 +375,154 @@ local function teamUnit(slot: number): BasePart?
 	return nil
 end
 
-local function renderTeam(p)
-	local mob = Hud.mob
-	if mob then
-		for i, t in mob.team do
-			local uid = p.team[i]
-			local m = uid ~= "" and p.monsters[uid]
-			if t.portrait then
-				t.portrait:Destroy()
-				t.portrait = nil
+-- you: avatar headshot + HP
+local meAv = new("ImageLabel", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, 58), Size = UDim2.fromOffset(34, 34), BackgroundColor3 = C.Card, ZIndex = 3, Parent = hud }, { roundCorner() })
+local meRing = Ui.stroke(WHITE, 2)
+meRing.Parent = meAv
+task.spawn(function()
+	local ok, img = pcall(function()
+		return Players:GetUserThumbnailAsync(player.UserId, Enum.ThumbnailType.HeadShot, Enum.ThumbnailSize.Size100x100)
+	end)
+	if ok then
+		meAv.Image = img
+	end
+end)
+local hpLabel = worldLabel(hud, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -48, 0, 60), Size = UDim2.fromOffset(110, 12), Text = "", TextSize = 10, TextXAlignment = Enum.TextXAlignment.Right })
+local hpBack, hpFill = bar(hud, UDim2.new(1, -158, 0, 75), UDim2.fromOffset(110, 8), C.Mint)
+hpBack.BackgroundColor3 = Color3.fromRGB(40, 40, 56)
+
+-- three portrait spots: two waiting (small), the active one at the bottom (big)
+type Spot = { b: ImageButton, ring: UIStroke, hp: Frame, faint: TextLabel, portrait: Frame?, key: string?, slot: number? }
+local SPOTS = { { y = 98, size = 34 }, { y = 142, size = 34 }, { y = 186, size = 44 } }
+local spots: { Spot } = {}
+for i, s in SPOTS do
+	local b = new("ImageButton", { Name = "Party" .. i, AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8, 0, s.y), Size = UDim2.fromOffset(s.size, s.size), BackgroundColor3 = C.Card, AutoButtonColor = false, Visible = false, ZIndex = 3, Parent = hud }, { roundCorner() })
+	local ring = Ui.stroke(GREY, i == 3 and 3 or 2)
+	ring.Parent = b
+	local back = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 2), Size = UDim2.new(1, -4, 0, 4), BackgroundColor3 = Color3.fromRGB(40, 40, 56), ZIndex = 3, Parent = b }, { roundCorner() })
+	local hp = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = C.Mint, ZIndex = 4, Parent = back }, { roundCorner() })
+	local faint = worldLabel(b, { Size = UDim2.fromScale(1, 1), Text = "💤", TextSize = 16, Visible = false, ZIndex = 8 })
+	spots[i] = { b = b, ring = ring, hp = hp, faint = faint }
+	if i < 3 then
+		worldLabel(b, { AnchorPoint = Vector2.new(1, 0.5), Position = UDim2.new(0, -3, 0.5, 0), Size = UDim2.fromOffset(30, 10), Text = "AUTO", TextSize = 8, TextColor3 = Color3.fromRGB(210, 220, 235), TextXAlignment = Enum.TextXAlignment.Right })
+	end
+	b.Activated:Connect(function()
+		local sp = spots[i]
+		if not sp.slot then
+			return
+		end
+		if i == 3 then
+			local uid = Ui.profile and Ui.profile.team[sp.slot]
+			if uid and uid ~= "" then
+				Panels.showMonster(uid)
 			end
-			t.b.Visible = m ~= nil and m ~= false
+		else
+			Controls.setActive(sp.slot)
+			Sfx.play("select")
+		end
+	end)
+end
+keyBadge(spots[1].b, "X", UDim2.new(0, 0, 0, 0))
+
+-- the active monster's two skills, left of its portrait
+type SkillBtn = { b: ImageButton, img: ImageLabel, shade: Frame, cd: TextLabel, ring: UIStroke, sc: UIScale, name: string? }
+local skillBtns: { [number]: SkillBtn } = {}
+for i, x in { [2] = -128, [3] = -78 } do
+	local b, img, shade, cd, ring, sc = iconButton("Skill" .. (i - 1), UDim2.new(1, x, 0, 208), 46)
+	skillBtns[i] = { b = b, img = img, shade = shade, cd = cd, ring = ring, sc = sc }
+	keyBadge(b, tostring(i - 1), UDim2.new(0, 4, 0, 4))
+	b.Activated:Connect(function()
+		Controls.skillOf(i)
+	end)
+end
+local skillName = worldLabel(hud, { AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -56, 0, 184), Size = UDim2.fromOffset(150, 11), Text = "", TextSize = 9, TextXAlignment = Enum.TextXAlignment.Right })
+
+local function renderTeam(p)
+	local active = player:GetAttribute("ActiveSlot") or 1
+	local order = {}
+	for slot = 1, 3 do
+		if slot ~= active then
+			table.insert(order, slot)
+		end
+	end
+	table.insert(order, active)
+	for i, sp in spots do
+		local slot = order[i]
+		local uid = p.team[slot]
+		local m = uid and uid ~= "" and p.monsters[uid] or nil
+		sp.slot = m and slot or nil
+		sp.b.Visible = m ~= nil
+		local key = m and (uid .. ":" .. m.el) or nil
+		if key ~= sp.key then
+			if sp.portrait then
+				sp.portrait:Destroy()
+				sp.portrait = nil
+			end
 			if m then
-				local back = Ui.portrait(t.b, m.sp, m.el, UDim2.fromScale(1, 1), UDim2.new(), 4)
+				local back = Ui.portrait(sp.b, m.sp, m.el, UDim2.fromScale(1, 1), UDim2.new(), 4)
 				local cr = back:FindFirstChildOfClass("UICorner")
 				if cr then
 					cr.CornerRadius = UDim.new(0.5, 0)
 				end
-				t.portrait = back
-				t.ring.Color = EI[m.el].Color
+				sp.portrait = back
+			end
+			sp.key = key
+		end
+		if m then
+			sp.ring.Color = i == 3 and GOLD or EI[m.el].Color
+		end
+	end
+	-- skill icons for the active monster
+	local uid = p.team[active]
+	local m = uid and uid ~= "" and p.monsters[uid] or nil
+	for i, s in skillBtns do
+		s.b.Visible = m ~= nil
+		if m then
+			local skill = Monsters.skills(m.sp, m.el)[i]
+			if s.name ~= skill.Name then
+				s.name = skill.Name
+				task.spawn(SkillIcons.apply, s.img, skill.Name)
 			end
 		end
 	end
-	for i, s in slots do
-		local uid = p.team[i]
-		local m = uid ~= "" and p.monsters[uid]
-		if s.portrait then
-			s.portrait:Destroy()
-			s.portrait = nil
-		end
-		if m then
-			local sp = Monsters.Species[m.sp]
-			s.uid = uid
-			s.portrait = Ui.portrait(s.card, m.sp, m.el, UDim2.fromOffset(px(58), px(72)), UDim2.fromOffset(6, 6), 3)
-			s.name.Text = sp.Name
-			s.sub.Text = EI[m.el].Icon .. " " .. string.rep("★", sp.Stars) .. "  Lv " .. m.lv
-			s.sub.TextColor3 = EI[m.el].Color
-			s.ult.Visible = true
-			local skill = Monsters.skills(m.sp, m.el)[3]
-			s.ult.Text = ""
-			s.cd.Text = (Controls.touch and "" or "[" .. i .. "] ") .. skill.Name
-		else
-			s.uid = nil
-			s.name.Text = "Empty slot"
-			s.sub.Text = "Tap to add a monster"
-			s.sub.TextColor3 = C.Sub
-			s.ult.Visible = false
-			s.hp.Size = UDim2.fromScale(0, 1)
-		end
-	end
+	skillName.Text = m and Monsters.Species[m.sp].Name or ""
 end
+player:GetAttributeChangedSignal("ActiveSlot"):Connect(function()
+	if Ui.profile then
+		renderTeam(Ui.profile)
+	end
+end)
 
 ----------------------------------------------------------------------------------------------
--- Target frame (top centre)
+-- Target frame (top centre, under the wallet)
 
-local targetCard = Ui.card({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, px(62)), Size = UDim2.fromOffset(px(300), px(54)), Visible = false, ZIndex = 2, Parent = gui }, 16)
-local tName = label(targetCard, { Position = UDim2.fromOffset(12, px(5)), Size = UDim2.new(1, -24, 0, px(20)), Text = "", TextSize = px(16), TextXAlignment = Enum.TextXAlignment.Left }, "Title")
-local tFx = label(targetCard, { Position = UDim2.fromOffset(12, px(5)), Size = UDim2.new(1, -24, 0, px(20)), Text = "", TextSize = px(13), TextColor3 = C.Sub, TextXAlignment = Enum.TextXAlignment.Right }, "Bold")
-local _, tHp = bar(targetCard, UDim2.fromOffset(12, px(30)), UDim2.new(1, -24, 0, px(12)), C.Coral)
-local tHpText = label(targetCard, { Position = UDim2.fromOffset(12, px(28)), Size = UDim2.new(1, -24, 0, px(16)), Text = "", TextSize = px(11), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 6 }, "Title")
+local targetCard = Ui.card({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, 42), Size = UDim2.fromOffset(230, 38), Visible = false, ZIndex = 2, Parent = hud }, 12)
+local tName = label(targetCard, { Position = UDim2.fromOffset(10, 3), Size = UDim2.new(1, -20, 0, 15), Text = "", TextSize = 12, TextXAlignment = Enum.TextXAlignment.Left }, "Title")
+local tFx = label(targetCard, { Position = UDim2.fromOffset(10, 3), Size = UDim2.new(1, -20, 0, 15), Text = "", TextSize = 10, TextColor3 = C.Sub, TextXAlignment = Enum.TextXAlignment.Right, Visible = not Ui.mobile }, "Bold")
+local _, tHp = bar(targetCard, UDim2.fromOffset(10, 21), UDim2.new(1, -20, 0, 10), C.Coral)
+local tHpText = label(targetCard, { Position = UDim2.fromOffset(10, 19), Size = UDim2.new(1, -20, 0, 14), Text = "", TextSize = 9, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 6 }, "Title")
 
 ----------------------------------------------------------------------------------------------
--- Touch buttons
+-- Bottom right: attack, weapon skill, dodge (Roblox's jump button sits right of attack)
 
-local atkB: TextButton? = nil
-if Controls.touch or Ui.mobile then
-	local atk = button({ AnchorPoint = Vector2.new(1, 1), Position = UDim2.new(1, -px(120), 1, -px(150)), Size = UDim2.fromOffset(px(104), px(104)), BackgroundColor3 = C.Coral, Text = "⚔", TextScaled = false, TextSize = px(42), ZIndex = 3, Parent = gui, Radius = 52 })
+-- (no jump button without touch controls: the cluster moves into that corner)
+local jx = (Controls.touch or Ui.mobile) and 0 or 70
+local atkB, atkImg = iconButton("Attack", UDim2.new(1, -160 + jx, 1, -58), 74, "Blade", nil, C.Coral)
+local skillB, skillImg, skillShade, skillCd = iconButton("WeaponSkill", UDim2.new(1, -248 + jx, 1, -46), 50, "Spin Slash")
+local dodgeB, _, dodgeShade = iconButton("Dodge", UDim2.new(1, -240 + jx, 1, -118), 44, "Dodge")
+keyBadge(atkB, "Click", UDim2.new(0.5, 0, 0, 2))
+keyBadge(skillB, "Q", UDim2.new(0, 4, 0, 4))
+keyBadge(dodgeB, "Shift", UDim2.new(0.5, 0, 0, 0))
+do
 	local holding = false
-	atk.InputBegan:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch then
+	atkB.InputBegan:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 			holding = true
 			Controls.attack()
 		end
 	end)
-	atk.InputEnded:Connect(function(input)
-		if input.UserInputType == Enum.UserInputType.Touch then
+	atkB.InputEnded:Connect(function(input)
+		if input.UserInputType == Enum.UserInputType.Touch or input.UserInputType == Enum.UserInputType.MouseButton1 then
 			holding = false
 		end
 	end)
@@ -287,137 +531,16 @@ if Controls.touch or Ui.mobile then
 			Controls.attack()
 		end
 	end)
-	bottom.Position = UDim2.new(0.5, -px(40), 1, -10)
-	atkB = atk
 end
-
-----------------------------------------------------------------------------------------------
--- Phone layout (2026-11-27, owner: "mobile looks garbage"). Everything is regrouped around
--- the thumbs and Roblox's own controls (top bar top-left, joystick bottom-left, jump
--- bottom-right):
---   top-left   wallet, HP strip, Auto + Ride
---   top-right  Monsters, Shrine, Menu (all other menus in a sheet), help, sound
---   bottom-right  big attack button left of jump; the three monster skills as round
---              portrait buttons in an arc around it (bright and pulsing when ready, dark with
---              a countdown while cooling down); weapon skill and dodge above jump
--- Positions in that cluster are raw points because Roblox's jump button is a fixed size.
-
-local mob: any = nil
-if Ui.mobile then
-	mob = { team = {} }
-	bottom.Visible = false
-	-- top-left
-	wallet.Position = UDim2.fromOffset(8, 6)
-	wallet.Size = UDim2.fromOffset(0, 34)
-	for _, l in { coinL, regL, legL, eclL } do
-		l.TextSize = 15
-	end
-	local hpCard = Ui.card({ Name = "PhoneHp", Position = UDim2.fromOffset(8, 46), Size = UDim2.fromOffset(170, 22), ZIndex = 2, Shadow = false, Parent = gui }, 11)
-	label(hpCard, { Position = UDim2.fromOffset(6, 0), Size = UDim2.fromOffset(18, 22), Text = "❤", TextSize = 13, TextXAlignment = Enum.TextXAlignment.Center }, "Title")
-	local _, f = bar(hpCard, UDim2.fromOffset(26, 7), UDim2.new(1, -34, 0, 8), C.Mint)
-	mob.hpFill = f
-	autoB.Parent = gui
-	autoB.AnchorPoint = Vector2.zero
-	autoB.Position = UDim2.fromOffset(8, 74)
-	autoB.Size = UDim2.fromOffset(82, 30)
-	autoB.TextSize = 12
-	mob.utilY = 74
-	-- top-right round buttons
-	local function round(glyph: string, i: number, color: Color3?): TextButton
-		local b = button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -8 - (i - 1) * 44, 0, 6), Size = UDim2.fromOffset(38, 38), BackgroundColor3 = color or C.Card, TextColor3 = C.Ink, Text = glyph, TextScaled = false, TextSize = 18, ZIndex = 2, Parent = gui, Radius = 19 })
-		Ui.stroke(C.Line, 1.5).Parent = b
-		return b
-	end
-	help.AnchorPoint = Vector2.new(1, 0)
-	help.Position = UDim2.new(1, -8, 0, 6)
-	help.Size = UDim2.fromOffset(38, 38)
-	help.TextSize = 18
-	muteB.Position = UDim2.new(1, -8 - 44, 0, 6)
-	muteB.Size = UDim2.fromOffset(38, 38)
-	muteB.TextSize = 16
-	local menuB = round("☰", 3)
-	local shrineQ = round("🥚", 4)
-	local monQ = round("🐾", 5)
-	monQ.Activated:Connect(function()
-		Ui.open(Ui.isOpen("Monsters") and nil or "Monsters")
-	end)
-	shrineQ.Activated:Connect(function()
-		Ui.open(Ui.isOpen("Shrine") and nil or "Shrine")
-	end)
-	mob.menuDot = new("Frame", { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, 2, 0, -2), Size = UDim2.fromOffset(12, 12), BackgroundColor3 = C.Coral, Visible = false, ZIndex = 4, Parent = menuB }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
-	-- the menu sheet: every rail button moves into a grid here
-	-- a popover under the top-right buttons (5 tiles a row), not a full-screen sheet
-	local menuP, menuBody = Ui.panel("Menu", "Menu", "Everything in one place.", C.Lilac, "☰")
-	menuP.AnchorPoint = Vector2.new(1, 0)
-	menuP.Position = UDim2.new(1, -8, 0, 50)
-	menuP.Size = UDim2.fromOffset(400, 222)
-	local grid = new("Frame", { LayoutOrder = 1, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 12, Parent = menuBody }, {
-		new("UIGridLayout", { CellSize = UDim2.fromOffset(66, 66), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
-	})
-	rail.Visible = false
-	for _, b in railButtons do
-		b.Parent = grid
-		b.ZIndex = 13
-		for _, d in b:GetDescendants() do
-			if d:IsA("GuiObject") then
-				d.ZIndex = math.max(d.ZIndex, 14)
-			end
-		end
-	end
-	local travelT = button({ LayoutOrder = 50, BackgroundColor3 = C.Card, Text = "", ZIndex = 13, Parent = grid, Radius = 18 })
-	Ui.stroke(Ui.Theme.tint(C.Peach, 0.4), 2).Parent = travelT
-	label(travelT, { Position = UDim2.fromOffset(0, 6), Size = UDim2.new(1, 0, 0, 30), Text = "🔥", TextSize = 24, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 14 }, "Title")
-	label(travelT, { Position = UDim2.new(0, 0, 1, -22), Size = UDim2.new(1, 0, 0, 16), Text = "Travel", TextSize = 12, TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 14 }, "Title")
-	travelT.Activated:Connect(function()
-		Ui.open("Travel")
-	end)
-	menuB.Activated:Connect(function()
-		Ui.open(Ui.isOpen("Menu") and nil or "Menu")
-	end)
-	mob.railButtons = railButtons
-	-- target card: small, top centre
-	targetCard.Position = UDim2.new(0.5, 0, 0, 6)
-	targetCard.Size = UDim2.fromOffset(230, 44)
-	tName.TextSize = 12
-	tFx.Visible = false
-	-- the thumb cluster
-	local function circle(name: string, center: Vector2, size: number, color: Color3, glyph: string?): TextButton
-		local b = button({ Name = name, AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, center.X, 1, center.Y), Size = UDim2.fromOffset(size, size), BackgroundColor3 = color, Text = glyph or "", TextScaled = false, TextSize = math.floor(size * 0.42), TextColor3 = Color3.new(1, 1, 1), ZIndex = 3, Parent = gui, Radius = size / 2 })
-		return b
-	end
-	if atkB then
-		atkB.AnchorPoint = Vector2.new(0.5, 0.5)
-		atkB.Position = UDim2.new(1, -160, 1, -58)
-		atkB.Size = UDim2.fromOffset(74, 74)
-		atkB.TextSize = 32
-	end
-	local SPOTS = { Vector2.new(-252, -48), Vector2.new(-236, -124), Vector2.new(-170, -152) }
-	for i = 1, 3 do
-		local b = circle("Skill" .. i, SPOTS[i], 54, C.Lilac)
-		local ring = Ui.stroke(C.Lilac, 3)
-		ring.Parent = b
-		local shade = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(20, 20, 34), BackgroundTransparency = 0.45, ZIndex = 6, Visible = false, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
-		local cd = label(b, { Size = UDim2.fromScale(1, 1), Text = "", TextSize = 18, TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 7 }, "Title")
-		local back = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 3), Size = UDim2.fromOffset(44, 5), BackgroundColor3 = Color3.fromRGB(40, 40, 60), BackgroundTransparency = 0.3, ZIndex = 3, Parent = b }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
-		local hp = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = C.Mint, ZIndex = 4, Parent = back }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
-		local sc = new("UIScale", { Parent = b })
-		b.Visible = false
-		b.Activated:Connect(function()
-			Controls.team(i)
-		end)
-		mob.team[i] = { b = b, ring = ring, shade = shade, cd = cd, hp = hp, sc = sc, portrait = nil }
-	end
-	mob.skill = circle("WeaponSkill", Vector2.new(-60, -132), 50, C.Peach, "⚔")
-	local skShade = new("Frame", { Size = UDim2.fromScale(1, 1), BackgroundColor3 = Color3.fromRGB(20, 20, 34), BackgroundTransparency = 0.45, ZIndex = 6, Visible = false, Parent = mob.skill }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
-	mob.skillShade = skShade
-	mob.skillCd = label(mob.skill, { Size = UDim2.fromScale(1, 1), Text = "", TextSize = 16, TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 7 }, "Title")
-	mob.skill.Activated:Connect(function()
-		Controls.skill()
-	end)
-	mob.dodge = circle("Dodge", Vector2.new(-60, -192), 44, C.Sky, "💨")
-	mob.dodge.Activated:Connect(Controls.dodge)
-end
-Hud.mob = mob
+skillB.Activated:Connect(function()
+	Controls.skill()
+end)
+dodgeB.Activated:Connect(Controls.dodge)
+local shownWeapon = ""
+-- the gold ground ring under the active monster: an invisible anchor part carrying a
+-- cylinder adornment with an inner radius (a real ring, no texture needed)
+local activeRing = new("Part", { Name = "ActiveRing", Anchored = true, CanCollide = false, CanQuery = false, CanTouch = false, CastShadow = false, Transparency = 1, Size = Vector3.new(1, 1, 1) })
+local ringAd = new("CylinderHandleAdornment", { Adornee = activeRing, Height = 0.15, Radius = 3, InnerRadius = 2.5, Color3 = Color3.fromRGB(255, 210, 80), CFrame = CFrame.Angles(math.rad(90), 0, 0), ZIndex = 0, Parent = activeRing })
 
 ----------------------------------------------------------------------------------------------
 -- How to play
@@ -427,7 +550,7 @@ do
 	label(howTo, { Position = UDim2.fromOffset(24, 20), Size = UDim2.new(1, -48, 0, px(30)), Text = "Welcome to " .. Config.GameName .. "!", TextSize = px(26), TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 31 }, "Title")
 	local steps = {
 		{ "🐾", "Your team", "Up to 3 monsters follow you and fight on their own. Manage them in Monsters." },
-		{ "⚔", "Fight", Controls.touch and "Tap ⚔ to attack. Q-button: weapon skill. Tap a team card's bar for its ultimate." or "Click to attack (hold to keep swinging). Q: weapon skill. Shift: dodge. 1, 2, 3: team ultimates." },
+		{ "⚔", "Fight", Ui.mobile and "Tap the big button to attack. Your active monster's skills glow gold when ready: tap them. Tap another monster on the right to switch." or "Click to attack (hold to keep swinging). Q: weapon skill. Shift: dodge. 1, 2: your active monster's skills. X: switch monster." },
 		{ "🌱", "Explore", "Walk through the portal in the north arch to Sprout Meadow. Wild monsters give XP, coins, Crystals and sometimes eggs. Team up with others on big ones!" },
 		{ "🥚", "Befriend", "Hatch eggs at the Summoning Shrine to get new monsters. Use extras to train your team." },
 		{ "🔥", "Campfires", "Touch a campfire to heal your team and set your respawn point." },
@@ -645,6 +768,7 @@ function Hud.start()
 		end
 	end)
 	local bases: { [BasePart]: CFrame } = {}
+	local lastMini = 0
 
 	RunService.RenderStepped:Connect(function(dt)
 		local t = os.clock()
@@ -653,85 +777,75 @@ function Hud.start()
 		local hum = char and char:FindFirstChildOfClass("Humanoid")
 		if hum then
 			hpFill.Size = UDim2.fromScale(math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1), 1)
-			hpLabel.Text = string.format("❤ %d / %d", math.max(0, math.floor(hum.Health)), hum.MaxHealth)
+			hpLabel.Text = string.format("%d / %d", math.max(0, math.floor(hum.Health)), hum.MaxHealth)
 		end
-		-- weapon skill / dodge
+		-- weapon: attack icon, weapon skill cooldown, dodge
 		local kind = player:GetAttribute("Weapon") or "Blade"
 		local w = T.Weapons[kind]
-		local left = (player:GetAttribute("WeaponSkillReady") or 0) - workspace:GetServerTimeNow()
-		skillB.Text = left > 0 and string.format("%s %.0fs", w.Skill.Name, math.ceil(left)) or ((Controls.touch and "" or "[Q] ") .. w.Skill.Name)
-		skillB.BackgroundColor3 = left > 0 and C.Mute or C.Peach
-		local dl = Controls.dodgeReady - os.clock()
-		dodgeB.BackgroundColor3 = dl > 0 and C.Mute or C.Sky
-		dodgeB.Text = Controls.touch and "Dodge" or "[Shift] Dodge"
-		-- phone cluster
-		local mob = Hud.mob
-		if mob then
-			if hum then
-				mob.hpFill.Size = UDim2.fromScale(math.clamp(hum.Health / math.max(hum.MaxHealth, 1), 0, 1), 1)
-			end
-			mob.skillShade.Visible = left > 0
-			mob.skillCd.Text = left > 0 and tostring(math.ceil(left)) or ""
-			mob.skill.Text = left > 0 and "" or (w.Icon or "⚔")
-			mob.dodge.BackgroundColor3 = dl > 0 and C.Mute or C.Sky
-			for i, tm in mob.team do
-				local u = tm.b.Visible and teamUnit(i)
-				if u then
-					local hp, max = u:GetAttribute("HP") or 0, u:GetAttribute("MaxHP") or 1
-					tm.hp.Size = UDim2.fromScale(math.clamp(hp / max, 0, 1), 1)
-					local st = u:GetAttribute("State")
-					local cdLeft = (u:GetAttribute("CdB") or 0) - workspace:GetServerTimeNow()
-					local ready = cdLeft <= 0.05 and st ~= "fainted"
-					local pulse = ready and (0.5 + 0.5 * math.sin(t * 7)) or 0
-					tm.shade.Visible = not ready
-					tm.cd.Text = st == "fainted" and "💤" or (not ready and tostring(math.ceil(cdLeft)) or "")
-					tm.ring.Thickness = ready and (3 + pulse * 2) or 2
-					tm.ring.Color = ready and Color3.fromRGB(255, 214, 90) or Color3.fromRGB(120, 120, 140)
-					tm.sc.Scale = ready and (1 + pulse * 0.07) or 0.94
-				end
-			end
-			local anyDot = false
-			for _, b in mob.railButtons do
-				if b.Visible then
-					for _, c in b:GetChildren() do
-						if c:IsA("Frame") and c.Visible and c.Size.X.Offset <= px(40) and c.Size.X.Offset >= 10 and c.BackgroundColor3 ~= C.Card then
-							anyDot = true
-						end
-					end
-				end
-			end
-			mob.menuDot.Visible = anyDot
+		if kind ~= shownWeapon and w then
+			shownWeapon = kind
+			task.spawn(SkillIcons.apply, atkImg, kind)
+			task.spawn(SkillIcons.apply, skillImg, w.Skill.Name)
 		end
-		-- team bar live values
-		for i, s in slots do
-			if s.uid then
-				local u = teamUnit(i)
-				if u then
-					local hp, max = u:GetAttribute("HP") or 0, u:GetAttribute("MaxHP") or 1
-					s.hp.Size = UDim2.fromScale(math.clamp(hp / max, 0, 1), 1)
-					local st = u:GetAttribute("State")
-					local cdLeft = (u:GetAttribute("CdB") or 0) - workspace:GetServerTimeNow()
-					local ready = cdLeft <= 0.05 and st ~= "fainted"
-					-- a ready big move pulses so it's obvious when to press it
-					local pulse = ready and (0.5 + 0.5 * math.sin(os.clock() * 7)) or 0
-					s.ult.BackgroundColor3 = st == "fainted" and C.Mute or ready and C.Lilac:Lerp(Color3.fromRGB(255, 220, 120), pulse * 0.55) or Ui.Theme.tint(C.Lilac, 0.5)
-					local sc = s.ult:FindFirstChild("Pulse") :: UIScale?
-					if not sc then
-						sc = Instance.new("UIScale")
-						sc.Name = "Pulse"
-						sc.Parent = s.ult
-					end
-					sc.Scale = 1 + pulse * 0.06
-					if st == "fainted" then
-						s.cd.Text = "Fainted"
-					elseif not ready then
-						s.cd.Text = string.format("%.0fs", math.ceil(cdLeft))
-					else
-						local m = Ui.profile and Ui.profile.monsters[s.uid]
-						s.cd.Text = m and ((Controls.touch and "" or "[" .. i .. "] ") .. Monsters.skills(m.sp, m.el)[3].Name) or ""
-					end
-				end
+		local nowS = workspace:GetServerTimeNow()
+		local left = (player:GetAttribute("WeaponSkillReady") or 0) - nowS
+		skillShade.Visible = left > 0
+		skillCd.Text = left > 0 and tostring(math.ceil(left)) or ""
+		dodgeShade.Visible = Controls.dodgeReady - os.clock() > 0
+		-- the team: HP, fainted
+		for _, sp in spots do
+			local u = sp.slot and teamUnit(sp.slot)
+			if u then
+				local hp, max = u:GetAttribute("HP") or 0, u:GetAttribute("MaxHP") or 1
+				sp.hp.Size = UDim2.fromScale(math.clamp(hp / max, 0, 1), 1)
+				sp.faint.Visible = u:GetAttribute("State") == "fainted"
 			end
+		end
+		-- the active monster's skills: gold and pulsing when ready, grey with a countdown
+		local au = teamUnit(player:GetAttribute("ActiveSlot") or 1)
+		-- a gold ring on the ground under the active monster
+		if au and au:GetAttribute("State") ~= "fainted" and not au:GetAttribute("Mount") then
+			local r = math.max(2.6, au.Size.X * 0.75)
+			ringAd.Radius = r
+			ringAd.InnerRadius = r - 0.45
+			ringAd.Transparency = 0.2 + 0.2 * math.sin(t * 4)
+			activeRing.CFrame = CFrame.new(au.Position.X, au.Position.Y - au.Size.Y / 2 + 0.2, au.Position.Z)
+			activeRing.Parent = workspace
+		else
+			activeRing.Parent = nil
+		end
+		for i, sb in skillBtns do
+			local cdLeft = au and ((au:GetAttribute("Cd" .. i) or 0) - nowS) or 0
+			local ready = au ~= nil and cdLeft <= 0.05 and au:GetAttribute("State") ~= "fainted"
+			local pulse = ready and (0.5 + 0.5 * math.sin(t * 7)) or 0
+			sb.shade.Visible = not ready
+			sb.cd.Text = (not ready and cdLeft > 0.05) and tostring(math.ceil(cdLeft)) or ""
+			sb.ring.Color = ready and GOLD or GREY
+			sb.ring.Thickness = ready and (2.5 + pulse * 2) or 2
+			sb.sc.Scale = ready and (1 + pulse * 0.07) or 0.94
+		end
+		-- dots: the top-right buttons mirror their menu tiles; the Menu button lights up
+		-- when anything inside it wants attention
+		questQDot.Visible = questDot.Visible
+		monQDot.Visible = monDot.Visible
+		shrineQDot.Visible = shrineDot.Visible
+		questQ.Visible = railButtons.Quests.Visible
+		local anyDot = false
+		for _, d in tileDots do
+			if d.Visible and (d.Parent :: GuiObject).Visible then
+				anyDot = true
+			end
+		end
+		for name, nb in newBadges do
+			if nb.Visible and railButtons[name].Visible then
+				anyDot = true
+			end
+		end
+		menuDot.Visible = anyDot
+		-- minimap at 10 Hz
+		if t - lastMini > 0.1 then
+			lastMini = t
+			drawMinimap()
 		end
 		-- target frame
 		local tgt = Controls.target
@@ -744,18 +858,6 @@ function Hud.start()
 			tFx.Text = (tgt:GetAttribute("Effects") or ""):gsub(",", " ")
 			tHp.Size = UDim2.fromScale(math.clamp(hp / max, 0, 1), 1)
 			tHpText.Text = Ui.fmt(hp) .. " / " .. Ui.fmt(max)
-		end
-		-- world boss timer
-		local untilT = workspace:GetAttribute("WorldBossUntil") or 0
-		local nowT = workspace:GetServerTimeNow()
-		if untilT > nowT then
-			local left = math.floor(untilT - nowT)
-			bossText.Text = string.format("⚡ Titan %s at the Titan Field · %d:%02d", workspace:GetAttribute("WorldBossName") or "", left // 60, left % 60)
-			bossText.TextColor3 = C.Coral
-		else
-			local left = math.max(0, math.floor((workspace:GetAttribute("WorldBossAt") or nowT) - nowT))
-			bossText.Text = string.format("⚡ Next titan in %d:%02d", left // 60, left % 60)
-			bossText.TextColor3 = C.Sub
 		end
 		-- world spinners
 		for _, s in spinners do

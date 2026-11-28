@@ -102,6 +102,25 @@ Ui.screenGui = new("ScreenGui", {
 })
 Ui.gui = Ui.layer(Ui.screenGui)
 
+-- The HUD frame (2026-11-27 HUD redesign): every always-on HUD element is laid out once in
+-- phone points (a phone landscape screen is ~844 x 332 under Roblox's top bar). On bigger
+-- screens the frame is shrunk by 1/k and scaled back up by k, so the same layout fills the
+-- screen with everything k times larger. Menus stay in Ui.gui.
+Ui.hud = new("Frame", { Name = "Hud", BackgroundTransparency = 1, Size = UDim2.fromScale(1, 1), Parent = Ui.gui })
+local hudScale = new("UIScale", { Parent = Ui.hud })
+local function placeHud()
+	local k = 1
+	if not Ui.mobile then
+		local v = workspace.CurrentCamera.ViewportSize
+		k = math.clamp(math.min(v.X / 1250, v.Y / 650), 1, 1.6)
+	end
+	hudScale.Scale = k
+	Ui.hud.Size = UDim2.fromScale(1 / k, 1 / k)
+	Ui.hudScale = k
+end
+placeHud()
+workspace.CurrentCamera:GetPropertyChangedSignal("ViewportSize"):Connect(placeHud)
+
 -- Studio preview: a dark backdrop around the phone, Roblox's top bar, the jump button and the
 -- joystick drawn as ghosts so nothing gets placed under them
 if Ui.preview then

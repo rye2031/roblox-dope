@@ -16,7 +16,7 @@ local player = Players.LocalPlayer
 -- id = { icon, title, text }. Keep every text to a sentence or two of plain words.
 local TIPS = {
 	welcome = { "🧭", "Welcome, Tamer!", "You collect monsters, and they fight beside you. Follow the green arrow to Mira to begin." },
-	combat = { "⚔", "Fighting", "Your 3 monsters fight on their own. Click to swing your weapon. Press 1, 2 or 3 for a monster's big move when it glows." },
+	combat = { "⚔", "Fighting", "Your monster on the bottom right is active: press 1 or 2 for its skills when they glow. The other two use theirs on their own. X switches who's active. Click to swing your weapon." },
 	dodge = { "💨", "Dodge!", "Red circles on the ground mean a big hit is coming. Press Shift (or the Dodge button) to roll out of the way." },
 	Monsters = { "🐾", "Your monsters", "The 3 at the top follow you and fight. The rest wait in storage. Tap any monster to look at it, swap it in or power it up." },
 	detail = { "⬆", "Making monsters stronger", "Use spare monsters to train this one: it levels up. Spares of the same species also power up its skills." },
@@ -37,7 +37,7 @@ local TIPS = {
 }
 -- phones have no keys: the same tips in tap words
 if Ui.mobile then
-	TIPS.combat[3] = "Your 3 monsters fight on their own. Tap ⚔ to swing. When a monster's round button glows gold, tap it for a big move."
+	TIPS.combat[3] = "Your monster on the bottom right is active: tap its skills when they glow gold. The other two use theirs on their own. Tap one of them to make it active."
 	TIPS.dodge[3] = "Red circles on the ground mean a big hit is coming. Tap the 💨 button to roll out of the way."
 	TIPS.auto[3] = "Tap 🤖 Auto and your Tamer fights nearby monsters for you, at a bit less reward."
 	TIPS.ride[3] = "Tap 🐾 Ride to hop on your lead monster and travel fast. A fight knocks you off."

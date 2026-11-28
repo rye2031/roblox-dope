@@ -690,6 +690,10 @@ local function cast(u, i: number, forced: boolean?): boolean
 	end
 	local spdFactor = 100 / math.max(40, u.stats.spd * (1 + effectValue(u, "spd")))
 	u.cd[i] = now() + Monsters.skillCooldown(skill.Cooldown, lvl) * spdFactor
+	if u.side == "team" and u.part then
+		-- the HUD's skill buttons read these (Cd1 / Cd2 / Cd3 = server time when ready)
+		u.part:SetAttribute("Cd" .. i, workspace:GetServerTimeNow() + (u.cd[i] - now()))
+	end
 	emit({ "cast", u.id, i, skill.Name, target and posOf(target) or u.pos, u.el, skill.Target == "aoe" and skill.Radius or 0 })
 	if skill.Mult > 0 then
 		for _ = 1, skill.Hits do
@@ -797,7 +801,11 @@ local function updateTeamUnit(u, dt: number)
 		local inRange = moveToward(u, tp, CT.FollowSpeed, dt, range * 0.85)
 		if inRange then
 			u.state = "attack"
-			if not cast(u, 2) then
+			-- one active monster (2026-11-27, owner): its Tamer fires its skills 2 and 3, it only
+			-- uses its signature by itself; the other two cast every skill on their own
+			if u.slot == Combat.activeSlot(player) then
+				cast(u, 1)
+			elseif not cast(u, 3) and not cast(u, 2) then
 				cast(u, 1)
 			end
 		end
@@ -1366,8 +1374,44 @@ function Combat.dodge(player: Player)
 	return true
 end
 
-function Combat.teamSkill(player: Player, slot: any)
+-- The active monster: player attribute `ActiveSlot` (1-3). If it has fainted, the next
+-- monster that's still up takes over so the skill buttons always work.
+function Combat.activeSlot(player: Player): number
+	local list = teams[player]
+	local slot = player:GetAttribute("ActiveSlot")
+	slot = typeof(slot) == "number" and slot or 1
+	if list then
+		local u = list[slot]
+		if not (u and alive(u)) then
+			for i = 1, T.TeamSize do
+				if list[i] and alive(list[i]) then
+					slot = i
+					break
+				end
+			end
+		end
+	end
+	if player:GetAttribute("ActiveSlot") ~= slot then
+		player:SetAttribute("ActiveSlot", slot)
+	end
+	return slot
+end
+
+function Combat.setActive(player: Player, slot: any): boolean
 	local u = typeof(slot) == "number" and teams[player] and teams[player][slot]
+	if not u or not alive(u) then
+		return false
+	end
+	player:SetAttribute("ActiveSlot", slot)
+	return true
+end
+
+-- Fire skill `i` (2 = skill A, 3 = big move B) of the active monster.
+function Combat.teamSkill(player: Player, i: any)
+	if i ~= 2 and i ~= 3 then
+		return false
+	end
+	local u = teams[player] and teams[player][Combat.activeSlot(player)]
 	if not u or not alive(u) then
 		return false
 	end
@@ -1388,12 +1432,11 @@ function Combat.teamSkill(player: Player, slot: any)
 			u.target = best
 		end
 	end
-	local skill = Monsters.skills(u.sp, u.el)[3]
+	local skill = Monsters.skills(u.sp, u.el)[i]
 	if skill.Target ~= "none" and not u.target then
 		return false
 	end
-	if cast(u, 3, true) then
-		u.part:SetAttribute("CdB", workspace:GetServerTimeNow() + (u.cd[3] - now()))
+	if cast(u, i, true) then
 		Quests.progress(player, "TeamSkill", 1)
 		Story.event(player, "ult")
 		return true
@@ -1447,12 +1490,8 @@ local function step(dt: number)
 	for _, pl in Players:GetPlayers() do
 		updatePace(pl)
 	end
-	for player, list in teams do
-		for _, u in list do
-			if u.part.Parent then
-				u.part:SetAttribute("CdB", workspace:GetServerTimeNow() + math.max(0, u.cd[3] - now()))
-			end
-		end
+	for player in teams do
+		Combat.activeSlot(player) -- moves the active pick off a fainted monster
 	end
 	if #events > 0 then
 		remotes.Combat:FireAllClients(events)

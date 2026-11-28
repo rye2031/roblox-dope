@@ -181,12 +181,13 @@ function AutoHunt.start()
 				Controls.attack(flat)
 				-- weapon skill when it's up
 				Controls.skill(flat)
-				-- team ultimates when ready
-				for slot = 1, 3 do
-					for part in UnitView.views do
-						if part:GetAttribute("Owner") == player.UserId and part:GetAttribute("Slot") == slot and part:GetAttribute("State") ~= "fainted" then
-							if (part:GetAttribute("CdB") or 0) <= workspace:GetServerTimeNow() then
-								Controls.team(slot)
+				-- the active monster's two skills when ready (the others cast by themselves)
+				local active = player:GetAttribute("ActiveSlot") or 1
+				for part in UnitView.views do
+					if part:GetAttribute("Owner") == player.UserId and part:GetAttribute("Slot") == active and part:GetAttribute("State") ~= "fainted" then
+						for i = 2, 3 do
+							if (part:GetAttribute("Cd" .. i) or 0) <= workspace:GetServerTimeNow() then
+								Controls.skillOf(i)
 							end
 						end
 					end

@@ -131,7 +131,8 @@ local shown: { [string]: boolean } = {}
 
 local function render(now: number)
 	local Unlocks = require(script.Parent.Unlocks)
-	card.Visible = not Ui.mobile and Ui.profile ~= nil and Unlocks.open(Ui.profile, "Ticker")
+	card.Visible = false -- (2026-11-27 HUD: events arrive as toasts; the minimap and Menu replace it)
+	local _ = Unlocks
 	local list = gather(now)
 	rank(list, now)
 	local seen = {}

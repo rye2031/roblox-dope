@@ -217,8 +217,27 @@ function Controls.dodge()
 	Sfx.play("dodge")
 end
 
-function Controls.team(slot: number)
-	Intent:FireServer("team", slot)
+-- One active monster (2026-11-27): its skills 2 (A) and 3 (big move B) are yours to fire;
+-- the other two cast on their own. `Controls.setActive` swaps which one is active.
+function Controls.skillOf(i: number)
+	Intent:FireServer("skill", i)
+end
+function Controls.setActive(slot: number)
+	Intent:FireServer("active", slot)
+end
+-- X: the next team monster that's up
+function Controls.nextActive()
+	local cur = player:GetAttribute("ActiveSlot") or 1
+	local units = workspace:FindFirstChild("Units")
+	for k = 1, 3 do
+		local slot = (cur - 1 + k) % 3 + 1
+		for _, u in units and units:GetChildren() or {} do
+			if u:GetAttribute("Owner") == player.UserId and u:GetAttribute("Slot") == slot and u:GetAttribute("State") ~= "fainted" then
+				Controls.setActive(slot)
+				return
+			end
+		end
+	end
 end
 
 function Controls.focus(part: BasePart)
@@ -252,11 +271,11 @@ function Controls.start()
 		elseif k == Enum.KeyCode.LeftShift or k == Enum.KeyCode.RightShift then
 			Controls.dodge()
 		elseif k == Enum.KeyCode.One then
-			Controls.team(1)
+			Controls.skillOf(2)
 		elseif k == Enum.KeyCode.Two then
-			Controls.team(2)
-		elseif k == Enum.KeyCode.Three then
-			Controls.team(3)
+			Controls.skillOf(3)
+		elseif k == Enum.KeyCode.X then -- (Tab is Roblox's player list)
+			Controls.nextActive()
 		elseif k == Enum.KeyCode.ButtonR2 then
 			holding = true
 			Controls.attack()

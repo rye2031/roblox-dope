@@ -36,7 +36,14 @@ end
 
 -- Ride button (F): hop on your lead monster to travel faster. Out of combat only.
 local C, px = Ui.C, Ui.px
-local rideB = Ui.button({ Name = "Ride", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(16), 0, px(206)), Size = UDim2.fromOffset(px(170), px(40)), BackgroundColor3 = C.Lilac, Text = "🐾 Ride [F]", TextScaled = false, TextSize = px(16), ZIndex = 3, Parent = Ui.gui, Radius = 20 })
+-- a round button in the HUD's left column, under Auto (HUD points, see Hud.luau)
+local rideB = Ui.button({ Name = "Ride", Position = UDim2.fromOffset(8, 150), Size = UDim2.fromOffset(36, 36), BackgroundColor3 = C.Lilac, Text = "🐾", TextScaled = false, TextSize = 18, ZIndex = 3, Parent = Ui.hud, Radius = 18 })
+Ui.stroke(C.Line, 1.5).Parent = rideB
+local rideL = Ui.text({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 1, 1), Size = UDim2.fromOffset(60, 11), BackgroundTransparency = 1, TextScaled = false, TextSize = 9, Text = "Ride", TextColor3 = Color3.new(1, 1, 1), TextStrokeTransparency = 0.35, ZIndex = 3, Parent = rideB }, "Title")
+if not Ui.mobile then
+	local kb = Ui.new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(1, -2, 0, 2), Size = UDim2.fromOffset(16, 15), BackgroundColor3 = Color3.fromRGB(30, 30, 44), BackgroundTransparency = 0.15, ZIndex = 9, Parent = rideB }, { Ui.new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	Ui.text({ Size = UDim2.fromScale(1, 1), BackgroundTransparency = 1, TextScaled = false, TextSize = 10, Text = "F", TextColor3 = Color3.new(1, 1, 1), ZIndex = 10, Parent = kb }, "Title")
+end
 
 local function toggleRide()
 	local Intent = ReplicatedStorage:WaitForChild("Remotes"):WaitForChild("Intent") :: RemoteEvent
@@ -45,14 +52,6 @@ local function toggleRide()
 		return
 	end
 	Intent:FireServer("ride")
-end
-
--- phones: next to Auto under the wallet
-if Ui.mobile then
-	rideB.AnchorPoint = Vector2.zero
-	rideB.Position = UDim2.fromOffset(96, 74)
-	rideB.Size = UDim2.fromOffset(82, 30)
-	rideB.TextSize = 12
 end
 
 function Pace.start()
@@ -64,12 +63,9 @@ function Pace.start()
 	end)
 	local function paintRide()
 		local riding = player:GetAttribute("Riding") ~= nil
-		rideB.Text = riding and "🐾 Get off [F]" or "🐾 Ride [F]"
+		rideL.Text = riding and "Get off" or "Ride"
 		rideB.BackgroundColor3 = riding and C.Mint or (player:GetAttribute("InCombat") and C.Line or C.Lilac)
 		rideB.Visible = player:GetAttribute("Dungeon") == nil and require(script.Parent.Unlocks).open(Ui.profile, "Ride")
-		if Ui.mobile then
-			rideB.Text = riding and "🐾 Off" or "🐾 Ride"
-		end
 	end
 	for _, a in { "Riding", "InCombat", "Dungeon" } do
 		player:GetAttributeChangedSignal(a):Connect(paintRide)

@@ -10,7 +10,7 @@
 --   campfire region         light that region's campfire
 --   level    n              any monster reaches level n
 --   feed     n              feed monsters n times
---   ult      n              use your team's ultimates n times
+--   ult      n              use your active monster's skills n times
 --   boss     region         beat that region's boss (or have beaten it)
 --   weapon   n              weapon level n
 --   awaken   n              n awakened monsters
@@ -85,7 +85,7 @@ StoryData.Chapters = {
 			{ id = "lv5", kind = "level", n = 5, text = "Get a monster to level 5", at = P.MeadowCamps, reward = { coins = 200 } },
 			{ id = "feed", kind = "feed", n = 1, text = "Train a team monster with a spare one (Monsters panel)", reward = { coins = 150, scrolls = 1 },
 				hint = "Open Monsters, pick a team monster, press Train and choose spares. Same species also levels up a skill." },
-			{ id = "ults", kind = "ult", n = 3, text = "Use your team's ultimates 3 times (keys 1-3)", at = P.MeadowCamps, reward = { coins = 200 } },
+			{ id = "ults", kind = "ult", n = 3, text = "Use your active monster's skills 3 times (tap them, or keys 1-2)", at = P.MeadowCamps, reward = { coins = 200 } },
 			{ id = "guardian", kind = "boss", region = "SproutMeadow", text = "Defeat the Meadow Guardian", at = P.MeadowBoss, reward = { coins = 400, legendary = 1 },
 				hint = "Bring a team around level 10. Watch for its big red circles." },
 		},

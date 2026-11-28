@@ -182,8 +182,10 @@ remotes.Intent.OnServerEvent:Connect(function(player, kind, a)
 		Combat.weaponSkill(player, a)
 	elseif kind == "dodge" then
 		Combat.dodge(player)
-	elseif kind == "team" then
+	elseif kind == "skill" then
 		Combat.teamSkill(player, a)
+	elseif kind == "active" then
+		Combat.setActive(player, a)
 	elseif kind == "focus" then
 		Combat.focus(player, a)
 	elseif kind == "auto" then
@@ -417,7 +419,11 @@ if game:GetService("RunService"):IsStudio() then
 			Combat.weaponSkill(player, a)
 			return "ok"
 		elseif cmd == "teamskill" then
-			return tostring(Combat.teamSkill(player, a))
+			-- teamskill <2|3> [slot]: fire the active monster's skill (pick the active one first)
+			if b then
+				Combat.setActive(player, b)
+			end
+			return tostring(Combat.teamSkill(player, a == 1 and 3 or a))
 		elseif cmd == "focus" then
 			Combat.focus(player, a)
 			return "ok"

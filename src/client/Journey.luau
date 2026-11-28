@@ -33,23 +33,20 @@ end
 ----------------------------------------------------------------------------------------------
 -- Tracker
 
-local tracker = Ui.card({ Name = "Journey", AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(16), 0, px(64)), Size = UDim2.fromOffset(px(300), px(86)), ZIndex = 3, Shadow = false, Parent = Ui.gui }, 16)
+-- (HUD points: right of the minimap, see Hud.luau)
+local tracker = Ui.card({ Name = "Journey", Position = UDim2.fromOffset(126, 6), Size = UDim2.fromOffset(206, 48), ZIndex = 3, Shadow = false, Parent = Ui.hud }, 12)
 local tChapter = label(tracker, { Position = UDim2.fromOffset(px(14), px(8)), Size = UDim2.new(1, -px(28), 0, px(16)), Text = "", TextSize = px(13), TextColor3 = C.Lilac, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4 })
 local tText = label(tracker, { Position = UDim2.fromOffset(px(14), px(26)), Size = UDim2.new(1, -px(28), 0, px(38)), Text = "", TextSize = px(16), TextWrapped = true, TextXAlignment = Enum.TextXAlignment.Left, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 4 })
 local tInfo = label(tracker, { Position = UDim2.new(0, px(14), 1, -px(22)), Size = UDim2.new(1, -px(28), 0, px(16)), Text = "", TextSize = px(13), TextColor3 = C.Sub, TextXAlignment = Enum.TextXAlignment.Left, ZIndex = 4 }, "Bold")
 local tScale = new("UIScale", { Parent = tracker })
--- phones: a small quest pill under the top-right buttons
-if Ui.mobile then
-	tracker.Position = UDim2.new(1, -8, 0, 50)
-	tracker.Size = UDim2.fromOffset(236, 54)
-	tChapter.Visible = false
-	tText.Position = UDim2.fromOffset(10, 5)
-	tText.Size = UDim2.new(1, -20, 0, 30)
-	tText.TextSize = 12
-	tInfo.Position = UDim2.new(0, 10, 1, -17)
-	tInfo.Size = UDim2.new(1, -20, 0, 13)
-	tInfo.TextSize = 10
-end
+-- one compact pill on every screen (chapter name in the info line)
+tChapter.Visible = false
+tText.Position = UDim2.fromOffset(9, 4)
+tText.Size = UDim2.new(1, -18, 0, 28)
+tText.TextSize = 11
+tInfo.Position = UDim2.new(0, 9, 1, -15)
+tInfo.Size = UDim2.new(1, -18, 0, 12)
+tInfo.TextSize = 9
 
 local travelB = Ui.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(16), 0, px(158)), Size = UDim2.fromOffset(px(170), px(40)), BackgroundColor3 = C.Peach, Text = "🔥 Fast travel", TextScaled = false, TextSize = px(16), Visible = false, ZIndex = 3, Parent = Ui.gui, Radius = 20 })
 
@@ -411,7 +408,7 @@ function Journey.start()
 			end
 			-- travel from anywhere (owner, 2026-11-27): the button is always there outside dungeons
 			local _ = near
-			travelB.Visible = not Ui.mobile and Ui.profile ~= nil and player:GetAttribute("Dungeon") == nil and require(script.Parent.Unlocks).open(Ui.profile, "Travel")
+			travelB.Visible = false and Ui.profile ~= nil and player:GetAttribute("Dungeon") == nil and require(script.Parent.Unlocks).open(Ui.profile, "Travel")
 			local fighting = player:GetAttribute("InCombat") == true
 			travelB.BackgroundColor3 = fighting and C.Line or C.Peach
 			travelB.Text = fighting and "🔥 Travel (in a fight)" or "🔥 Travel"

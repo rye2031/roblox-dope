@@ -205,7 +205,7 @@ local function run()
 	veil.Visible = false
 	box.Visible = false
 	task.wait(0.8)
-	showHint(Ui.mobile and "A shadow appears! Your monsters fight on their own.\nTap ⚔ to swing. Tap a glowing monster button for a big move." or "A shadow appears! Your monsters fight on their own.\nClick to swing. Press 1 when a big move glows.")
+	showHint(Ui.mobile and "A shadow appears! Tap the big button to swing.\nTap your monster's glowing skills for big moves." or "A shadow appears! Click to swing.\nPress 1 or 2 when your monster's skills glow.")
 	call("fight")
 	Sfx.play("warn")
 	local won = false

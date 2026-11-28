@@ -19,6 +19,22 @@ local STAR = "★"
 
 local Panels = {}
 
+-- A skill's round icon at the left of a row (signature = the monster's portrait).
+local function skillIcon(row: Frame, sp: string, el: string, i: number, name: string, z: number)
+	local size = row.Size.Y.Offset - 12
+	if i == 1 then
+		local back = Ui.portrait(row, sp, el, UDim2.fromOffset(size, size), UDim2.fromOffset(6, 6), z)
+		local cr = back:FindFirstChildOfClass("UICorner")
+		if cr then
+			cr.CornerRadius = UDim.new(0.5, 0)
+		end
+	else
+		local img = new("ImageLabel", { Position = UDim2.fromOffset(6, 6), Size = UDim2.fromOffset(size, size), BackgroundTransparency = 1, ZIndex = z, Parent = row })
+		task.spawn(require(Shared.SkillIcons).apply, img, name)
+	end
+	return size + 14
+end
+
 local function stars(n: number): string
 	return string.rep(STAR, n)
 end
@@ -203,7 +219,7 @@ renderMonsters = function()
 			Ui.portrait(cell, m.sp, m.el, UDim2.fromOffset(px(70), px(70)), UDim2.fromOffset(8, 8), 13)
 			label(cell, { Position = UDim2.fromOffset(px(70) + 16, px(12)), Size = UDim2.new(1, -px(70) - 22, 0, px(20)), Text = sp.Name, TextSize = px(17), TextTruncate = Enum.TextTruncate.AtEnd }, "Title")
 			label(cell, { Position = UDim2.fromOffset(px(70) + 16, px(34)), Size = UDim2.new(1, -px(70) - 22, 0, px(16)), Text = EI[m.el].Icon .. " " .. stars(sp.Stars) .. "  Lv " .. m.lv, TextColor3 = EI[m.el].Color, TextSize = px(14) }, "Bold")
-			label(cell, { Position = UDim2.fromOffset(px(70) + 16, px(54)), Size = UDim2.new(1, -px(70) - 22, 0, px(16)), Text = "Slot " .. i .. "  ·  " .. (Ui.mobile and "tap its skill button" or ("ultimate on key " .. i)), TextColor3 = C.Sub, TextSize = px(13) }, "Bold")
+			label(cell, { Position = UDim2.fromOffset(px(70) + 16, px(54)), Size = UDim2.new(1, -px(70) - 22, 0, px(16)), Text = "Slot " .. i .. "  ·  " .. ((game:GetService("Players").LocalPlayer:GetAttribute("ActiveSlot") or 1) == i and "active: you use its skills" or "uses its skills on its own"), TextColor3 = C.Sub, TextSize = px(13) }, "Bold")
 			cell.Activated:Connect(function()
 				renderDetail(uid)
 			end)
@@ -480,12 +496,13 @@ renderDetail = function(uid: string)
 
 	-- skills
 	local kit = Monsters.skills(m.sp, m.el)
-	local tags = { "Signature", "Auto skill", "Ultimate" }
+	local tags = { "Signature (auto)", "Skill 1", "Skill 2" }
 	for i, s in kit do
 		local r = new("Frame", { LayoutOrder = 6 + i, Size = UDim2.new(1, 0, 0, px(58)), BackgroundColor3 = C.Soft, ZIndex = 21, Parent = detailScroll }, { corner(12) })
 		local lvl = m.sk[i] or 1
-		label(r, { Position = UDim2.fromOffset(12, px(6)), Size = UDim2.new(1, -24, 0, px(20)), Text = string.format("%s  ·  %s  ·  Lv %d/%d  ·  %ss", s.Name, tags[i], lvl, T.Feed.MaxSkillLevel, tostring(math.floor(Monsters.skillCooldown(s.Cooldown, lvl) * 10) / 10)), TextSize = px(16), ZIndex = 22 }, "Title")
-		label(r, { Position = UDim2.fromOffset(12, px(28)), Size = UDim2.new(1, -24, 0, px(26)), Text = s.Desc or "", TextColor3 = C.Sub, TextSize = px(13), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 22 }, "Bold")
+		local ix = skillIcon(r, m.sp, m.el, i, s.Name, 22)
+		label(r, { Position = UDim2.fromOffset(ix, px(6)), Size = UDim2.new(1, -ix - 12, 0, px(20)), Text = string.format("%s  ·  %s  ·  Lv %d/%d  ·  %ss", s.Name, tags[i], lvl, T.Feed.MaxSkillLevel, tostring(math.floor(Monsters.skillCooldown(s.Cooldown, lvl) * 10) / 10)), TextSize = px(16), ZIndex = 22 }, "Title")
+		label(r, { Position = UDim2.fromOffset(ix, px(28)), Size = UDim2.new(1, -ix - 12, 0, px(26)), Text = s.Desc or "", TextColor3 = C.Sub, TextSize = px(13), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 22 }, "Bold")
 	end
 
 	-- actions
@@ -965,11 +982,12 @@ local function renderPreview()
 	label(prevBody, { Position = UDim2.fromOffset(18, yy + px(24)), Size = UDim2.new(1, -36, 0, px(36)), Text = "Hatches from: " .. (#how > 0 and table.concat(how, "  ·  ") or "eggs"), TextColor3 = C.Sub, TextSize = px(13), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 42 }, "Bold")
 	-- skills for that element
 	local kit = Monsters.skills(id, prevEl)
-	local tags = { "Signature", "Auto skill", "Ultimate" }
+	local tags = { "Signature (auto)", "Skill 1", "Skill 2" }
 	for i, s in kit do
 		local row = new("Frame", { Position = UDim2.fromOffset(18, yy + px(66) + (i - 1) * px(62)), Size = UDim2.new(1, -36, 0, px(56)), BackgroundColor3 = C.Soft, ZIndex = 42, Parent = prevBody }, { corner(12) })
-		label(row, { Position = UDim2.fromOffset(12, px(6)), Size = UDim2.new(1, -24, 0, px(20)), Text = string.format("%s  ·  %s  ·  %ss", s.Name, tags[i], tostring(s.Cooldown)), TextSize = px(16), ZIndex = 43 }, "Title")
-		label(row, { Position = UDim2.fromOffset(12, px(28)), Size = UDim2.new(1, -24, 0, px(24)), Text = s.Desc or "", TextColor3 = C.Sub, TextSize = px(13), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 43 }, "Bold")
+		local ix = skillIcon(row, id, prevEl, i, s.Name, 43)
+		label(row, { Position = UDim2.fromOffset(ix, px(6)), Size = UDim2.new(1, -ix - 12, 0, px(20)), Text = string.format("%s  ·  %s  ·  %ss", s.Name, tags[i], tostring(s.Cooldown)), TextSize = px(16), ZIndex = 43 }, "Title")
+		label(row, { Position = UDim2.fromOffset(ix, px(28)), Size = UDim2.new(1, -ix - 12, 0, px(24)), Text = s.Desc or "", TextColor3 = C.Sub, TextSize = px(13), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top, ZIndex = 43 }, "Bold")
 	end
 end
 
