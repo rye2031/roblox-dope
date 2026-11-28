@@ -26,7 +26,7 @@ Unlocks.Rules = {
 	end },
 	Quests = { function(p)
 		return p.kills >= 1
-	end, "Daily Quests: small goals for scrolls and coins" },
+	end, "Daily Quests: small goals for eggs and coins" },
 	Pass = { function(p)
 		return p.kills >= 3
 	end, "Tamer Pass: free rewards for everything you do" },

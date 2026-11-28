@@ -54,7 +54,7 @@ Config.Tuning = {
 		PityFourStar = 50, -- Regular scrolls without a 4-star+ before one is guaranteed (4-star or Fire/Water/Wind 5-star)
 		PityLightDark = 200, -- scrolls without Light/Dark before a 1-3 star Light/Dark is guaranteed (never a 4 or 5-star)
 		Start = { Regular = 4, Legendary = 1 },
-		MultiOpen = 10, -- scrolls opened by the "Open 10" button -- a new Tamer's first scrolls
+		MultiOpen = 10, -- scrolls opened by the "Hatch 10" button -- a new Tamer's first scrolls
 	},
 
 	-- XP needed to go from level L to L+1, and XP a defeated wild monster gives each team member.
@@ -147,7 +147,7 @@ Config.Tuning = {
 			{ Id = "DefeatFire", Icon = "🔥", Text = "Defeat %d Fire monsters", Targets = { 4, 8, 14 } },
 			{ Id = "DefeatWater", Icon = "💧", Text = "Defeat %d Water monsters", Targets = { 4, 8, 14 } },
 			{ Id = "DefeatWind", Icon = "🍃", Text = "Defeat %d Wind monsters", Targets = { 4, 8, 14 } },
-			{ Id = "Summon", Icon = "📜", Text = "Open %d scrolls", Text1 = "Open a scroll", Targets = { 1, 2, 3 } },
+			{ Id = "Summon", Icon = "🥚", Text = "Hatch %d eggs", Text1 = "Hatch an egg", Targets = { 1, 2, 3 } },
 			{ Id = "LevelUp", Icon = "⬆", Text = "Level up your monsters %d times", Targets = { 3, 6, 10 } },
 			{ Id = "TeamSkill", Icon = "✨", Text = "Use your team's ultimate skills %d times", Targets = { 5, 10, 18 } },
 			{ Id = "Feed", Icon = "🍖", Text = "Train your team with %d spare monsters", Targets = { 1, 3, 5 }, MinMonsters = 6 },
@@ -218,10 +218,10 @@ Config.Loops = {
 Config.Sealed = {
 	Order = { "Bronze", "Silver", "Gold", "Prismatic" },
 	Tiers = {
-		Bronze = { Name = "Bronze Egg", Minutes = 2, Color = Color3.fromRGB(205, 140, 90), scrolls = 1 },
-		Silver = { Name = "Silver Egg", Minutes = 5, Color = Color3.fromRGB(170, 184, 206), scrolls = 2 },
-		Gold = { Name = "Gold Egg", Minutes = 15, Color = Color3.fromRGB(255, 198, 58), scrolls = 3, legendaryChance = 0.35 },
-		Prismatic = { Name = "Prismatic Egg", Minutes = 60, Color = Color3.fromRGB(190, 120, 255), legendary = 1 },
+		Bronze = { Name = "Bronze Nest", Minutes = 2, Color = Color3.fromRGB(205, 140, 90), scrolls = 1 },
+		Silver = { Name = "Silver Nest", Minutes = 5, Color = Color3.fromRGB(170, 184, 206), scrolls = 2 },
+		Gold = { Name = "Gold Nest", Minutes = 15, Color = Color3.fromRGB(255, 198, 58), scrolls = 3, legendaryChance = 0.35 },
+		Prismatic = { Name = "Prismatic Nest", Minutes = 60, Color = Color3.fromRGB(190, 120, 255), legendary = 1 },
 	},
 	Slots = 3,
 	BagCap = 20,
@@ -278,9 +278,9 @@ Config.Arena = {
 	LossTokens = 3,
 	WinCoins = 150,
 	Shop = {
-		regular = { name = "a Regular scroll", cost = 40, scrolls = 1, order = 1 },
+		regular = { name = "a Regular Egg", cost = 40, scrolls = 1, order = 1 },
 		essence = { name = "10 Crystals", cost = 25, essence = 10, order = 2 },
-		legendary = { name = "a Legendary scroll", cost = 300, legendary = 1, order = 3 },
+		legendary = { name = "a Legendary Egg", cost = 300, legendary = 1, order = 3 },
 		rune = { name = "a rune (Rare 70% · Epic 25% · Legendary 5%)", cost = 60, rune = true, order = 4 },
 	},
 }

@@ -93,7 +93,7 @@ function Pass.claim(player: Player, tier: any): (boolean, string)
 		p.scrolls.Regular += avail * PassData.Bonus.scrolls
 		PlayerData.push(player)
 		PlayerData.saveSoon(player)
-		return true, string.format("+%d Regular scroll%s", avail * PassData.Bonus.scrolls, avail > 1 and "s" or "")
+		return true, string.format("+%d Regular Egg%s", avail * PassData.Bonus.scrolls, avail > 1 and "s" or "")
 	end
 	if tier == "all" then
 		local n = 0

@@ -158,7 +158,7 @@ local function render()
 	end)
 	for _, e in items do
 		local id, it = e.id, e.it
-		local text = it.essence and string.format("%s 10 %s Crystals · 🎟%d", EI[Config.Elements[essenceEl]].Icon, Config.Elements[essenceEl], it.cost) or string.format("%s · 🎟%d", it.legendary and "🌟 Legendary scroll" or it.rune and "💠 Rune (Rare+)" or "📜 Regular scroll", it.cost)
+		local text = it.essence and string.format("%s 10 %s Crystals · 🎟%d", EI[Config.Elements[essenceEl]].Icon, Config.Elements[essenceEl], it.cost) or string.format("%s · 🎟%d", it.legendary and "🌟 Legendary Egg" or it.rune and "💠 Rune (Rare+)" or "🥚 Regular Egg", it.cost)
 		local b = pill(shop, { LayoutOrder = it.order, Size = UDim2.fromOffset(px(it.essence and 250 or 220), px(44)), Text = text }, info.tokens >= it.cost and C.Sun or C.Line)
 		b.Activated:Connect(function()
 			if call("shop", id, Config.Elements[essenceEl]) then

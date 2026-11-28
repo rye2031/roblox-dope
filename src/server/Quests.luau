@@ -138,7 +138,7 @@ function Quests.claim(player: Player, index: any): (boolean, string)
 		p.scrolls.Regular += sc
 		PlayerData.push(player)
 		PlayerData.saveSoon(player)
-		return true, `All quests done! +{n} coins and {sc} Regular scrolls`
+		return true, `All quests done! +{n} coins and {sc} Regular Eggs`
 	end
 	local q = typeof(index) == "number" and p.daily.quests[index]
 	if not q then
@@ -158,7 +158,7 @@ function Quests.claim(player: Player, index: any): (boolean, string)
 	Quests.ensure(player)
 	PlayerData.push(player)
 	PlayerData.saveSoon(player)
-	local extra = sc > 0 and string.format(" and %d Regular scroll%s", sc, sc > 1 and "s" or "") or ""
+	local extra = sc > 0 and string.format(" and %d Regular Egg%s", sc, sc > 1 and "s" or "") or ""
 	return true, `Quest reward: +{n} coins{extra}`
 end
 
@@ -179,7 +179,7 @@ function Quests.claimStreak(player: Player): (boolean, string)
 	Quests.ensure(player)
 	PlayerData.push(player)
 	PlayerData.saveSoon(player)
-	local extra = sc > 0 and string.format(" and %d Regular scroll%s", sc, sc > 1 and "s" or "") or ""
+	local extra = sc > 0 and string.format(" and %d Regular Egg%s", sc, sc > 1 and "s" or "") or ""
 	return true, `Day {day} reward: +{n} coins{extra}`
 end
 

@@ -103,15 +103,15 @@ end
 function Summon.openMany(player: Player, kind: any, count: any)
 	local p = PlayerData.get(player)
 	if not p or (kind ~= "Regular" and kind ~= "Legendary" and kind ~= "Eclipse") then
-		return false, "Unknown scroll"
+		return false, "Unknown egg"
 	end
 	local n = (count == SC.MultiOpen and kind ~= "Eclipse") and SC.MultiOpen or 1
 	local have = p.scrolls[kind] or 0
 	if have <= 0 then
-		return false, `You have no {kind} scrolls`
+		return false, `You have no {kind} Eggs`
 	end
 	if have < n then
-		return false, `You need {n} {kind} scrolls (you have {have})`
+		return false, `You need {n} {kind} Eggs (you have {have})`
 	end
 	local room = (p.storageCap - Inventory.count(p)) + (T.OverflowCap - Inventory.overflowCount(p))
 	if room < n then

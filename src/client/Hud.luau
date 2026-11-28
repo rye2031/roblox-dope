@@ -45,7 +45,7 @@ local wallet = Ui.card({ Position = UDim2.fromOffset(px(70), 10), Size = UDim2.f
 new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, VerticalAlignment = Enum.VerticalAlignment.Center, Padding = UDim.new(0, 12), Parent = wallet })
 Ui.pad(0, 12, 0, 12).Parent = wallet
 local coinL = label(wallet, { LayoutOrder = 1, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "💰 0", TextSize = px(18) }, "Title")
-local regL = label(wallet, { LayoutOrder = 2, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "📜 0", TextSize = px(18) }, "Title")
+local regL = label(wallet, { LayoutOrder = 2, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "🥚 0", TextSize = px(18) }, "Title")
 local legL = label(wallet, { LayoutOrder = 3, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "🌟 0", TextSize = px(18) }, "Title")
 local eclL = label(wallet, { LayoutOrder = 4, AutomaticSize = Enum.AutomaticSize.X, Size = UDim2.new(0, 0, 1, 0), Text = "🌑 1", TextSize = px(18), Visible = false }, "Title")
 wallet.AutomaticSize = Enum.AutomaticSize.X
@@ -74,7 +74,7 @@ end)
 local rail = new("Frame", { AnchorPoint = Vector2.new(0, 0), Position = UDim2.new(0, 10, 0, 10 + px(52) + px(100) + 12), Size = UDim2.fromOffset(px(64), px(64) * 8 + 64), BackgroundTransparency = 1, Parent = gui }, { new("UIListLayout", { Padding = UDim.new(0, 8), SortOrder = Enum.SortOrder.LayoutOrder }) })
 local RAIL = {
 	{ "Monsters", "🐾", C.Lilac },
-	{ "Shrine", "📜", C.Sun },
+	{ "Shrine", "🥚", C.Sun },
 	{ "Index", "📖", C.Mint },
 	{ "Quests", "✓", C.Sky },
 	{ "Weapons", "⚔", C.Peach },
@@ -277,8 +277,8 @@ do
 	local steps = {
 		{ "🐾", "Your team", "Up to 3 monsters follow you and fight on their own. Manage them in Monsters." },
 		{ "⚔", "Fight", Controls.touch and "Tap ⚔ to attack. Q-button: weapon skill. Tap a team card's bar for its ultimate." or "Click to attack (hold to keep swinging). Q: weapon skill. Shift: dodge. 1, 2, 3: team ultimates." },
-		{ "🌱", "Explore", "Walk through the portal in the north arch to Sprout Meadow. Wild monsters give XP, coins, Crystals and sometimes scrolls. Team up with others on big ones!" },
-		{ "📜", "Befriend", "Open scrolls at the Summoning Shrine to get new monsters. Use extras to train your team." },
+		{ "🌱", "Explore", "Walk through the portal in the north arch to Sprout Meadow. Wild monsters give XP, coins, Crystals and sometimes eggs. Team up with others on big ones!" },
+		{ "🥚", "Befriend", "Hatch eggs at the Summoning Shrine to get new monsters. Use extras to train your team." },
 		{ "🔥", "Campfires", "Touch a campfire to heal your team and set your respawn point." },
 	}
 	for i, s in steps do
@@ -339,11 +339,11 @@ local function onReward(drops, ups)
 		end
 	end
 	if drops.legendary then
-		Ui.toast("A Legendary scroll dropped! 🌟", "good")
+		Ui.toast("A Legendary Egg dropped! 🌟", "good")
 	elseif drops.sealed and Config.Sealed.Tiers[drops.sealed] then
-		Ui.toast(string.format("🥚 A %s dropped! Hatch it at the Shrine", Config.Sealed.Tiers[drops.sealed].Name), "good")
+		Ui.toast(string.format("🧺 A %s dropped! Warm it at the Shrine", Config.Sealed.Tiers[drops.sealed].Name), "good")
 	elseif drops.scroll then
-		Ui.toast("A Regular scroll dropped! Open it at the Shrine 📜", "good")
+		Ui.toast("A Regular Egg dropped! Hatch it at the Shrine 🥚", "good")
 	end
 	if drops.rune then
 		require(script.Parent.RunesUi).dropped(drops.rune)
@@ -414,7 +414,7 @@ function Hud.setProfile(p)
 		game:GetService("TweenService"):Create(sc, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 	end
 	lastCoins = p.coins
-	regL.Text = "📜 " .. (p.scrolls.Regular or 0)
+	regL.Text = "🥚 " .. (p.scrolls.Regular or 0)
 	legL.Text = "🌟 " .. (p.scrolls.Legendary or 0)
 	eclL.Visible = (p.scrolls.Eclipse or 0) > 0
 	renderTeam(p)

@@ -185,7 +185,7 @@ function Loops.expedition(player: Player, action: any, slot: any, place: any, du
 		PlayerData.saveSoon(player)
 		local parts = { "+" .. r.coins .. " coins", "+" .. r.essence .. " " .. el .. " Crystals" }
 		if scrolls > 0 then
-			table.insert(parts, "+" .. scrolls .. " 📜")
+			table.insert(parts, "+" .. scrolls .. " 🥚")
 		end
 		if levels > 0 then
 			table.insert(parts, levels .. " level-up" .. (levels > 1 and "s" or ""))
@@ -242,10 +242,10 @@ function Loops.sealed(player: Player, action: any, a: any): (boolean, string, an
 					p.sealed.bag[tier] = nil
 				end
 				p.sealed.slots[k] = { tier = tier, start = os.time() }
-				return done(string.format("Hatching a %s: ready in %d min", SE.Tiers[tier].Name, SE.Tiers[tier].Minutes))
+				return done(string.format("Warming a %s: ready in %d min", SE.Tiers[tier].Name, SE.Tiers[tier].Minutes))
 			end
 		end
-		return false, "All hatching slots are busy"
+		return false, "All nest slots are busy"
 	elseif action == "claim" then
 		local k = tostring(a)
 		local sl = p.sealed.slots[k]
@@ -254,7 +254,7 @@ function Loops.sealed(player: Player, action: any, a: any): (boolean, string, an
 		end
 		local t = SE.Tiers[sl.tier]
 		if os.time() < sl.start + t.Minutes * 60 then
-			return false, "Still hatching"
+			return false, "Still warming"
 		end
 		p.sealed.slots[k] = nil
 		local reg, leg = t.scrolls or 0, t.legendary or 0
@@ -265,10 +265,10 @@ function Loops.sealed(player: Player, action: any, a: any): (boolean, string, an
 		p.scrolls.Legendary += leg
 		local parts = {}
 		if reg > 0 then
-			table.insert(parts, "+" .. reg .. " Regular scroll" .. (reg > 1 and "s" or ""))
+			table.insert(parts, "+" .. reg .. " Regular Egg" .. (reg > 1 and "s" or ""))
 		end
 		if leg > 0 then
-			table.insert(parts, "+" .. leg .. " Legendary scroll")
+			table.insert(parts, "+" .. leg .. " Legendary Egg")
 		end
 		return done(t.Name .. " opened! " .. table.concat(parts, ", "), { regular = reg, legendary = leg, tier = sl.tier })
 	end

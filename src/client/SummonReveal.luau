@@ -1,5 +1,5 @@
 -- Summon reveal screens.
---   Single: a sealed scroll drops in glowing its rarity colour (a 5★ starts purple and
+--   Single: an egg drops in glowing its rarity colour (it was a scroll before 2026-11-27) (a 5★ starts purple and
 --   "upgrades" to gold), shakes, unrolls with light rays behind it, then bursts into the
 --   monster's card while the stars pop in one by one. 4★/5★ get lightning strikes.
 --   Ten: ten sealed cards fly into a 5×2 grid and flip one at a time; before a 4★ or 5★ card
@@ -250,8 +250,8 @@ local function buttonBar(parent: Instance, h: Handlers, y: UDim, z: number)
 		end)
 		return b
 	end
-	pill(1, string.format("Open 1  (%d)", have), C.Sky, have >= 1, h.one)
-	pill(2, string.format("Open %d", multi), C.Lilac, have >= multi, h.ten)
+	pill(1, string.format("Hatch 1  (%d)", have), C.Sky, have >= 1, h.one)
+	pill(2, string.format("Hatch %d", multi), C.Lilac, have >= multi, h.ten)
 	pill(3, "Nice!", C.Mint, true, h.done)
 	-- pop in
 	local sc = new("UIScale", { Scale = 0.6, Parent = bar })
@@ -316,21 +316,26 @@ local function single(res, h: Handlers)
 	local rc = RARITY[res.stars] or RARITY[1]
 	local high = res.stars >= 4
 
-	-- sealed scroll
-	local scroll = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(centre.X, -px(200)), Size = UDim2.fromOffset(px(220), px(70)), BackgroundTransparency = 1, ZIndex = 10, Parent = stage })
+	-- the egg (2026-11-27: summoning scrolls are eggs now): a round bottom and a narrower top
+	-- that splits off when it hatches, spots in the rarity colour
+	local scroll = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(centre.X, -px(200)), Size = UDim2.fromOffset(px(150), px(190)), BackgroundTransparency = 1, ZIndex = 10, Parent = stage })
 	local tease = res.stars == 5 and RARITY[4] or rc
-	local paper = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.new(0.86, 0, 0, px(34)), BackgroundColor3 = Color3.fromRGB(250, 238, 206), ZIndex = 11, Parent = scroll }, {
-		new("UICorner", { CornerRadius = UDim.new(0, 6) }),
+	local SHELL = Color3.fromRGB(252, 246, 232)
+	local bot = new("Frame", { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromScale(0.5, 1), Size = UDim2.fromScale(1, 0.8), BackgroundColor3 = SHELL, ZIndex = 11, Parent = scroll }, {
+		new("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+		new("UIAspectRatioConstraint", { AspectRatio = 1 }),
 	})
-	local glowStroke = new("UIStroke", { Color = tease, Thickness = 3, Parent = paper })
-	local function rod(y: number)
-		return new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.new(0.5, 0, 0.5, y), Size = UDim2.new(1, 0, 0, px(16)), BackgroundColor3 = Color3.fromRGB(170, 110, 70), ZIndex = 12, Parent = scroll }, {
-			new("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
-			new("UIStroke", { Color = Color3.fromRGB(240, 200, 110), Thickness = 2 }),
-		})
+	local glowStroke = new("UIStroke", { Color = tease, Thickness = 3, Parent = bot })
+	local top = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromScale(0.5, 0), Size = UDim2.fromScale(0.8, 0.8), BackgroundColor3 = SHELL, ZIndex = 12, Parent = scroll }, {
+		new("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
+		new("UIAspectRatioConstraint", { AspectRatio = 1 }),
+	})
+	local paper = top
+	for _, s in { { 0.3, 0.3, 0.22 }, { 0.68, 0.22, 0.16 }, { 0.5, 0.5, 0.14 } } do
+		new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(s[1], s[2]), Size = UDim2.fromScale(s[3], s[3]), BackgroundColor3 = tease, ZIndex = 13, Parent = top }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 	end
-	local top, bot = rod(-px(17)), rod(px(17))
-	local seal = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.5), Size = UDim2.fromOffset(px(30), px(30)), BackgroundColor3 = tease, ZIndex = 13, Parent = scroll }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }), new("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 2 }) })
+	local seal = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.36, 0.55), Size = UDim2.fromScale(0.2, 0.2), BackgroundColor3 = tease, ZIndex = 13, Parent = bot }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.7, 0.42), Size = UDim2.fromScale(0.14, 0.14), BackgroundColor3 = tease, ZIndex = 13, Parent = bot }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 	local halo = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(centre.X, centre.Y), Size = UDim2.fromOffset(px(60), px(60)), BackgroundColor3 = tease, BackgroundTransparency = 1, ZIndex = 5, Parent = stage }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 
 	task.spawn(function()
@@ -364,15 +369,14 @@ local function single(res, h: Handlers)
 				return
 			end
 		end
-		-- 3) unroll with rays
+		-- 3) the egg cracks open with rays: the top pops off and spins away
 		local rayH = rays(stage, UDim2.fromOffset(centre.X, centre.Y), px(high and 620 or 460), rc, 4, high and 16 or 10)
 		rayH.BackgroundTransparency = 1
-		tween(scroll, 0.35, { Size = UDim2.fromOffset(px(240), px(300)) }, Enum.EasingStyle.Quart)
-		tween(paper, 0.35, { Size = UDim2.new(0.86, 0, 1, -px(30)) }, Enum.EasingStyle.Quart)
-		tween(top, 0.35, { Position = UDim2.new(0.5, 0, 0, px(8)) }, Enum.EasingStyle.Quart)
-		tween(bot, 0.35, { Position = UDim2.new(0.5, 0, 1, -px(8)) }, Enum.EasingStyle.Quart)
+		tween(scroll, 0.35, { Size = UDim2.fromOffset(px(190), px(240)) }, Enum.EasingStyle.Quart)
+		tween(top, 0.4, { Position = UDim2.new(0.5, px(40), 0, -px(120)), Rotation = 35 }, Enum.EasingStyle.Quart)
+		tween(paper, 0.4, { BackgroundTransparency = 0.4 })
 		tween(seal, 0.2, { Size = UDim2.fromOffset(0, 0) })
-		Sfx.play("unroll")
+		Sfx.play("unroll", { pitch = 1.3 })
 		tween(glowStroke, 0.35, { Thickness = 8 })
 		if high and not skipping then
 			task.delay(0.15, function()
@@ -433,7 +437,7 @@ local function multi(list, h: Handlers)
 	local x0 = (vp.X - gridW) / 2 + cw / 2
 	local y0 = vp.Y * 0.43 - gridH / 2 + ch / 2
 
-	local title = label(stage, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0.43, -gridH / 2 - px(58)), Size = UDim2.fromOffset(px(500), px(40)), Text = "Opening " .. #list .. " scrolls...", TextSize = px(28), TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 20 })
+	local title = label(stage, { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0.43, -gridH / 2 - px(58)), Size = UDim2.fromOffset(px(500), px(40)), Text = "Opening " .. #list .. " eggs...", TextSize = px(28), TextColor3 = Color3.new(1, 1, 1), TextXAlignment = Enum.TextXAlignment.Center, ZIndex = 20 })
 	local skipB = Ui.button({ AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(24), 0, px(70)), Size = UDim2.fromOffset(px(110), px(40)), BackgroundColor3 = Color3.fromRGB(60, 62, 90), TextColor3 = Color3.new(1, 1, 1), TextScaled = false, TextSize = px(16), Text = "Skip ▸▸", ZIndex = 25, Parent = stage, Radius = 20 })
 	skipB.Activated:Connect(function()
 		skipping = true
@@ -452,7 +456,7 @@ local function multi(list, h: Handlers)
 			new("UICorner", { CornerRadius = UDim.new(0, math.floor(cw * 0.08)) }),
 			new("UIStroke", { Color = hint, Thickness = r.stars >= 4 and 3 or 2 }),
 		})
-		label(back, { Size = UDim2.fromScale(1, 1), Text = "📜", TextSize = math.floor(cw * 0.36), ZIndex = 11, TextXAlignment = Enum.TextXAlignment.Center })
+		label(back, { Size = UDim2.fromScale(1, 1), Text = "🥚", TextSize = math.floor(cw * 0.36), ZIndex = 11, TextXAlignment = Enum.TextXAlignment.Center })
 		slots[i] = { pos = pos, back = back, rc = rc, hint = hint }
 		Sfx.play("flip", { pitch = 0.8 + i * 0.03, vol = 0.6 })
 		tween(back, 0.4, { Position = UDim2.fromOffset(pos.X, pos.Y) }, Enum.EasingStyle.Back)

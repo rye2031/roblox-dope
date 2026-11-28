@@ -272,8 +272,8 @@ function Journey.start()
 			task.delay(dialog.Visible and 4 or 3.4, function()
 				bTop.Text = "TAMER'S JOURNEY COMPLETE"
 				showBanner(0, "")
-				bTitle.Text = "🌑 You earned the Eclipse Scroll"
-				bReward.Text = "A guaranteed 5★ Light or Dark. Open it at the Shrine. There's only ever one."
+				bTitle.Text = "🌑 You earned the Eclipse Egg"
+				bReward.Text = "A guaranteed 5★ Light or Dark. Hatch it at the Shrine. There's only ever one."
 				task.delay(4, function()
 					bTop.Text = "CHAPTER COMPLETE"
 				end)

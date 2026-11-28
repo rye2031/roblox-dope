@@ -274,11 +274,28 @@ local function buildHaven()
 		part({ Name = "Pillar", Shape = Enum.PartType.Cylinder, Size = Vector3.new(10, 1.6, 1.6), CFrame = CFrame.new(sp + Vector3.new(math.cos(a) * 8, 5.6, math.sin(a) * 8)) * CFrame.Angles(0, 0, math.rad(90)), Color = Color3.fromRGB(236, 230, 250) }, f)
 		decor(part({ Name = "PillarGem", Shape = Enum.PartType.Ball, Size = Vector3.new(1.4, 1.4, 1.4), Position = sp + Vector3.new(math.cos(a) * 8, 11, math.sin(a) * 8), Color = TC.Lilac, Material = Enum.Material.Neon }, f))
 	end
-	local scroll = decor(part({ Name = "ShrineScroll", Shape = Enum.PartType.Cylinder, Size = Vector3.new(4, 1.2, 1.2), CFrame = CFrame.new(sp + Vector3.new(0, 7, 0)), Color = TC.Sun, Material = Enum.Material.Neon }, f))
-	scroll:SetAttribute("Spin", true)
+	-- a big glowing egg floats over the shrine (summoning scrolls are eggs now)
+	local egg = decor(part({ Name = "ShrineEgg", Shape = Enum.PartType.Ball, Size = Vector3.new(3.4, 4.4, 3.4), CFrame = CFrame.new(sp + Vector3.new(0, 7.2, 0)), Color = Color3.fromRGB(255, 244, 214), Material = Enum.Material.SmoothPlastic }, f))
+	for k, o in { Vector3.new(0.9, 0.9, -1.4), Vector3.new(-1.1, 0.2, -1.2), Vector3.new(0.3, -0.9, -1.55) } do
+		decor(part({ Name = "EggSpot", Shape = Enum.PartType.Ball, Size = Vector3.new(0.9, 0.9, 0.4), CFrame = egg.CFrame * CFrame.new(o), Color = k == 2 and TC.Lilac or TC.Sun, Material = Enum.Material.Neon, CanCollide = false }, f))
+	end
+	local glow = Instance.new("PointLight")
+	glow.Color = Color3.fromRGB(255, 220, 140)
+	glow.Range = 14
+	glow.Brightness = 1.5
+	glow.Parent = egg
+	local sparkle = Instance.new("ParticleEmitter")
+	sparkle.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	sparkle.Color = ColorSequence.new(Color3.fromRGB(255, 236, 170), Color3.new(1, 1, 1))
+	sparkle.Rate = 8
+	sparkle.Lifetime = NumberRange.new(1, 1.6)
+	sparkle.Speed = NumberRange.new(1, 2.5)
+	sparkle.Size = NumberSequence.new(0.5, 0)
+	sparkle.LightEmission = 0.8
+	sparkle.Parent = egg
 	World.Points.Shrine = sp + Vector3.new(-12, 0, 0)
 	pad("Shrine", World.Points.Shrine, TC.Sun, f)
-	float("Shrine", sp + Vector3.new(0, 17, 0), "SUMMONING SHRINE", TC.Sun, 12, { Icon = "📜", Sub = "open scrolls for monsters", Height = 3 })
+	float("Shrine", sp + Vector3.new(0, 17, 0), "SUMMONING SHRINE", TC.Sun, 12, { Icon = "🥚", Sub = "hatch eggs for monsters", Height = 3 })
 
 	local _, smithDoor = building("Smithy", Vector3.new(-44, 0, -56), TC.Peach, 16, 14, 9, f)
 	World.Points.Smith = Vector3.new(smithDoor.X, 0, smithDoor.Z)

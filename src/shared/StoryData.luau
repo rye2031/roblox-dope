@@ -67,10 +67,10 @@ StoryData.Chapters = {
 		Title = "A New Tamer",
 		Steps = {
 			{ id = "meet", kind = "talk", npc = "Mira", text = "Talk to Mira in the plaza", at = StoryData.Npcs.Mira.Pos, reward = { coins = 100 },
-				lines = { "Oh! A new Tamer. Welcome to Haven.", "Out past the arch, wild monsters roam. Tamers don't catch them: we befriend them with summoning scrolls.", "You've got a few scrolls already. Take them to the Summoning Shrine and see who answers!" } },
-			{ id = "first_summon", kind = "summon", n = 1, text = "Open a scroll at the Summoning Shrine", at = P.Shrine, reward = { coins = 150, scrolls = 1 } },
+				lines = { "Oh! A new Tamer. Welcome to Haven.", "Out past the arch, wild monsters roam. Tamers don't catch them: we befriend them with monster eggs.", "You've got a few eggs already. Take them to the Summoning Shrine and see who answers!" } },
+			{ id = "first_summon", kind = "summon", n = 1, text = "Hatch an egg at the Summoning Shrine", at = P.Shrine, reward = { coins = 150, scrolls = 1 } },
 			{ id = "team", kind = "team", n = 3, text = "Have 3 monsters on your team", at = P.Shrine, reward = { coins = 150 },
-				hint = "Open more scrolls. Your first three monsters join your team on their own." },
+				hint = "Hatch more eggs. Your first three monsters join your team on their own." },
 			{ id = "to_meadow", kind = "visit", region = "SproutMeadow", text = "Walk through the portal in Haven's north arch to Sprout Meadow", at = P.Arch, reward = { coins = 150 } },
 		},
 	},
@@ -121,7 +121,7 @@ StoryData.Chapters = {
 			{ id = "titan", kind = "titan", text = "Help defeat a Titan at the Titan Field", at = P.Titan, reward = { coins = 1000, legendary = 1 },
 				hint = "The HUD shows when the next Titan arrives." },
 			{ id = "collector", kind = "index", n = 25, text = "Fill 25 entries in your Index", reward = { coins = 500, scrolls = 3 } },
-			{ id = "big_summon", kind = "multi", text = "Open 10 scrolls at once at the Shrine", at = P.Shrine, reward = { coins = 500, legendary = 1 } },
+			{ id = "big_summon", kind = "multi", text = "Hatch 10 eggs at once at the Shrine", at = P.Shrine, reward = { coins = 500, legendary = 1 } },
 			{ id = "arena_win", kind = "arena", text = "Win a fight in the Arena", at = P.Arena, reward = { coins = 600, scrolls = 3 },
 				hint = "The Arena is east of the plaza. Pick skills turn by turn, or press Auto." },
 		},
@@ -132,7 +132,7 @@ StoryData.Chapters = {
 			{ id = "to_gale", kind = "visit", region = "GaleHighlands", text = "Take the portal at Haven's south edge to Gale Highlands", at = P.GaleGate, reward = { coins = 400 },
 				hint = "The south gate opens once the Tide Monarch falls, or when a monster reaches Lv 30." },
 			{ id = "aeris", kind = "talk", npc = "Aeris", text = "Talk to Aeris at the highland campfire", at = StoryData.Npcs.Aeris.Pos, reward = { coins = 300 },
-				lines = { "You climbed all the way up here? The wind told me you might.", "Wind monsters rule these heights. Fire burns through them, so bring your hottest team.", "At the top sits the Sky Sovereign. Beat it and you'll have walked the whole Tamer's Journey.", "And legend says the journey's end brings a very rare scroll..." } },
+				lines = { "You climbed all the way up here? The wind told me you might.", "Wind monsters rule these heights. Fire burns through them, so bring your hottest team.", "At the top sits the Sky Sovereign. Beat it and you'll have walked the whole Tamer's Journey.", "And legend says the journey's end brings a very rare egg..." } },
 			{ id = "gale_fire", kind = "campfire", region = "GaleHighlands", text = "Light the highland campfire", at = P.GaleFire, reward = { coins = 300 } },
 			{ id = "gale_hunt", kind = "defeat", n = 20, region = "GaleHighlands", text = "Defeat wild monsters in Gale Highlands", at = P.GaleCamps, reward = { coins = 600, scrolls = 3 } },
 			{ id = "lv30", kind = "level", n = 30, text = "Get a monster to level 30", at = P.GaleCamps, reward = { coins = 600 } },
@@ -178,7 +178,7 @@ function StoryData.rewardText(r): string
 		table.insert(parts, "+" .. r.coins .. " coins")
 	end
 	if r.scrolls and r.scrolls > 0 then
-		table.insert(parts, "+" .. r.scrolls .. " 📜")
+		table.insert(parts, "+" .. r.scrolls .. " 🥚")
 	end
 	if r.legendary and r.legendary > 0 then
 		table.insert(parts, "+" .. r.legendary .. " 🌟")

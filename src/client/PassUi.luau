@@ -40,7 +40,7 @@ local function render()
 	local into = st.xp % PassData.XpPerTier
 	-- progress card
 	local top = new("Frame", { LayoutOrder = 1, Size = UDim2.new(1, 0, 0, px(70)), BackgroundColor3 = Ui.Theme.tint(C.Sun, 0.85), ZIndex = 12, Parent = body }, { corner(16) })
-	label(top, { Position = UDim2.fromOffset(px(16), px(8)), Size = UDim2.new(1, -px(200), 0, px(24)), Text = tier >= maxT and "🎖 All 50 tiers done! Bonus scrolls keep coming" or string.format("🎖 Tier %d of %d", tier, maxT), TextSize = px(19), TextXAlignment = Enum.TextXAlignment.Left }, "Title")
+	label(top, { Position = UDim2.fromOffset(px(16), px(8)), Size = UDim2.new(1, -px(200), 0, px(24)), Text = tier >= maxT and "🎖 All 50 tiers done! Bonus eggs keep coming" or string.format("🎖 Tier %d of %d", tier, maxT), TextSize = px(19), TextXAlignment = Enum.TextXAlignment.Left }, "Title")
 	local back = new("Frame", { Position = UDim2.fromOffset(px(16), px(40)), Size = UDim2.new(1, -px(200), 0, px(14)), BackgroundColor3 = C.Card, ZIndex = 13, Parent = top }, { corner(7) })
 	new("Frame", { Size = UDim2.fromScale(into / PassData.XpPerTier, 1), BackgroundColor3 = C.Sun, ZIndex = 14, Parent = back }, { corner(7) })
 	label(top, { AnchorPoint = Vector2.new(1, 0), Position = UDim2.new(1, -px(190), 0, px(56)), Size = UDim2.fromOffset(px(160), px(12)), Text = string.format("%d / %d XP", into, PassData.XpPerTier), TextColor3 = C.Sub, TextSize = px(11), TextXAlignment = Enum.TextXAlignment.Right }, "Bold")

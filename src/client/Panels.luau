@@ -369,7 +369,7 @@ renderMonsters = function()
 	})
 	local list = sortedUids(Ui.profile)
 	if #list == 0 then
-		label(monBody, { LayoutOrder = 8, Size = UDim2.new(1, 0, 0, px(40)), Text = "No monsters yet. Open a scroll at the Shrine!", TextColor3 = C.Sub }, "Bold")
+		label(monBody, { LayoutOrder = 8, Size = UDim2.new(1, 0, 0, px(40)), Text = "No monsters yet. Hatch an egg at the Shrine!", TextColor3 = C.Sub }, "Bold")
 	end
 	for i, uid in list do
 		if mode and not eligibleFood(p, uid) then
@@ -574,7 +574,7 @@ end
 ----------------------------------------------------------------------------------------------
 -- Shrine
 
-local shrinePanel, shrineBody, shrineSub = Ui.panel("Shrine", "Summoning Shrine", "Open a scroll to befriend a random monster.", C.Sun, "📜")
+local shrinePanel, shrineBody, shrineSub = Ui.panel("Shrine", "Summoning Shrine", "Hatch an egg to befriend a random monster.", C.Sun, "🥚")
 local _ = shrinePanel
 local renderShrine: () -> ()
 local reveal: (any, string?) -> ()
@@ -582,11 +582,11 @@ local reveal: (any, string?) -> ()
 local function doSummon(kind: string, count: number)
 	local have = Ui.profile and Ui.profile.scrolls[kind] or 0
 	if have <= 0 then
-		Ui.toast("Scrolls drop from wild monsters, quests, bosses and your login streak", "info")
+		Ui.toast("Eggs drop from wild monsters, quests, bosses and your login streak", "info")
 		return
 	end
 	if have < count then
-		Ui.toast(string.format("You need %d %s scrolls to open %d at once (you have %d)", count, kind, count, have), "warn")
+		Ui.toast(string.format("You need %d %s Eggs to hatch %d at once (you have %d)", count, kind, count, have), "warn")
 		return
 	end
 	local ok, _, res = Ui.call("Summon", kind, count)
@@ -622,17 +622,17 @@ renderShrine = function()
 	for i, kind in { "Regular", "Legendary" } do
 		local accent = kind == "Regular" and C.Sky or C.Sun
 		local have = p.scrolls[kind] or 0
-		local r = Ui.row(shrineBody, i, accent, kind == "Regular" and "📜" or "🌟", kind .. " Scroll  ×" .. have, oddsText(kind))
+		local r = Ui.row(shrineBody, i, accent, kind == "Regular" and "🥚" or "🌟", kind .. " Egg  ×" .. have, oddsText(kind))
 		r.row.Size = UDim2.new(1, 0, 0, px(84))
 		local multiN = T.Scrolls.MultiOpen
-		Ui.setBuy(r.buy, have > 0 and "Open 1" or "None left", have > 0 and "afford" or "poor", accent)
+		Ui.setBuy(r.buy, have > 0 and "Hatch 1" or "None left", have > 0 and "afford" or "poor", accent)
 		-- second button: open ten at once
 		local ten = r.buy:Clone()
 		ten.Name = "BuyTen"
 		ten.Position = UDim2.new(1, -14 - px(128) - px(10), 0.5, 0)
 		ten.Size = UDim2.fromOffset(px(112), px(44))
 		ten.Parent = r.row
-		Ui.setBuy(ten, "Open " .. multiN, have >= multiN and "afford" or "poor", C.Lilac)
+		Ui.setBuy(ten, "Hatch " .. multiN, have >= multiN and "afford" or "poor", C.Lilac)
 		for _, l in { r.title, r.blurb } do
 			l.Size = UDim2.new(1, -px(74) - px(270), l.Size.Y.Scale, l.Size.Y.Offset)
 		end
@@ -647,10 +647,10 @@ renderShrine = function()
 	do
 		local have = p.scrolls.Eclipse or 0
 		local used = p.tutorial and p.tutorial.eclipseScroll and have == 0
-		local blurb = have > 0 and "Guaranteed 5★, Light or Dark. There's only ever one." or used and "You've opened your one Eclipse Scroll." or "Finish Tamer's Journey to earn it. There's only ever one."
-		local r = Ui.row(shrineBody, 3, C.Lilac, "🌑", "Eclipse Scroll  ×" .. have, blurb)
+		local blurb = have > 0 and "Guaranteed 5★, Light or Dark. There's only ever one." or used and "You've hatched your one Eclipse Egg." or "Finish Tamer's Journey to earn it. There's only ever one."
+		local r = Ui.row(shrineBody, 3, C.Lilac, "🌑", "Eclipse Egg  ×" .. have, blurb)
 		r.row.Size = UDim2.new(1, 0, 0, px(84))
-		Ui.setBuy(r.buy, have > 0 and "Open" or used and "Opened" or "Locked", have > 0 and "afford" or "poor", C.Lilac)
+		Ui.setBuy(r.buy, have > 0 and "Hatch" or used and "Hatched" or "Locked", have > 0 and "afford" or "poor", C.Lilac)
 		r.buy.Activated:Connect(function()
 			if (Ui.profile.scrolls.Eclipse or 0) > 0 then
 				doSummon("Eclipse", 1)
@@ -661,7 +661,7 @@ renderShrine = function()
 	do
 		local SE = Config.Sealed
 		local sealed = p.sealed or { bag = {}, slots = {} }
-		Ui.section(shrineBody, 4, "MYSTERY EGGS  ·  hatch them here, then open them")
+		Ui.section(shrineBody, 4, "MYSTERY NESTS  ·  warm them here, then collect the eggs")
 		local slotRow = new("Frame", { LayoutOrder = 5, Size = UDim2.new(1, 0, 0, px(86)), BackgroundTransparency = 1, ZIndex = 12, Parent = shrineBody }, {
 			new("UIListLayout", { FillDirection = Enum.FillDirection.Horizontal, Padding = UDim.new(0, 10), SortOrder = Enum.SortOrder.LayoutOrder }),
 		})
@@ -675,13 +675,13 @@ renderShrine = function()
 				local t = SE.Tiers[sl.tier]
 				local endsAt = sl.start + t.Minutes * 60
 				cell.BackgroundColor3 = Ui.Theme.tint(t.Color, 0.82)
-				label(cell, { Position = UDim2.fromOffset(px(12), px(8)), Size = UDim2.new(1, -px(24), 0, px(20)), Text = "📜 " .. t.Name, TextSize = px(16), TextXAlignment = Enum.TextXAlignment.Left }, "Title")
+				label(cell, { Position = UDim2.fromOffset(px(12), px(8)), Size = UDim2.new(1, -px(24), 0, px(20)), Text = "🥚 " .. t.Name, TextSize = px(16), TextXAlignment = Enum.TextXAlignment.Left }, "Title")
 				if endsAt <= now then
 					local claim = pill(cell, { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.new(0.5, 0, 1, -px(8)), Size = UDim2.new(1, -px(24), 0, px(36)), Text = "Open!" }, C.Mint)
 					claim.Activated:Connect(function()
 						local ok, _, res = Ui.call("Sealed", "claim", i)
 						if ok and res then
-							Ui.toast(string.format("%s opened: %s", t.Name, res.legendary > 0 and "a Legendary scroll! 🌟" or (res.regular .. " Regular scroll" .. (res.regular > 1 and "s" or ""))), "good")
+							Ui.toast(string.format("%s opened: %s", t.Name, res.legendary > 0 and "a Legendary Egg! 🌟" or (res.regular .. " Regular Egg" .. (res.regular > 1 and "s" or ""))), "good")
 						end
 					end)
 				else
@@ -703,22 +703,22 @@ renderShrine = function()
 			if n > 0 then
 				any = true
 				local t = SE.Tiers[tier]
-				local b = pill(bag, { LayoutOrder = oi, Size = UDim2.fromOffset(px(200), px(40)), Text = string.format("%s ×%d · Hatch (%dm)", t.Name, n, t.Minutes) }, t.Color)
+				local b = pill(bag, { LayoutOrder = oi, Size = UDim2.fromOffset(px(200), px(40)), Text = string.format("%s ×%d · Warm (%dm)", t.Name, n, t.Minutes) }, t.Color)
 				b.Activated:Connect(function()
 					Ui.call("Sealed", "attune", tier)
 				end)
 			end
 		end
 		if not any then
-			label(bag, { LayoutOrder = 1, Size = UDim2.new(1, 0, 1, 0), Text = "No mystery eggs. Elites, bosses and Wandering Legends drop them.", TextColor3 = C.Sub, TextSize = px(14) }, "Bold")
+			label(bag, { LayoutOrder = 1, Size = UDim2.new(1, 0, 1, 0), Text = "No mystery nests. Elites, bosses and Wandering Legends drop them.", TextColor3 = C.Sub, TextSize = px(14) }, "Bold")
 		end
 	end
 	Ui.section(shrineBody, 7, "PITY")
 	local four = T.Scrolls.PityFourStar - (p.pity.four or 0)
 	local ld = T.Scrolls.PityLightDark - (p.pity.ld or 0)
-	label(shrineBody, { LayoutOrder = 8, Size = UDim2.new(1, 0, 0, px(40)), Text = string.format("A 4★ or better is guaranteed within %d Regular scrolls.\nA 1-3★ Light or Dark monster is guaranteed within %d scrolls.", four, ld), TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
-	Ui.section(shrineBody, 9, "WHERE SCROLLS COME FROM")
-	label(shrineBody, { LayoutOrder = 10, Size = UDim2.new(1, 0, 0, px(40)), Text = "Wild monsters sometimes drop Regular scrolls (elites often). Bosses always drop 3, sometimes a Legendary. Every daily quest gives Regular scrolls, and so does your login streak.", TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
+	label(shrineBody, { LayoutOrder = 8, Size = UDim2.new(1, 0, 0, px(40)), Text = string.format("A 4★ or better is guaranteed within %d Regular Eggs.\nA 1-3★ Light or Dark monster is guaranteed within %d eggs.", four, ld), TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
+	Ui.section(shrineBody, 9, "WHERE EGGS COME FROM")
+	label(shrineBody, { LayoutOrder = 10, Size = UDim2.new(1, 0, 0, px(40)), Text = "Wild monsters sometimes drop Regular Eggs (elites often). Bosses always drop 3, sometimes a Legendary. Every daily quest gives Regular Eggs, and so does your login streak.", TextColor3 = C.Sub, TextSize = px(14), TextWrapped = true, TextYAlignment = Enum.TextYAlignment.Top }, "Bold")
 end
 Ui.onOpen.Shrine = renderShrine
 
@@ -805,7 +805,7 @@ Ui.onOpen.Index = function()
 	for _ in p.found or {} do
 		nFound += 1
 	end
-	Ui.section(indexBody, -6, string.format("DISCOVERIES  ·  %d / %d  ·  find them all for a Legendary scroll", nFound, #Disc.List))
+	Ui.section(indexBody, -6, string.format("DISCOVERIES  ·  %d / %d  ·  find them all for a Legendary Egg", nFound, #Disc.List))
 	local dgrid = new("Frame", { LayoutOrder = -5, Size = UDim2.new(1, 0, 0, 0), AutomaticSize = Enum.AutomaticSize.Y, BackgroundTransparency = 1, ZIndex = 12, Parent = indexBody }, {
 		new("UIGridLayout", { CellSize = UDim2.fromOffset(px(250), px(46)), CellPadding = UDim2.fromOffset(8, 8), SortOrder = Enum.SortOrder.LayoutOrder }),
 	})
@@ -829,7 +829,7 @@ Ui.onOpen.Index = function()
 			table.insert(parts, "💰" .. Ui.fmt(m.coins))
 		end
 		if m.scrolls then
-			table.insert(parts, "📜" .. m.scrolls)
+			table.insert(parts, "🥚" .. m.scrolls)
 		end
 		if m.legendary then
 			table.insert(parts, "🌟" .. m.legendary)
@@ -846,7 +846,7 @@ Ui.onOpen.Index = function()
 			end
 		end)
 	end
-	label(indexBody, { LayoutOrder = -1, Size = UDim2.new(1, 0, 0, px(20)), Text = "Find all 5 elements of a species for a 🌟 Legendary scroll.", TextColor3 = C.Sub, TextSize = px(13) }, "Bold")
+	label(indexBody, { LayoutOrder = -1, Size = UDim2.new(1, 0, 0, px(20)), Text = "Find all 5 elements of a species for a 🌟 Legendary Egg.", TextColor3 = C.Sub, TextSize = px(13) }, "Bold")
 	local lastStars = 0
 	for i, sp in list do
 		if sp.Stars ~= lastStars then
@@ -905,7 +905,7 @@ Ui.onOpen.Quests = function()
 	local day, ready = Config.streakPreview(p, Config.today())
 	local streakR = Config.streakReward(day)
 	local sc = Config.streakScrolls(day)
-	local sr = Ui.row(questBody, 1, C.Sun, "🔥", "Login streak · day " .. day, ready and string.format("Today's reward: %s coins%s", Ui.fmt(streakR), sc > 0 and string.format(" + %d 📜", sc) or "") or "Come back tomorrow for the next day")
+	local sr = Ui.row(questBody, 1, C.Sun, "🔥", "Login streak · day " .. day, ready and string.format("Today's reward: %s coins%s", Ui.fmt(streakR), sc > 0 and string.format(" + %d 🥚", sc) or "") or "Come back tomorrow for the next day")
 	Ui.setBuy(sr.buy, ready and "Claim" or "Claimed", ready and "afford" or "done", C.Sun)
 	sr.buy.Activated:Connect(function()
 		if ready then
@@ -918,7 +918,7 @@ Ui.onOpen.Quests = function()
 	local all = #p.daily.quests > 0
 	for i, q in p.daily.quests do
 		local def = Config.questDef(q.k)
-		local r = Ui.row(questBody, 2 + i, C.Sky, def and def.Icon or "•", Config.questText(q.k, q.n), string.format("%d / %d  ·  %s coins + %d 📜", math.min(q.p, q.n), q.n, Ui.fmt(Config.questReward(p, q.t)), Config.questScrolls(q.t)))
+		local r = Ui.row(questBody, 2 + i, C.Sky, def and def.Icon or "•", Config.questText(q.k, q.n), string.format("%d / %d  ·  %s coins + %d 🥚", math.min(q.p, q.n), q.n, Ui.fmt(Config.questReward(p, q.t)), Config.questScrolls(q.t)))
 		local done = q.p >= q.n
 		if not q.c then
 			all = false
@@ -932,7 +932,7 @@ Ui.onOpen.Quests = function()
 			end
 		end)
 	end
-	local br = Ui.row(questBody, 10, C.Mint, "★", "All three done", "Bonus: " .. Ui.fmt(Config.questBonus(p)) .. " coins + " .. T.Quests.AllBonusScrolls .. " 📜")
+	local br = Ui.row(questBody, 10, C.Mint, "★", "All three done", "Bonus: " .. Ui.fmt(Config.questBonus(p)) .. " coins + " .. T.Quests.AllBonusScrolls .. " 🥚")
 	Ui.setBuy(br.buy, p.daily.bonus and "Claimed" or all and "Claim" or "Locked", p.daily.bonus and "done" or all and "afford" or "poor", C.Mint)
 	br.buy.Activated:Connect(function()
 		if all and not p.daily.bonus then

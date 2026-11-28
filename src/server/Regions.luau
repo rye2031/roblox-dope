@@ -607,7 +607,7 @@ local function onBossDefeated(player: Player, u)
 		p.bosses[region] = true
 		p.scrolls.Legendary += 1
 		p.coins += 500
-		remotes.Toast:FireClient(player, `First clear: {Regions.Info[region].Boss.title}! +1 Legendary scroll, +500 coins`, "good")
+		remotes.Toast:FireClient(player, `First clear: {Regions.Info[region].Boss.title}! +1 Legendary Egg, +500 coins`, "good")
 		PlayerData.saveSoon(player)
 		task.defer(Regions.applyPass, player)
 	end

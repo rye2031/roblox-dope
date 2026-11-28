@@ -130,10 +130,10 @@ function Landmarks.start()
 		if typeof(msg) ~= "table" then
 			return
 		end
-		Ui.toast(string.format("🔍 Discovery: %s! +%d 💰 +%d 📜  (%d/%d)", msg.name, msg.coins, msg.scrolls, msg.n, msg.total), "good")
+		Ui.toast(string.format("🔍 Discovery: %s! +%d 💰 +%d 🥚  (%d/%d)", msg.name, msg.coins, msg.scrolls, msg.n, msg.total), "good")
 		Sfx.play("reveal_rare")
 		if msg.all then
-			task.delay(1.5, Ui.toast, "🌟 You found every discovery! +1 Legendary scroll", "good")
+			task.delay(1.5, Ui.toast, "🌟 You found every discovery! +1 Legendary Egg", "good")
 		end
 	end)
 end
