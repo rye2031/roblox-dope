@@ -1989,5 +1989,65 @@
     "files": [
       "art/meshy/models/phoenara/model.glb"
     ]
+  },
+  {
+    "name": "egg_regular",
+    "kind": "text-to-image",
+    "task_id": "01a21ff6-e61c-7367-b0a8-d805e3840f19",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/egg_regular.png"
+    ]
+  },
+  {
+    "name": "egg_legendary",
+    "kind": "text-to-image",
+    "task_id": "01a21ff6-eb17-7722-8c2e-1b12abc84b75",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/egg_legendary.png"
+    ]
+  },
+  {
+    "name": "egg_eclipse",
+    "kind": "text-to-image",
+    "task_id": "01a21ff6-efef-7775-bfe6-7e8a329e3fb3",
+    "credits": 6,
+    "files": [
+      "art/meshy/props/egg_eclipse.png"
+    ]
+  },
+  {
+    "name": "egg_regular",
+    "kind": "image-to-3d",
+    "task_id": "01a21ff7-f111-762c-b847-4f5c08d2115d",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/egg_regular/model.glb",
+      "art/meshy/props/models/egg_regular/model_base_color.png",
+      "art/meshy/props/models/egg_regular/thumb.png"
+    ]
+  },
+  {
+    "name": "egg_legendary",
+    "kind": "image-to-3d",
+    "task_id": "01a21ff7-f60e-7223-a3aa-2869fd58116c",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/egg_legendary/model.glb",
+      "art/meshy/props/models/egg_legendary/model_base_color.png",
+      "art/meshy/props/models/egg_legendary/thumb.png"
+    ]
+  },
+  {
+    "name": "egg_eclipse",
+    "kind": "image-to-3d",
+    "task_id": "01a21ff7-fd8a-7773-9d8a-40dd99280174",
+    "credits": 30,
+    "files": [
+      "art/meshy/props/models/egg_eclipse/model.glb",
+      "art/meshy/props/models/egg_eclipse/model_base_color.png",
+      "art/meshy/props/models/egg_eclipse/thumb.png"
+    ]
   }
 ]

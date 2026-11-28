@@ -1,7 +1,8 @@
 -- Summon reveal screens.
---   Single: an egg drops in glowing its rarity colour (it was a scroll before 2026-11-27) (a 5★ starts purple and
---   "upgrades" to gold), shakes, unrolls with light rays behind it, then bursts into the
---   monster's card while the stars pop in one by one. 4★/5★ get lightning strikes.
+--   Single: the egg (a 3D Meshy model: Regular, Legendary or Eclipse) drops in and bounces,
+--   wobbles harder while cracks spread (a 5★ glows purple, then "upgrades" to gold), swells and
+--   bursts into shell pieces and the monster's card while the stars pop in. 4★/5★ get
+--   lightning strikes.
 --   Ten: ten sealed cards fly into a 5×2 grid and flip one at a time; before a 4★ or 5★ card
 --   flips, lightning cracks down onto it with a flash and a screen shake.
 -- Click (or press Space) to skip ahead. Buttons call back into the Shrine panel.
@@ -16,6 +17,7 @@ local Config = require(Shared.Config)
 local Monsters = require(Shared.Monsters)
 local Ui = require(script.Parent.Ui)
 local Sfx = require(script.Parent.Sfx)
+local MeshLoader = require(Shared.MeshLoader)
 
 local C = Ui.C
 local px = Ui.px
@@ -73,6 +75,12 @@ end
 local function clearAll()
 	for _, f in { stage, fxLayer } do
 		for _, c in f:GetChildren() do
+			c:Destroy()
+		end
+	end
+	-- the 3D hatch egg lives in workspace
+	for _, c in workspace:GetChildren() do
+		if c.Name == "HatchEgg" then
 			c:Destroy()
 		end
 	end
@@ -312,74 +320,177 @@ local function single(res, h: Handlers)
 	clearAll()
 	gui.Enabled = true
 	dim.BackgroundTransparency = 1
-	tween(dim, 0.25, { BackgroundTransparency = 0.2 })
+	-- the egg is in the 3D world, so the screen only dims lightly until it bursts
+	tween(dim, 0.25, { BackgroundTransparency = 0.55 })
 	local vp = workspace.CurrentCamera.ViewportSize
-	local centre = Vector2.new(vp.X / 2, vp.Y * 0.44)
+	local centre = Vector2.new(vp.X / 2, vp.Y * 0.5)
 	local rc = RARITY[res.stars] or RARITY[1]
 	local high = res.stars >= 4
 
-	-- the egg (2026-11-27: summoning scrolls are eggs now): a round bottom and a narrower top
-	-- that splits off when it hatches, spots in the rarity colour
-	local scroll = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(centre.X, -px(200)), Size = UDim2.fromOffset(px(150), px(190)), BackgroundTransparency = 1, ZIndex = 10, Parent = stage })
+	-- the egg: the real Meshy egg for that kind (Regular / Legendary / Eclipse) in a ViewportFrame.
+	-- It drops in, wobbles harder and harder while cracks spread over the shell, then bursts
+	-- into shell pieces and the monster's card (owner, 2026-11-27).
 	local tease = res.stars == 5 and RARITY[4] or rc
-	local SHELL = Color3.fromRGB(252, 246, 232)
-	local bot = new("Frame", { AnchorPoint = Vector2.new(0.5, 1), Position = UDim2.fromScale(0.5, 1), Size = UDim2.fromScale(1, 0.8), BackgroundColor3 = SHELL, ZIndex = 11, Parent = scroll }, {
-		new("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
-		new("UIAspectRatioConstraint", { AspectRatio = 1 }),
-	})
-	local glowStroke = new("UIStroke", { Color = tease, Thickness = 3, Parent = bot })
-	local top = new("Frame", { AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.fromScale(0.5, 0), Size = UDim2.fromScale(0.8, 0.8), BackgroundColor3 = SHELL, ZIndex = 12, Parent = scroll }, {
-		new("UICorner", { CornerRadius = UDim.new(0.5, 0) }),
-		new("UIAspectRatioConstraint", { AspectRatio = 1 }),
-	})
-	local paper = top
-	for _, s in { { 0.3, 0.3, 0.22 }, { 0.68, 0.22, 0.16 }, { 0.5, 0.5, 0.14 } } do
-		new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(s[1], s[2]), Size = UDim2.fromScale(s[3], s[3]), BackgroundColor3 = tease, ZIndex = 13, Parent = top }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	local EGGS = { Regular = "EggRegular", Legendary = "EggLegendary", Eclipse = "EggEclipse" }
+	local SHELL = { Regular = Color3.fromRGB(240, 246, 250), Legendary = Color3.fromRGB(255, 186, 70), Eclipse = Color3.fromRGB(140, 104, 214) }
+	local eggKind = EGGS[res.kind] and res.kind or "Regular"
+	local meshName = EGGS[eggKind]
+	-- the egg lives in the real 3D world, just in front of the camera (ViewportFrames don't show
+	-- the runtime EditableImage texture, so the egg looked like a flat blob there)
+	local scroll = Instance.new("Folder")
+	scroll.Name = "HatchEgg"
+	scroll.Parent = workspace
+	local world = scroll
+	local wcam = workspace.CurrentCamera
+	local function anchorCF(): CFrame
+		-- 12 studs ahead of the camera, a little below centre, facing it
+		local cf = wcam.CFrame
+		local at = cf.Position + cf.LookVector * 10
+		return CFrame.lookAt(at, at + Vector3.new(cf.LookVector.X, 0, cf.LookVector.Z) * -1)
 	end
-	local seal = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.36, 0.55), Size = UDim2.fromScale(0.2, 0.2), BackgroundColor3 = tease, ZIndex = 13, Parent = bot }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
-	new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.7, 0.42), Size = UDim2.fromScale(0.14, 0.14), BackgroundColor3 = tease, ZIndex = 13, Parent = bot }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
+	local backdrop = Instance.new("Part")
+	backdrop.Anchored = true
+	backdrop.CanCollide = false
+	backdrop.CanQuery = false
+	backdrop.CastShadow = false
+	backdrop.Transparency = 1
+	backdrop.Size = Vector3.new(1, 1, 1)
+	backdrop.Parent = scroll
+	local light = Instance.new("PointLight")
+	light.Brightness = 1.2
+	light.Range = 14
+	light.Color = Color3.new(1, 1, 1)
+	light.Parent = backdrop
+	local egg: BasePart? = MeshLoader.get(meshName, 4.4)
+	local released = false
+	local function release()
+		if not released then
+			released = true
+			if egg and egg:IsA("MeshPart") then
+				MeshLoader.release(meshName)
+			end
+		end
+	end
+	if not egg then
+		local ball = Instance.new("Part")
+		ball.Shape = Enum.PartType.Ball
+		ball.Size = Vector3.new(3.4, 4.4, 3.4)
+		ball.Color = SHELL[eggKind]
+		ball.Material = Enum.Material.SmoothPlastic
+		egg = ball
+		released = true
+	end
+	local e = egg :: BasePart
+	e.Anchored = true
+	e.Parent = world
+	local baseSize = e.Size
+	local st = { lift = 9, tilt = 0, scale = 1, spin = 0.5 }
+	local liftV, tiltV, scaleV = Instance.new("NumberValue"), Instance.new("NumberValue"), Instance.new("NumberValue")
+	liftV.Value, tiltV.Value, scaleV.Value = 9, 0, 1
+	local base = anchorCF()
+	backdrop.CFrame = base * CFrame.new(0, 1, 4)
+	-- floating world labels draw over 3D: hide them while the egg is up
+	local hidden = {}
+	for _, d in workspace:GetDescendants() do
+		if d:IsA("BillboardGui") and d.Enabled then
+			d.Enabled = false
+			table.insert(hidden, d)
+		end
+	end
+	scroll.Destroying:Connect(function()
+		for _, d in hidden do
+			if d.Parent then
+				d.Enabled = true
+			end
+		end
+	end)
+	-- the rarity glow is a disc behind the egg in 3D (a 2D halo drew over the egg), and it hides
+	-- world labels behind it
+	local glow = Instance.new("Part")
+	glow.Shape = Enum.PartType.Cylinder
+	glow.Anchored = true
+	glow.CanCollide = false
+	glow.CanQuery = false
+	glow.CastShadow = false
+	glow.Material = Enum.Material.Neon
+	glow.Color = tease
+	glow.Transparency = 0.45
+	glow.Size = Vector3.new(0.2, 0.5, 0.5)
+	glow.CFrame = base * CFrame.new(0, 0, 3) * CFrame.Angles(0, math.rad(90), 0) -- behind the egg (base faces the camera)
+	glow.Parent = scroll
+	TweenService:Create(glow, TweenInfo.new(0.6, Enum.EasingStyle.Back), { Size = Vector3.new(0.2, 7.5, 7.5) }):Play()
+	local conn = RunService.RenderStepped:Connect(function(dt)
+		st.spin += dt * 0.5
+		local k = scaleV.Value
+		e.Size = baseSize * k
+		e.CFrame = base * CFrame.new(0, liftV.Value - 2.2, 0) * CFrame.Angles(0, 0, math.rad(tiltV.Value)) * CFrame.new(0, e.Size.Y / 2, 0) * CFrame.Angles(0, st.spin, 0)
+	end)
+	scroll.Destroying:Connect(function()
+		conn:Disconnect()
+		release()
+	end)
+	-- cracks: zigzag lines over the shell
+	local cracks = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(centre.X, centre.Y), Size = UDim2.fromOffset(px(130), px(170)), BackgroundTransparency = 1, ZIndex = 11, Parent = stage })
+	local function crack(n: number)
+		local rnd = Random.new(n * 31 + res.stars)
+		local x, y = rnd:NextNumber(0.25, 0.75), rnd:NextNumber(0.25, 0.7)
+		for _ = 1, 4 do
+			local len = rnd:NextNumber(0.1, 0.2)
+			local ang = rnd:NextNumber(-70, 70) + (rnd:NextNumber() < 0.5 and 0 or 180)
+			local seg = new("Frame", { AnchorPoint = Vector2.new(0, 0.5), Position = UDim2.fromScale(x, y), Size = UDim2.new(len, 0, 0, px(3)), Rotation = ang, BackgroundColor3 = Color3.fromRGB(70, 50, 40), BorderSizePixel = 0, ZIndex = 12, Parent = cracks })
+			new("UIStroke", { Color = Color3.new(1, 1, 1), Thickness = 1, Transparency = 0.3, Parent = seg })
+			x += math.cos(math.rad(ang)) * len * 0.8
+			y += math.sin(math.rad(ang)) * len * 0.8 * 0.8
+		end
+		Sfx.play("hit", { pitch = 1.4 + n * 0.1 })
+	end
 	local halo = new("Frame", { AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromOffset(centre.X, centre.Y), Size = UDim2.fromOffset(px(60), px(60)), BackgroundColor3 = tease, BackgroundTransparency = 1, ZIndex = 5, Parent = stage }, { new("UICorner", { CornerRadius = UDim.new(0.5, 0) }) })
 
 	task.spawn(function()
-		-- 1) drop in and wobble
-		tween(scroll, 0.45, { Position = UDim2.fromOffset(centre.X, centre.Y) }, Enum.EasingStyle.Back)
-		tween(halo, 0.6, { Size = UDim2.fromOffset(px(300), px(300)), BackgroundTransparency = 0.7 })
-		if not pause(0.45, my) then
+		-- 1) the egg drops in and bounces
+		TweenService:Create(liftV, TweenInfo.new(0.6, Enum.EasingStyle.Bounce), { Value = 0 }):Play()
+		-- (the 2D halo stays hidden while the 3D egg is up)
+		if not pause(0.55, my) then
 			return
 		end
 		Sfx.play("scroll_land")
-		Sfx.play("rattle", { pitch = high and 1.1 or 1 })
-		for i = 1, (high and 5 or 3) do
+		-- 2) it wobbles, harder each time, and cracks spread
+		local sets = high and 3 or 2
+		for set = 1, sets do
 			if skipping then
 				break
 			end
-			tween(scroll, 0.07, { Rotation = (i % 2 == 0 and -1 or 1) * (high and 9 or 6) })
-			if not pause(0.07, my) then
+			Sfx.play("rattle", { pitch = 1 + set * 0.08 })
+			local amp = 8 + set * 5
+			for i = 1, 4 do
+				TweenService:Create(tiltV, TweenInfo.new(0.07), { Value = (i % 2 == 0 and -1 or 1) * amp }):Play()
+				if not pause(0.07, my) then
+					return
+				end
+			end
+			TweenService:Create(tiltV, TweenInfo.new(0.08), { Value = 0 }):Play()
+			crack(set)
+			if not pause(0.28, my) then
 				return
 			end
 		end
-		scroll.Rotation = 0
-		-- 2) a 5★ "upgrades": purple glow turns gold with a crack of lightning
+		-- 3) a 5★ "upgrades": purple glow turns gold with a crack of lightning
 		if res.stars == 5 and not skipping then
 			lightning(centre, RARITY[5], 1.2)
 			flash(RARITY[5], 0.55)
 			shake(px(14), 0.35)
-			glowStroke.Color = rc
-			seal.BackgroundColor3 = rc
 			halo.BackgroundColor3 = rc
+			glow.Color = rc
+			crack(4)
 			if not pause(0.35, my) then
 				return
 			end
 		end
-		-- 3) the egg cracks open with rays: the top pops off and spins away
+		-- 4) the shell swells and bursts into pieces
 		local rayH = rays(stage, UDim2.fromOffset(centre.X, centre.Y), px(high and 620 or 460), rc, 4, high and 16 or 10)
 		rayH.BackgroundTransparency = 1
-		tween(scroll, 0.35, { Size = UDim2.fromOffset(px(190), px(240)) }, Enum.EasingStyle.Quart)
-		tween(top, 0.4, { Position = UDim2.new(0.5, px(40), 0, -px(120)), Rotation = 35 }, Enum.EasingStyle.Quart)
-		tween(paper, 0.4, { BackgroundTransparency = 0.4 })
-		tween(seal, 0.2, { Size = UDim2.fromOffset(0, 0) })
+		TweenService:Create(scaleV, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), { Value = 1.18 }):Play()
 		Sfx.play("unroll", { pitch = 1.3 })
-		tween(glowStroke, 0.35, { Thickness = 8 })
 		if high and not skipping then
 			task.delay(0.15, function()
 				if token == my then
@@ -389,13 +500,41 @@ local function single(res, h: Handlers)
 				end
 			end)
 		end
-		if not pause(0.5, my) then
+		if not pause(0.32, my) then
 			return
 		end
-		-- 4) burst into the card
 		flash(Color3.new(1, 1, 1), high and 0.9 or 0.6)
+		tween(dim, 0.3, { BackgroundTransparency = 0.2 })
 		Sfx.play(res.stars >= 5 and "reveal_legend" or res.stars == 4 and "reveal_rare" or "reveal", { pitch = res.stars == 3 and 1.12 or 1, vary = 0 })
-		scroll:Destroy()
+		-- shell pieces fly out of the viewport while the card appears
+		e.Transparency = 1
+		cracks:Destroy()
+		local shards = {}
+		for i = 1, 14 do
+			local w = Instance.new("WedgePart")
+			w.Size = Vector3.new(0.25, math.random(6, 12) / 10, math.random(6, 12) / 10)
+			w.Color = SHELL[eggKind]:Lerp(Color3.new(1, 1, 1), math.random() * 0.3)
+			w.Material = Enum.Material.SmoothPlastic
+			w.Anchored = true
+			local a = i / 14 * math.pi * 2
+			w.CFrame = base * CFrame.new(math.cos(a) * 1.2, math.sin(a * 2) * 1.2, math.sin(a) * 1.2)
+			w.Parent = world
+			table.insert(shards, { part = w, v = base:VectorToWorldSpace(Vector3.new(math.cos(a) * 9, 6 + math.random() * 6, math.sin(a) * 6 + 3)), r = Vector3.new(math.random() * 8, math.random() * 8, math.random() * 8) })
+		end
+		local t0 = os.clock()
+		local sc2 = RunService.RenderStepped:Connect(function(dt)
+			for _, sh in shards do
+				sh.v -= Vector3.new(0, 28 * dt, 0)
+				sh.part.CFrame = (sh.part.CFrame + sh.v * dt) * CFrame.Angles(sh.r.X * dt, sh.r.Y * dt, sh.r.Z * dt)
+				sh.part.Transparency = math.clamp((os.clock() - t0) / 0.7, 0, 1)
+			end
+		end)
+		task.delay(0.75, function()
+			sc2:Disconnect()
+			if scroll.Parent then
+				scroll:Destroy()
+			end
+		end)
 		tween(halo, 0.4, { Size = UDim2.fromOffset(px(520), px(520)), BackgroundTransparency = 0.85 })
 		local card, starRow = monsterCard(stage, res, px(300), 10)
 		card.Position = UDim2.fromOffset(centre.X, centre.Y)

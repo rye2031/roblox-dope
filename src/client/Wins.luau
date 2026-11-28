@@ -107,6 +107,11 @@ function Wins.dailyGift()
 	if not player:GetAttribute("StreakReady") then
 		return
 	end
+	-- never on top of a hatch or the dream
+	local SummonReveal = require(script.Parent.SummonReveal)
+	while SummonReveal.isOpen() or player:GetAttribute("InIntro") do
+		task.wait(1)
+	end
 	local card = Ui.card({ AnchorPoint = Vector2.new(0.5, 0.5), Position = UDim2.fromScale(0.5, 0.45), Size = UDim2.fromOffset(px(360), px(250)), ZIndex = 20, Parent = gui }, 26)
 	Ui.stroke(C.Sun, 4).Parent = card
 	local box = Ui.text({ AnchorPoint = Vector2.new(0.5, 0), Position = UDim2.new(0.5, 0, 0, px(16)), Size = UDim2.fromOffset(px(110), px(110)), BackgroundTransparency = 1, TextScaled = true, Text = "🎁", ZIndex = 21, Parent = card }, "Title")
